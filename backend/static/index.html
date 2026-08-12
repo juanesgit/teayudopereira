@@ -1708,10 +1708,11 @@
             📞 Llamar — <span x-text="volunteerModal.phone"></span>
           </a>
         </template>
-        <div x-show="!volunteerModal.phone"
-          class="text-center text-sm text-gray-400 bg-gray-50 rounded-xl py-3 mb-3">
-          Sin teléfono registrado
-        </div>
+        <template x-if="!volunteerModal.phone">
+          <div class="text-center text-sm text-gray-400 bg-gray-50 rounded-xl py-3 mb-3">
+            Sin teléfono registrado
+          </div>
+        </template>
 
         <button @click="volunteerModal=null"
           class="w-full text-gray-400 text-sm bg-transparent border-none cursor-pointer py-2">
@@ -2092,6 +2093,7 @@ function app() {
       if (!navigator.geolocation) return
       this.neighborhoodDetecting = true
       this.neighborhoodDetected = false
+      const self = this
       navigator.geolocation.getCurrentPosition(
         async pos => {
           try {
@@ -2103,15 +2105,16 @@ function app() {
             const data = await res.json()
             if (data?.address) {
               const a = data.address
-              // Prioridad: barrio > suburbio > municipio
               const neighborhood = a.neighbourhood || a.suburb || a.quarter || a.municipality || a.town || a.city || ''
-              this.registerForm.neighborhood = neighborhood.toUpperCase()
-              this.neighborhoodDetected = true
+              if (neighborhood) {
+                self.registerForm.neighborhood = neighborhood
+                self.neighborhoodDetected = true
+              }
             }
           } catch(e) { console.warn('Error detectando barrio', e) }
-          this.neighborhoodDetecting = false
+          self.neighborhoodDetecting = false
         },
-        () => { this.neighborhoodDetecting = false },
+        () => { self.neighborhoodDetecting = false },
         { enableHighAccuracy: true, timeout: 8000 }
       )
     },
