@@ -1591,7 +1591,7 @@ function app() {
       if (!el) return
       if (this.reportMap) {
         // Ya existe — solo recentrar y mover marcador
-        this.reportMap.setView([lat, lng], 16)
+        setTimeout(() => { this.reportMap.invalidateSize(); this.reportMap.setView([lat, lng], 16) }, 200)
         if (this.reportMarker) this.reportMarker.setLatLng([lat, lng])
         else this.reportMarker = L.marker([lat, lng], { draggable: true }).addTo(this.reportMap)
         this.reportMarker.on('dragend', (e) => {
@@ -1605,6 +1605,7 @@ function app() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(this.reportMap)
+      setTimeout(() => this.reportMap.invalidateSize(), 200)
 
       // Marcador arrastrable
       this.reportMarker = L.marker([lat, lng], { draggable: true }).addTo(this.reportMap)
