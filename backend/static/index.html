@@ -2843,7 +2843,11 @@ function app() {
         const res = await fetch('/users/me', { headers: this.authHeaders() })
         if (res.ok) {
           this.user = await res.json()
-          this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          if (this.user.role === 'admin') {
+            this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
+          } else {
+            this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          }
         } else {
           this.token=null; localStorage.removeItem('pa_token')
         }
@@ -3024,6 +3028,7 @@ function app() {
     async sendAdminSms() {
       this.adminSms.loading = true
       this.adminSms.result = ''
+      this.adminSms.error = false
       try {
         const phones = this.adminSms.phones.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean)
         const res = await fetch('/admin/sms/send', {
@@ -3034,19 +3039,21 @@ function app() {
         const data = await res.json()
         this.adminSms.error = !data.ok
         this.adminSms.result = data.ok
-          ? `✅ SMS enviado a ${data.recipients} número(s)`
+          ? `✅ SMS en envío — ${data.recipients} número(s)`
           : `❌ ${data.message}`
         if (data.ok) { this.adminSms.phones = ''; this.adminSms.message = '' }
       } catch(e) {
         this.adminSms.error = true
         this.adminSms.result = '❌ Error de conexión'
+      } finally {
+        this.adminSms.loading = false
       }
-      this.adminSms.loading = false
     },
 
     async sendBroadcast() {
       this.adminBroadcast.loading = true
       this.adminBroadcast.result = ''
+      this.adminBroadcast.error = false
       try {
         const res = await fetch('/admin/sms/broadcast', {
           method: 'POST',
@@ -3056,14 +3063,15 @@ function app() {
         const data = await res.json()
         this.adminBroadcast.error = !data.ok
         this.adminBroadcast.result = data.ok
-          ? `✅ Broadcast enviado a ${data.recipients} voluntario(s)`
+          ? `✅ Broadcast en envío — ${data.recipients} destinatario(s)`
           : `❌ ${data.message}`
         if (data.ok) this.adminBroadcast.message = ''
       } catch(e) {
         this.adminBroadcast.error = true
         this.adminBroadcast.result = '❌ Error de conexión'
+      } finally {
+        this.adminBroadcast.loading = false
       }
-      this.adminBroadcast.loading = false
     },
 
     // Distancia Haversine en km entre el pin de acción del user y un reporte
