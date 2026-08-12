@@ -37,6 +37,14 @@
       width: 100%; max-height: 90vh; overflow-y: auto;
       padding: 24px 20px 40px;
     }
+    @keyframes pulse-banner {
+      0%, 100% { opacity: 1; background-color: #1e3a5f; }
+      50% { opacity: 0.85; background-color: #2563eb; }
+    }
+    @keyframes flash-marker {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.5); filter: brightness(1.4); }
+    }
   </style>
 </head>
 
@@ -106,6 +114,17 @@
           :style="filters.dangerZones ? 'background:#ea580c;color:white' : 'background:#f3f4f6;color:#6b7280'"
           x-text="dangerZones.length"></span>
       </button>
+    </div>
+
+    <!-- Banner: nuevos reportes detectados -->
+    <div x-show="newReportsCount > 0"
+      @click="applyNewReports()"
+      class="flex items-center justify-between px-4 py-2 cursor-pointer flex-shrink-0"
+      style="background:#1e3a5f;color:white;animation:pulse-banner 1.5s infinite">
+      <span class="text-sm font-bold">
+        🆕 <span x-text="newReportsCount"></span> nuevo(s) reporte(s) — toca para actualizar
+      </span>
+      <span class="text-xs opacity-70">↑</span>
     </div>
 
     <!-- Mapa Leaflet: total - chips(50) - botón(80) - leyenda(36) -->
@@ -2271,6 +2290,8 @@ function app() {
       { label:'🔔 Nuevo caso urgente', text:'[TeAyudoPereira] Hay casos urgentes sin atender en tu zona. Ingresa al panel de voluntarios: teayudopereira.com' },
       { label:'📣 Divulga la app', text:'[TeAyudoPereira] 🙏 Necesitamos tu ayuda para ayudar más. Comparte la app con vecinos, familia y conocidos en Pereira: teayudopereira.com — Entre más personas la usen, más vidas podemos salvar juntos. ¡Gracias por ser parte!' },
     ],
+    newReportsCount: 0,
+    pendingNewReports: [],
     zoneOpen: false,
     zoneStep: 'location',
     zoneLocLoading: false,
@@ -2294,8 +2315,10 @@ function app() {
       this.$nextTick(() => this.initMap())
       // Cargar datos
       await this.loadData()
-      // Actualizar cada 30s
-      setInterval(() => this.loadData(), 30000)
+      // Registrar IDs conocidos tras carga inicial (para no notificar reportes existentes)
+      this._lastKnownReportIds = new Set(this.reports.map(r => r.id))
+      // Polling inteligente cada 15s — solo notifica si hay nuevos
+      setInterval(() => this.pollReports(), 15000)
     },
 
     async initMap() {
@@ -2323,6 +2346,54 @@ function app() {
       } catch(e) { console.warn('Error cargando datos', e) }
     },
 
+    async pollReports() {
+      try {
+        const res = await fetch('/reports/')
+        if (!res.ok) return
+        const allReports = await res.json()
+
+        // Garantizar que el Set esté inicializado
+        if (!this._lastKnownReportIds) {
+          this._lastKnownReportIds = new Set(this.reports.map(r => r.id))
+        }
+
+        const newOnes = allReports.filter(r => !this._lastKnownReportIds.has(r.id))
+
+        if (newOnes.length > 0) {
+          // Hay reportes nuevos — mostrar banner sin actualizar el mapa aún
+          this.pendingNewReports = allReports
+          this.newReportsCount = newOnes.length
+        } else {
+          // Sin nuevos reportes — actualizar estados silenciosamente si algo cambió
+          const hasChanges = allReports.some(r => {
+            const existing = this.reports.find(e => e.id === r.id)
+            return existing && existing.status !== r.status
+          })
+          if (hasChanges) {
+            this.reports = allReports
+            this.renderMarkers()
+          }
+        }
+      } catch(e) { /* fallo silencioso */ }
+    },
+
+    applyNewReports() {
+      if (!this.pendingNewReports.length) return
+      const newIds = this.pendingNewReports
+        .filter(r => !this._lastKnownReportIds.has(r.id))
+        .map(r => r.id)
+
+      this._lastKnownReportIds = new Set(this.pendingNewReports.map(r => r.id))
+      this._newMarkerIds = new Set(newIds)
+      this.reports = this.pendingNewReports
+      this.pendingNewReports = []
+      this.newReportsCount = 0
+      this.renderMarkers()
+
+      // Limpiar animación después de que termine
+      setTimeout(() => { this._newMarkerIds = null }, 3000)
+    },
+
     renderMarkers() {
       if (!this.map) return
       // Limpiar
@@ -2344,6 +2415,14 @@ function app() {
           const m = L.marker([r.lat, r.lng], { icon: icon(emoji, color) })
             .bindPopup(`<b>${emoji} ${label}</b><br>${r.description}<br><small>📍 ${r.address}</small>${badge}`)
           m.addTo(this.map)
+          // Animar marcadores nuevos
+          if (this._newMarkerIds?.has(r.id)) {
+            const el = m.getElement()
+            if (el) {
+              el.style.animation = 'flash-marker 0.5s ease-in-out 5'
+              el.style.zIndex = '1000'
+            }
+          }
           this.markers.push(m)
         })
       }
