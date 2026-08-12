@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#dc2626"/>
+  <title>Te Ayudo Pereira 🚨</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <!-- Leaflet JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.1/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+    #map { height: 100%; width: 100%; }
+    input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
+    input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
+    textarea { text-transform: uppercase; }
+    .bottom-nav-item { min-height: 44px; }
+    .hide-scroll { overflow-x: auto; scrollbar-width: none; }
+    .hide-scroll::-webkit-scrollbar { display: none; }
+    .fab {
+      position: fixed; bottom: 76px; right: 16px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #dc2626; color: white; font-size: 24px;
+      box-shadow: 0 4px 16px rgba(220,38,38,.5);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 1000; border: none;
+    }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 2000; display: flex; align-items: flex-end;
+    }
+    .modal-sheet {
+      background: white; border-radius: 20px 20px 0 0;
+      width: 100%; max-height: 90vh; overflow-y: auto;
+      padding: 24px 20px 40px;
+    }
+  </style>
+</head>
+
+<body x-data="app()" x-init="init()" x-cloak>
+
+  <!-- NAVBAR -->
+  <header class="bg-red-600 text-white px-4 flex items-center justify-between h-14 shadow-md sticky top-0 z-40">
+    <button @click="page='map'" class="font-bold text-lg flex items-center gap-2 bg-transparent border-none text-white cursor-pointer">
+      🚨 Te Ayudo Pereira
+    </button>
+    <div class="flex items-center gap-2">
+      <template x-if="!user">
+        <button @click="page='login'; authTab='login'" class="bg-white text-red-600 text-xs font-semibold rounded-full px-4 h-9 border-none cursor-pointer">
+          Soy voluntario
+        </button>
+      </template>
+      <template x-if="user">
+        <button @click="logout()" class="text-xs text-red-100 bg-white/20 rounded-full px-3 h-9 border-none cursor-pointer">
+          <span x-text="user.full_name.split(' ')[0]"></span> · Salir
+        </button>
+      </template>
+    </div>
+  </header>
+
+  <!-- PÁGINAS -->
+
+  <!-- MAPA -->
+  <div x-show="page==='map'" style="height:calc(100vh - 56px - 60px); position:relative;">
+    <!-- Chips filtro -->
+    <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
+      <button @click="filters.reports=!filters.reports"
+        class="flex-shrink-0 px-4 rounded-full border text-sm font-medium transition-colors"
+        :style="filters.reports ? 'background:#1f2937;color:white;border-color:#1f2937' : 'background:white;color:#6b7280;border-color:#e5e7eb'"
+        style="min-height:36px">
+        🆘 <span x-text="reports.length"></span>
+      </button>
+      <button @click="filters.aidPoints=!filters.aidPoints"
+        class="flex-shrink-0 px-4 rounded-full border text-sm font-medium transition-colors"
+        :style="filters.aidPoints ? 'background:#1f2937;color:white;border-color:#1f2937' : 'background:white;color:#6b7280;border-color:#e5e7eb'"
+        style="min-height:36px">
+        🤝 <span x-text="aidPoints.length"></span>
+      </button>
+      <button @click="filters.dangerZones=!filters.dangerZones"
+        class="flex-shrink-0 px-4 rounded-full border text-sm font-medium transition-colors"
+        :style="filters.dangerZones ? 'background:#1f2937;color:white;border-color:#1f2937' : 'background:white;color:#6b7280;border-color:#e5e7eb'"
+        style="min-height:36px">
+        ⚠️ <span x-text="dangerZones.length"></span>
+      </button>
+    </div>
+    <!-- Mapa Leaflet -->
+    <div id="map" style="height:calc(100% - 44px - 40px)"></div>
+    <!-- Leyenda -->
+    <div class="bg-white border-t border-gray-100 px-3 py-2 flex gap-3 hide-scroll">
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+        <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span> Emergencia
+      </div>
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+        <span class="w-4 h-4 rounded-full bg-blue-500 inline-block"></span> Albergue
+      </div>
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+        <span class="w-4 h-4 rounded-full bg-green-500 inline-block"></span> Médico
+      </div>
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+        <span class="w-4 h-4 rounded-full bg-yellow-500 inline-block"></span> Alimentos
+      </div>
+    </div>
+    <!-- FAB -->
+    <button class="fab" @click="page='report'" title="Pedir ayuda">🆘</button>
+  </div>
+
+  <!-- PEDIR AYUDA -->
+  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - 60px)">
+    <div class="max-w-lg mx-auto px-4 py-5">
+
+      <!-- STEPPER 4 pasos -->
+      <div class="flex items-center mb-6">
+        <template x-for="(s, i) in reportSteps" :key="s.id">
+          <div class="flex items-center" :class="i < reportSteps.length-1 ? 'flex-1' : ''">
+            <div class="flex flex-col items-center gap-1">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                :style="stepIndex() > i
+                  ? 'background:#16a34a;color:white'
+                  : stepIndex() === i
+                    ? 'background:#dc2626;color:white'
+                    : 'background:#e5e7eb;color:#9ca3af'">
+                <span x-show="stepIndex() > i">✓</span>
+                <span x-show="stepIndex() <= i" x-text="i+1"></span>
+              </div>
+              <span class="text-xs whitespace-nowrap"
+                :class="stepIndex() === i ? 'text-gray-900 font-semibold' : stepIndex() > i ? 'text-green-700' : 'text-gray-400'"
+                x-text="s.label"></span>
+            </div>
+            <div x-show="i < reportSteps.length-1"
+              class="flex-1 h-px mb-4 mx-1 transition-all"
+              :style="stepIndex() > i ? 'background:#16a34a' : 'background:#e5e7eb'"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- PASO 1: UBICACIÓN -->
+      <div x-show="reportStep==='location'">
+        <template x-if="!locLoading && !locationOk && !locationDenied">
+          <div>
+            <div class="bg-red-50 rounded-2xl p-6 mb-5 text-center">
+              <div class="text-5xl mb-3">📍</div>
+              <h2 class="text-lg font-bold text-gray-900 mb-2">¿Dónde estás?</h2>
+              <p class="text-sm text-gray-600 leading-relaxed">Necesitamos tu ubicación para que los voluntarios puedan llegar rápido.</p>
+              <p class="text-xs text-gray-400 mt-2">Solo se usa para este reporte.</p>
+            </div>
+            <button type="button" @click="getLocation()"
+              class="w-full bg-red-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-3"
+              style="min-height:56px">📍 Usar mi ubicación actual</button>
+            <button type="button" @click="locationDenied=true; $nextTick(()=>initReportMap(4.8133,-75.6961))"
+              class="w-full mt-3 bg-white border border-gray-300 text-gray-600 rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+              style="min-height:48px">🗺️ Seleccionar manualmente en el mapa</button>
+          </div>
+        </template>
+
+        <template x-if="locLoading">
+          <div class="text-center py-16">
+            <div class="text-4xl mb-4">📡</div>
+            <p class="text-gray-600 font-medium">Obteniendo tu ubicación...</p>
+            <p class="text-xs text-gray-400 mt-2">Puede tardar unos segundos</p>
+          </div>
+        </template>
+
+        <div x-show="locationOk || locationDenied">
+          <div x-show="locationOk" class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-3">
+            <span class="text-2xl">✅</span>
+            <div>
+              <p class="text-sm font-semibold text-green-800">Ubicación capturada</p>
+              <p class="text-xs text-green-600">Arrastra el pin para ajustar</p>
+            </div>
+          </div>
+          <div x-show="locationDenied && !locationOk" class="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-3">
+            <span class="text-2xl">👆</span>
+            <div>
+              <p class="text-sm font-semibold text-amber-800">Toca el mapa para marcar tu posición</p>
+              <p class="text-xs text-amber-600">Luego arrastra el pin para afinar</p>
+            </div>
+          </div>
+          <div id="report-map" class="rounded-xl overflow-hidden border-2 mb-4"
+            :style="locationOk ? 'height:240px;border-color:#16a34a' : 'height:240px;border-color:#d1d5db'"></div>
+          <button type="button" @click="reportStep='need'" :disabled="!locationOk"
+            class="w-full bg-red-600 text-white rounded-xl font-bold text-base disabled:opacity-40"
+            style="min-height:52px">
+            <span x-show="!locationOk">👆 Toca el mapa primero</span>
+            <span x-show="locationOk">Continuar →</span>
+          </button>
+          <button x-show="!locationDenied" type="button" @click="getLocation()"
+            class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">🔄 Volver a detectar</button>
+        </div>
+      </div>
+
+      <!-- PASO 2: QUÉ NECESITAS -->
+      <div x-show="reportStep==='need'">
+        <div class="text-center mb-5">
+          <div class="text-4xl mb-2">🆘</div>
+          <h2 class="text-lg font-bold text-gray-900">¿Qué necesitas?</h2>
+          <p class="text-sm text-gray-500 mt-1">Selecciona la situación más urgente</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-5">
+          <template x-for="opt in needOptions" :key="opt.value">
+            <button type="button" @click="reportForm.need_type = opt.value"
+              class="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 transition-all cursor-pointer"
+              style="min-height:90px"
+              :style="reportForm.need_type===opt.value ? 'border-color:#dc2626;background:#fff1f2' : 'border-color:#e5e7eb;background:white'">
+              <span class="text-3xl" x-text="opt.emoji"></span>
+              <span class="text-xs font-medium text-center leading-tight px-2"
+                :style="reportForm.need_type===opt.value ? 'color:#991b1b' : 'color:#374151'"
+                x-text="opt.label"></span>
+            </button>
+          </template>
+        </div>
+        <button type="button" @click="reportStep='details'" :disabled="!reportForm.need_type"
+          class="w-full bg-red-600 text-white rounded-xl font-bold text-base disabled:opacity-40"
+          style="min-height:52px">Continuar →</button>
+        <button type="button" @click="reportStep='location'"
+          class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">← Volver</button>
+      </div>
+
+      <!-- PASO 3: DETALLES (específico por tipo) -->
+      <div x-show="reportStep==='details'">
+        <div class="text-center mb-5">
+          <div class="text-4xl mb-1" x-text="needOptions.find(o=>o.value===reportForm.need_type)?.emoji"></div>
+          <h2 class="text-lg font-bold text-gray-900" x-text="needOptions.find(o=>o.value===reportForm.need_type)?.label"></h2>
+          <p class="text-sm text-gray-500 mt-1">Cuéntanos más para coordinar mejor la ayuda</p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+
+          <!-- ── RESCATE ── -->
+          <template x-if="reportForm.need_type==='rescue'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuántas personas están atrapadas?</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Hay heridos graves?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.injured=true" :style="reportForm.extra.injured===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">Sí, hay heridos</button>
+                  <button type="button" @click="reportForm.extra.injured=false" :style="reportForm.extra.injured===false?'background:#f0fdf4;border-color:#16a34a;color:#166534':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">No, estamos bien</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Cómo es el acceso al lugar?</label>
+                <textarea x-model="reportForm.description" rows="3" placeholder="Estamos en el 3er piso, la escalera está bloqueada, hay humo..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── MÉDICO ── -->
+          <template x-if="reportForm.need_type==='medical'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Es una emergencia crítica?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.critical=true" :style="reportForm.extra.critical===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">🚨 Sí, es crítico</button>
+                  <button type="button" @click="reportForm.extra.critical=false" :style="reportForm.extra.critical===false?'background:#fffbeb;border-color:#d97706;color:#92400e':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">⚠️ Requiere atención</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Pacientes que necesitan atención</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Síntomas o condición</label>
+                <textarea x-model="reportForm.description" rows="3" placeholder="Pérdida de consciencia, dificultad para respirar, fractura, hemorragia..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── ALIMENTOS / AGUA ── -->
+          <template x-if="reportForm.need_type==='food'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Personas que necesitan alimentos</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Hay niños menores de 5 años?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.children=true" :style="reportForm.extra.children===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">Sí</button>
+                  <button type="button" @click="reportForm.extra.children=false" :style="reportForm.extra.children===false?'background:#f0fdf4;border-color:#16a34a;color:#166534':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">No</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuántos días sin acceso a alimentos?</label>
+                <div class="flex gap-2">
+                  <template x-for="d in ['Menos de 1','1 día','2 días','3 o más']" :key="d">
+                    <button type="button" @click="reportForm.extra.days=d"
+                      :style="reportForm.extra.days===d?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'"
+                      class="flex-1 py-2 rounded-xl border-2 font-medium text-xs" x-text="d"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Detalles adicionales</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Necesitamos agua, leche para bebé, alimentos para diabéticos..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── ALBERGUE ── -->
+          <template x-if="reportForm.need_type==='shelter'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Personas que necesitan albergue</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Hay personas con necesidades especiales?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.special=true" :style="reportForm.extra.special===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">Sí</button>
+                  <button type="button" @click="reportForm.extra.special=false" :style="reportForm.extra.special===false?'background:#f0fdf4;border-color:#16a34a;color:#166534':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">No</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Qué necesitan?</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Silla de ruedas, medicamentos, cuna para bebé..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── BUSCO FAMILIAR ── -->
+          <template x-if="reportForm.need_type==='family'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del familiar</label>
+                <input x-model="reportForm.extra.missing_name" placeholder="María García"
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Edad aprox.</label>
+                  <input type="number" x-model="reportForm.extra.missing_age" min="0" max="120" placeholder="35"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Género</label>
+                  <select x-model="reportForm.extra.missing_gender" class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400 bg-white">
+                    <option value="">Seleccionar</option>
+                    <option value="mujer">Mujer</option>
+                    <option value="hombre">Hombre</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción física</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Cabello negro, camisa roja, 1.65m de estatura..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Última vez visto en</label>
+                <input x-model="reportForm.extra.last_seen" placeholder="Barrio Cuba, cerca del colegio..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Foto del familiar <span class="text-gray-400 font-normal">(muy útil)</span></label>
+                <div @click="$refs.familyPhoto.click()" class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all"
+                  :style="reportForm.photoPreview ? 'border-color:#16a34a' : 'border-color:#e5e7eb'">
+                  <img x-show="reportForm.photoPreview" :src="reportForm.photoPreview" class="w-full max-h-48 object-cover rounded-lg mb-2"/>
+                  <p x-show="!reportForm.photoPreview" class="text-gray-400 text-sm">📷 Toca para subir una foto</p>
+                  <p x-show="reportForm.photoPreview" class="text-green-600 text-xs">✓ Foto cargada — toca para cambiar</p>
+                </div>
+                <input type="file" x-ref="familyPhoto" accept="image/*" capture="environment" class="hidden"
+                  @change="handlePhotoChange($event)"/>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── APOYO PSICOLÓGICO ── -->
+          <template x-if="reportForm.need_type==='psychological'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Personas que necesitan apoyo</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Hay menores de edad?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.minors=true" :style="reportForm.extra.minors===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">Sí</button>
+                  <button type="button" @click="reportForm.extra.minors=false" :style="reportForm.extra.minors===false?'background:#f0fdf4;border-color:#16a34a;color:#166534':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">No</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Describe la situación</label>
+                <textarea x-model="reportForm.description" rows="3" placeholder="Crisis de pánico, shock, pérdida de familiar, trauma..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── EVALUACIÓN ESTRUCTURAL ── -->
+          <template x-if="reportForm.need_type==='structural'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de estructura</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <template x-for="t in ['Casa','Edificio','Local comercial','Puente / vía','Colegio / hospital','Otro']" :key="t">
+                    <button type="button" @click="reportForm.extra.struct_type=t"
+                      :style="reportForm.extra.struct_type===t?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'"
+                      class="py-2.5 rounded-xl border-2 font-medium text-sm" x-text="t"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nivel de daño visible</label>
+                <div class="flex flex-col gap-2">
+                  <template x-for="d in [
+                    {v:'leve',    e:'🟡', l:'Leve — grietas superficiales, sin riesgo inmediato'},
+                    {v:'moderado',e:'🟠', l:'Moderado — grietas profundas, posible riesgo'},
+                    {v:'grave',   e:'🔴', l:'Grave — colapso parcial, peligro de derrumbe'},
+                    {v:'colapso', e:'⚫', l:'Colapso total'}
+                  ]" :key="d.v">
+                    <button type="button" @click="reportForm.extra.damage_level=d.v"
+                      :style="reportForm.extra.damage_level===d.v?'background:#fef2f2;border-color:#dc2626':'background:white;border-color:#e5e7eb'"
+                      class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left">
+                      <span x-text="d.e" class="text-xl flex-shrink-0"></span>
+                      <span class="text-sm" :style="reportForm.extra.damage_level===d.v?'color:#991b1b':'color:#374151'" x-text="d.l"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Hay personas dentro?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.people_inside=true" :style="reportForm.extra.people_inside===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">Sí, hay personas</button>
+                  <button type="button" @click="reportForm.extra.people_inside=false" :style="reportForm.extra.people_inside===false?'background:#f0fdf4;border-color:#16a34a;color:#166534':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">Está vacío</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Foto de los daños <span class="text-gray-400 font-normal">(muy útil)</span></label>
+                <div @click="$refs.structPhoto.click()" class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer"
+                  :style="reportForm.photoPreview?'border-color:#16a34a':'border-color:#e5e7eb'">
+                  <img x-show="reportForm.photoPreview" :src="reportForm.photoPreview" class="w-full max-h-48 object-cover rounded-lg mb-2"/>
+                  <p x-show="!reportForm.photoPreview" class="text-gray-400 text-sm">📷 Toca para subir una foto</p>
+                  <p x-show="reportForm.photoPreview" class="text-green-600 text-xs">✓ Foto cargada — toca para cambiar</p>
+                </div>
+                <input type="file" x-ref="structPhoto" accept="image/*" capture="environment" class="hidden" @change="handlePhotoChange($event)"/>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción adicional</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Tercer piso con grietas en columnas, olor a gas, balcón caído..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── BUSCO MASCOTA ── -->
+          <template x-if="reportForm.need_type==='pet'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la mascota</label>
+                <input x-model="reportForm.extra.pet_name" placeholder="Firulais"
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                <div class="flex gap-2">
+                  <template x-for="t in [{v:'perro',e:'🐕'},{v:'gato',e:'🐈'},{v:'otro',e:'🐾'}]" :key="t.v">
+                    <button type="button" @click="reportForm.extra.pet_type=t.v"
+                      :style="reportForm.extra.pet_type===t.v?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'"
+                      class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">
+                      <span x-text="t.e+' '+t.v"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Color y descripción</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Labrador dorado, collar azul, responde al nombre Firulais..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Foto de la mascota <span class="text-gray-400 font-normal">(muy útil)</span></label>
+                <div @click="$refs.petPhoto.click()" class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer"
+                  :style="reportForm.photoPreview ? 'border-color:#16a34a' : 'border-color:#e5e7eb'">
+                  <img x-show="reportForm.photoPreview" :src="reportForm.photoPreview" class="w-full max-h-48 object-cover rounded-lg mb-2"/>
+                  <p x-show="!reportForm.photoPreview" class="text-gray-400 text-sm">📷 Toca para subir una foto</p>
+                  <p x-show="reportForm.photoPreview" class="text-green-600 text-xs">✓ Foto cargada — toca para cambiar</p>
+                </div>
+                <input type="file" x-ref="petPhoto" accept="image/*" capture="environment" class="hidden"
+                  @change="handlePhotoChange($event)"/>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── LO PERDÍ TODO ── -->
+          <template x-if="reportForm.need_type==='lost_all'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Personas afectadas</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Qué necesitas más urgente?</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <template x-for="n in ['Alimentos','Ropa','Albergue','Documentos','Dinero','Medicamentos']" :key="n">
+                    <button type="button" @click="toggleUrgent(n)"
+                      :style="(reportForm.extra.urgent||[]).includes(n)?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'"
+                      class="py-2.5 rounded-xl border-2 font-medium text-sm" x-text="n"></button>
+                  </template>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cuéntanos tu situación</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Mi casa quedó destruida, somos 4 adultos y 2 niños..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── MEDICAMENTOS ── -->
+          <template x-if="reportForm.need_type==='medicine'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Es urgente / crítico?</label>
+                <div class="flex gap-2">
+                  <button type="button" @click="reportForm.extra.critical=true" :style="reportForm.extra.critical===true?'background:#fef2f2;border-color:#dc2626;color:#991b1b':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">🚨 Sí, es urgente</button>
+                  <button type="button" @click="reportForm.extra.critical=false" :style="reportForm.extra.critical===false?'background:#fffbeb;border-color:#d97706;color:#92400e':'background:white;border-color:#e5e7eb;color:#374151'" class="flex-1 py-3 rounded-xl border-2 font-medium text-sm">⚠️ Puede esperar un poco</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Medicamento(s) que necesita</label>
+                <input x-model="reportForm.extra.med_name" placeholder="Insulina, metformina, salbutamol..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Condición del paciente</label>
+                <textarea x-model="reportForm.description" rows="2" placeholder="Diabético tipo 1, lleva 2 días sin insulina..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+            </div>
+          </template>
+
+          <!-- ── OTRO ── -->
+          <template x-if="reportForm.need_type==='other'">
+            <div class="flex flex-col gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Describe tu situación</label>
+                <textarea x-model="reportForm.description" rows="5" placeholder="Cuéntanos qué necesitas con el mayor detalle posible..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Personas afectadas</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" @click="reportForm.people_count=Math.max(1,reportForm.people_count-1)" class="w-11 h-11 rounded-xl border-2 border-gray-300 text-xl font-bold bg-white">−</button>
+                  <span class="text-2xl font-bold w-10 text-center" x-text="reportForm.people_count"></span>
+                  <button type="button" @click="reportForm.people_count=Math.min(500,reportForm.people_count+1)" class="w-11 h-11 rounded-xl border-2 border-red-300 text-xl font-bold text-red-600 bg-red-50">+</button>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Dirección (común a todos) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Dirección o punto de referencia</label>
+            <input x-model="reportForm.address" placeholder="Cra 7 #19-25, barrio Cuba..."
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+
+        </div>
+
+        <button type="button" @click="reportStep='contact'" :disabled="!reportForm.description && !reportForm.extra.missing_name && !reportForm.extra.pet_name"
+          class="w-full bg-red-600 text-white rounded-xl font-bold text-base disabled:opacity-40 mt-6"
+          style="min-height:52px">Continuar →</button>
+        <button type="button" @click="reportStep='need'"
+          class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">← Volver</button>
+      </div>
+
+      <!-- PASO 4: CONTACTO + ENVÍO -->
+      <div x-show="reportStep==='contact'">
+        <div class="text-center mb-5">
+          <div class="text-4xl mb-2">👤</div>
+          <h2 class="text-lg font-bold text-gray-900">¿Quién eres?</h2>
+          <p class="text-sm text-gray-500 mt-1">Para que los voluntarios puedan contactarte</p>
+        </div>
+
+        <!-- Resumen de los pasos anteriores -->
+        <div class="bg-gray-50 rounded-xl p-4 mb-5 flex flex-col gap-2">
+          <div class="flex items-center gap-2 text-sm text-gray-600">
+            <span>📍</span>
+            <span x-text="locationAddress || ('Lat '+reportForm.lat.toFixed(4)+' · Lng '+reportForm.lng.toFixed(4))" class="truncate"></span>
+            <button type="button" @click="reportStep='location'" class="ml-auto text-xs text-red-500 bg-transparent border-none cursor-pointer flex-shrink-0">Editar</button>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-600">
+            <span x-text="needOptions.find(o=>o.value===reportForm.need_type)?.emoji"></span>
+            <span x-text="needOptions.find(o=>o.value===reportForm.need_type)?.label"></span>
+            <button type="button" @click="reportStep='need'" class="ml-auto text-xs text-red-500 bg-transparent border-none cursor-pointer flex-shrink-0">Editar</button>
+          </div>
+          <div class="flex items-start gap-2 text-sm text-gray-600">
+            <span>📝</span>
+            <span x-text="reportForm.description" class="line-clamp-2 text-xs"></span>
+            <button type="button" @click="reportStep='details'" class="ml-auto text-xs text-red-500 bg-transparent border-none cursor-pointer flex-shrink-0">Editar</button>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+              <input x-model="reportForm.reporter_name" required placeholder="Juan"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
+              <input x-model="reportForm.reporter_last_name" placeholder="Pérez"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Número de identificación <span class="text-gray-400 font-normal">(CC / CE / Pasaporte)</span></label>
+            <input x-model="reportForm.reporter_id" placeholder="1234567890"
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono <span class="text-gray-400 font-normal">(opcional)</span></label>
+            <input x-model="reportForm.reporter_phone" type="tel" placeholder="300 123 4567"
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+        </div>
+
+        <button type="button" @click="submitReport()"
+          :disabled="reportLoading || !reportForm.reporter_name"
+          class="w-full bg-red-600 text-white rounded-xl font-bold text-base disabled:opacity-40 mt-6"
+          style="min-height:56px;font-size:16px">
+          <span x-show="!reportLoading">🆘 Enviar solicitud de ayuda</span>
+          <span x-show="reportLoading">Enviando...</span>
+        </button>
+        <button type="button" @click="reportStep='details'"
+          class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">← Volver</button>
+
+        <div x-show="reportMsg && reportError" x-text="reportMsg"
+          class="text-center text-sm py-2 rounded-xl mt-3 bg-red-50 text-red-600"></div>
+      </div>
+
+      <!-- CONFIRMACIÓN FINAL -->
+      <div x-show="reportStep==='done'" class="flex flex-col items-center text-center py-8 px-2">
+        <div class="text-7xl mb-4 animate-bounce">✅</div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">¡Solicitud recibida!</h2>
+        <p class="text-gray-600 leading-relaxed mb-2">
+          Tu reporte ya está visible en el mapa y los voluntarios en tu zona han sido notificados.
+        </p>
+        <p class="text-gray-500 text-sm leading-relaxed mb-6">
+          Mantén la calma. Estamos coordinando ayuda lo más rápido posible. Si puedes, quédate en un lugar seguro y espera contacto al número que dejaste.
+        </p>
+
+        <div class="bg-red-50 border border-red-100 rounded-2xl p-5 w-full mb-6 text-left">
+          <p class="text-sm font-semibold text-red-800 mb-3">Mientras esperas:</p>
+          <ul class="flex flex-col gap-2 text-sm text-red-700">
+            <li class="flex items-start gap-2"><span>🔋</span> Ahorra batería en tu celular</li>
+            <li class="flex items-start gap-2"><span>💧</span> Busca agua potable si puedes</li>
+            <li class="flex items-start gap-2"><span>📢</span> Haz señas o ruido si estás atrapado</li>
+            <li class="flex items-start gap-2"><span>🤝</span> Ayuda a quienes estén contigo en lo que puedas</li>
+          </ul>
+        </div>
+
+        <p class="text-xs text-gray-400 mb-6">Número de reporte: <span class="font-mono font-semibold" x-text="reportId || '—'"></span></p>
+
+        <button type="button" @click="page='map'; reportStep='location'"
+          class="w-full bg-red-600 text-white rounded-xl font-bold text-base"
+          style="min-height:52px">
+          Ver mapa en tiempo real
+        </button>
+        <button type="button" @click="resetReport()"
+          class="w-full mt-3 bg-white border border-gray-300 text-gray-600 rounded-xl font-medium text-sm"
+          style="min-height:44px">
+          Enviar otro reporte
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VOLUNTARIOS -->
+  <div x-show="page==='volunteers'" style="height:calc(100vh - 56px - 60px); display:flex; flex-direction:column">
+
+    <!-- Header fijo con contador y búsqueda -->
+    <div class="bg-white border-b border-gray-100 px-4 pt-4 pb-3 flex-shrink-0">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Voluntarios</h1>
+          <p class="text-xs text-gray-400 mt-0.5">
+            <span x-text="volunteers.length"></span> disponibles
+            <span x-show="skillFilter"> · filtrado por <b x-text="skillFilter"></b></span>
+          </p>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-red-600 text-white font-bold text-base flex items-center justify-center flex-shrink-0"
+          x-text="volunteers.length"></div>
+      </div>
+
+      <!-- Chips de habilidad — grid visible completo -->
+      <div class="flex flex-wrap gap-2">
+        <template x-for="s in skillTags" :key="s.v">
+          <button @click="skillFilter=s.v; loadVolunteers()"
+            class="flex items-center gap-1.5 rounded-2xl px-3 text-sm font-semibold border-2 transition-all"
+            style="min-height:40px"
+            :style="skillFilter===s.v
+              ? 'background:#dc2626;color:white;border-color:#dc2626'
+              : 'background:#f9fafb;color:#374151;border-color:#e5e7eb'">
+            <span x-text="s.e"></span>
+            <span x-text="s.v||'Todos'"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Lista scrollable -->
+    <div class="flex-1 overflow-auto px-4 py-3 pb-4">
+
+      <!-- Estado vacío -->
+      <template x-if="volunteers.length===0">
+        <div class="text-center py-16">
+          <div class="text-5xl mb-3">🤝</div>
+          <p class="text-gray-500 font-medium">No hay voluntarios registrados</p>
+          <p x-show="skillFilter" class="text-gray-400 text-sm mt-1">con la habilidad "<span x-text="skillFilter"></span>"</p>
+          <button x-show="skillFilter" @click="skillFilter=''; loadVolunteers()"
+            class="mt-4 text-red-600 text-sm font-medium bg-transparent border-none cursor-pointer">
+            Ver todos →
+          </button>
+        </div>
+      </template>
+
+      <div class="flex flex-col gap-3">
+        <template x-for="v in volunteers" :key="v.id">
+          <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-start gap-3">
+              <!-- Avatar -->
+              <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-600 font-bold text-lg flex items-center justify-center flex-shrink-0"
+                x-text="v.full_name.charAt(0).toUpperCase()"></div>
+
+              <!-- Info -->
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-gray-900 text-base leading-tight" x-text="v.full_name"></p>
+                <p x-show="v.neighborhood" class="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                  📍 <span x-text="v.neighborhood"></span>
+                </p>
+              </div>
+
+              <!-- Llamar -->
+              <template x-if="v.phone">
+                <a :href="'tel:'+v.phone"
+                  class="flex-shrink-0 bg-green-600 text-white rounded-xl px-3 font-bold text-sm no-underline flex items-center gap-1"
+                  style="min-height:44px">
+                  📞 <span class="hidden sm:inline">Llamar</span>
+                </a>
+              </template>
+            </div>
+
+            <!-- Skills como badges prominentes -->
+            <div x-show="v.skills" class="flex flex-wrap gap-2 mt-3">
+              <template x-for="sk in (v.skills||'').split(',')" :key="sk">
+                <span class="flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium"
+                  :style="skillFilter && sk.trim().toLowerCase().includes(skillFilter.toLowerCase())
+                    ? 'background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5'
+                    : 'background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe'"
+                  x-text="sk.trim()"></span>
+              </template>
+            </div>
+
+            <!-- Sin teléfono registrado -->
+            <div x-show="!v.phone" class="mt-3 text-xs text-gray-400 flex items-center gap-1">
+              💬 Sin teléfono registrado
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCESO VOLUNTARIO (login + registro en una sola página) -->
+  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - 60px)">
+    <div class="max-w-sm mx-auto px-4 py-6">
+
+      <!-- Hero -->
+      <div class="text-center mb-6">
+        <div class="text-5xl mb-3">🤝</div>
+        <h1 class="text-2xl font-bold text-gray-900">Área de voluntarios</h1>
+        <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+          Esta sección es para voluntarios y coordinadores.<br>
+          <span class="text-red-600 font-medium">¿Necesitas ayuda? No necesitas cuenta.</span>
+        </p>
+        <button @click="page='report'"
+          class="mt-3 text-sm text-red-600 font-semibold bg-red-50 border border-red-200 rounded-xl px-4 py-2">
+          🆘 Pedir ayuda sin cuenta →
+        </button>
+      </div>
+
+      <!-- Tabs Ingresar / Unirme -->
+      <div class="flex bg-gray-100 rounded-2xl p-1 mb-5">
+        <button @click="authTab='login'"
+          class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+          :style="authTab==='login' ? 'background:white;color:#111827;box-shadow:0 1px 4px rgba(0,0,0,.1)' : 'background:transparent;color:#6b7280'">
+          Ingresar
+        </button>
+        <button @click="authTab='register'"
+          class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+          :style="authTab==='register' ? 'background:white;color:#111827;box-shadow:0 1px 4px rgba(0,0,0,.1)' : 'background:transparent;color:#6b7280'">
+          Quiero ser voluntario
+        </button>
+      </div>
+
+      <!-- INGRESAR -->
+      <form x-show="authTab==='login'" @submit.prevent="login()" class="flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+          <input x-model="loginForm.phone" required type="tel" placeholder="300 123 4567"
+            class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+          <input x-model="loginForm.password" required type="password" placeholder="••••••••"
+            class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+        </div>
+        <button type="submit" class="w-full bg-red-600 text-white rounded-xl font-bold" style="min-height:52px">
+          Ingresar
+        </button>
+        <div x-show="loginMsg" x-text="loginMsg" class="text-sm text-red-600 text-center bg-red-50 rounded-xl py-2"></div>
+      </form>
+
+      <!-- REGISTRO VOLUNTARIO — por pasos -->
+      <div x-show="authTab==='register'">
+
+        <!-- Barra de progreso -->
+        <div class="flex items-center gap-1 mb-5">
+          <template x-for="(s, i) in regSteps.filter(s => s.id !== 'skills' || registerForm.role === 'volunteer')" :key="s.id">
+            <div class="flex items-center gap-1 flex-1">
+              <div class="flex flex-col items-center gap-0.5" style="min-width:40px">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all"
+                  :style="regStepIndex() > i ? 'background:#dc2626;color:white' : regStep===s.id ? 'background:#1f2937;color:white' : 'background:#f3f4f6;color:#9ca3af'">
+                  <span x-text="regStepIndex() > i ? '✓' : s.emoji"></span>
+                </div>
+                <span class="text-xs font-medium"
+                  :style="regStep===s.id ? 'color:#1f2937' : 'color:#9ca3af'"
+                  x-text="s.label"></span>
+              </div>
+              <div x-show="i < regSteps.length-1" class="flex-1 h-0.5 mb-3"
+                :style="regStepIndex() > i ? 'background:#dc2626' : 'background:#e5e7eb'"></div>
+            </div>
+          </template>
+        </div>
+
+        <!-- PASO 1: Tipo -->
+        <div x-show="regStep==='tipo'">
+          <p class="text-sm font-semibold text-gray-800 mb-1">¿Cómo vas a participar?</p>
+          <p class="text-xs text-gray-400 mb-4">Elige tu rol en la respuesta humanitaria.</p>
+          <div class="grid grid-cols-2 gap-3 mb-5">
+            <button type="button" @click="registerForm.role='volunteer'"
+              :style="registerForm.role==='volunteer' ? 'border-color:#dc2626;background:#fff1f2' : 'border-color:#e5e7eb;background:white'"
+              class="flex flex-col items-center gap-2 rounded-2xl border-2 py-5 cursor-pointer transition-all">
+              <span class="text-3xl">🙋</span>
+              <span class="text-sm font-bold" :style="registerForm.role==='volunteer'?'color:#991b1b':'color:#374151'">Voluntario</span>
+              <span class="text-xs text-gray-400 text-center px-2">Ayudo directamente en campo</span>
+            </button>
+            <button type="button" @click="registerForm.role='coordinator'"
+              :style="registerForm.role==='coordinator' ? 'border-color:#dc2626;background:#fff1f2' : 'border-color:#e5e7eb;background:white'"
+              class="flex flex-col items-center gap-2 rounded-2xl border-2 py-5 cursor-pointer transition-all">
+              <span class="text-3xl">🏛️</span>
+              <span class="text-sm font-bold" :style="registerForm.role==='coordinator'?'color:#991b1b':'color:#374151'">Coordinador</span>
+              <span class="text-xs text-gray-400 text-center px-2">Cruz Roja, Defensa Civil, etc.</span>
+            </button>
+          </div>
+          <button @click="regStep='datos'" :disabled="!registerForm.role"
+            class="w-full bg-red-600 text-white rounded-xl font-bold py-3 border-none cursor-pointer disabled:opacity-40">
+            Siguiente →
+          </button>
+        </div>
+
+        <!-- PASO 2: Datos personales -->
+        <div x-show="regStep==='datos'" class="flex flex-col gap-3">
+          <p class="text-sm font-semibold text-gray-800 mb-1">Tus datos de contacto</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+              <input x-model="registerForm.full_name" placeholder="Juan"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Apellido</label>
+              <input x-model="registerForm.last_name" placeholder="Pérez"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Número de identificación (CC / CE / Pasaporte)</label>
+            <input x-model="registerForm.id_number" placeholder="1234567890"
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
+            <input x-model="registerForm.phone" type="tel" placeholder="300 123 4567"
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Contraseña</label>
+            <input x-model="registerForm.password" type="password" placeholder="Mínimo 6 caracteres"
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Barrio o zona de referencia</label>
+            <input x-model="registerForm.neighborhood" placeholder="Cuba, Dosquebradas, Centro..."
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+          </div>
+          <div class="flex gap-2 mt-1">
+            <button @click="regStep='tipo'"
+              class="flex-1 bg-gray-100 text-gray-700 rounded-xl py-3 text-sm font-bold border-none cursor-pointer">
+              ← Atrás
+            </button>
+            <button @click="regNextFromDatos()"
+              class="bg-red-600 text-white rounded-xl py-3 text-sm font-bold border-none cursor-pointer" style="flex:2">
+              Siguiente →
+            </button>
+          </div>
+        </div>
+
+        <!-- PASO 3: Habilidades (solo voluntario) -->
+        <div x-show="regStep==='skills'">
+          <p class="text-sm font-semibold text-gray-800 mb-1">¿Cuáles son tus habilidades?</p>
+          <p class="text-xs text-gray-400 mb-4">Selecciona todas las que apliquen. Puedes elegir varias.</p>
+          <div class="flex flex-wrap gap-2 mb-5">
+            <template x-for="s in skillTags.filter(t=>t.v)" :key="s.v">
+              <button type="button" @click="toggleSkill(s.v)"
+                class="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all cursor-pointer"
+                :style="(registerForm.skillsArr||[]).includes(s.v)
+                  ? 'background:#fef2f2;border-color:#dc2626;color:#991b1b'
+                  : 'background:#f9fafb;border-color:#e5e7eb;color:#374151'">
+                <span x-text="s.e"></span><span x-text="s.v"></span>
+              </button>
+            </template>
+          </div>
+          <div class="flex gap-2">
+            <button @click="regStep='datos'"
+              class="flex-1 bg-gray-100 text-gray-700 rounded-xl py-3 text-sm font-bold border-none cursor-pointer">
+              ← Atrás
+            </button>
+            <button @click="regStep='zona'; $nextTick(()=>initRegMap())"
+              class="bg-red-600 text-white rounded-xl py-3 text-sm font-bold border-none cursor-pointer" style="flex:2">
+              Siguiente →
+            </button>
+          </div>
+        </div>
+
+        <!-- PASO 4: Zona de acción -->
+        <div x-show="regStep==='zona'">
+          <p class="text-sm font-semibold text-gray-800 mb-1">¿Dónde puedes actuar?</p>
+          <p class="text-xs text-gray-400 mb-3">Usa tu ubicación o toca el mapa. Luego define tu radio de acción.</p>
+
+          <button @click="useMyLocationReg()"
+            :disabled="regLocLoading"
+            class="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-xl py-3 text-sm font-bold mb-2 border-none cursor-pointer disabled:opacity-50">
+            <span x-text="regLocLoading ? '⏳ Obteniendo...' : '📡 Usar mi ubicación'"></span>
+          </button>
+          <p class="text-xs text-center text-gray-400 mb-2">— o toca el mapa —</p>
+
+          <div id="reg-map" style="height:200px;border-radius:12px;overflow:hidden;background:#f1f5f9;margin-bottom:12px"></div>
+
+          <!-- Radio -->
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-600 font-medium">Radio de acción</span>
+            <span class="text-xl font-bold text-red-600" x-text="registerForm.radius+' km'"></span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 mb-2">
+            <template x-for="km in [2,5,10,15]" :key="km">
+              <button type="button" @click="registerForm.radius=km; _updateRegCircle()"
+                class="rounded-xl py-2 text-sm font-bold border-2 cursor-pointer"
+                :style="registerForm.radius==km ? 'border-color:#dc2626;background:#fef2f2;color:#991b1b' : 'border-color:#e5e7eb;background:white;color:#374151'"
+                x-text="km+' km'"></button>
+            </template>
+          </div>
+          <input type="range" x-model="registerForm.radius" min="1" max="15" step="1"
+            @input="_updateRegCircle()"
+            class="w-full accent-red-600 mb-4" style="height:6px"/>
+
+          <div class="flex gap-2">
+            <button @click="regStep = registerForm.role==='volunteer' ? 'skills' : 'datos'"
+              class="flex-1 bg-gray-100 text-gray-700 rounded-xl py-3 text-sm font-bold border-none cursor-pointer">
+              ← Atrás
+            </button>
+            <button @click="regStep='confirm'"
+              class="bg-red-600 text-white rounded-xl py-3 text-sm font-bold border-none cursor-pointer" style="flex:2">
+              Siguiente →
+            </button>
+          </div>
+        </div>
+
+        <!-- PASO 5: Confirmar -->
+        <div x-show="regStep==='confirm'">
+          <p class="text-sm font-semibold text-gray-800 mb-3">Revisa tu información</p>
+          <div class="bg-gray-50 rounded-2xl p-4 mb-4 flex flex-col gap-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-500">Rol</span>
+              <span class="font-bold" x-text="registerForm.role==='coordinator'?'🏛️ Coordinador':'🙋 Voluntario'"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Nombre</span>
+              <span class="font-medium" x-text="registerForm.full_name+' '+registerForm.last_name"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Identificación</span>
+              <span class="font-medium" x-text="registerForm.id_number"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-500">Teléfono</span>
+              <span class="font-medium" x-text="registerForm.phone"></span>
+            </div>
+            <div x-show="registerForm.skillsArr?.length" class="flex justify-between">
+              <span class="text-gray-500">Habilidades</span>
+              <span class="font-medium text-right" x-text="(registerForm.skillsArr||[]).join(', ')"></span>
+            </div>
+            <div x-show="registerForm.actionPin" class="flex justify-between">
+              <span class="text-gray-500">Zona de acción</span>
+              <span class="font-medium text-red-600" x-text="registerForm.radius+' km de radio'"></span>
+            </div>
+          </div>
+          <button @click="register()"
+            class="w-full bg-red-600 text-white rounded-xl font-bold py-3 border-none cursor-pointer mb-2">
+            ✅ Crear mi cuenta
+          </button>
+          <button @click="regStep='zona'; $nextTick(()=>initRegMap())"
+            class="w-full bg-gray-100 text-gray-600 rounded-xl py-2.5 text-sm font-medium border-none cursor-pointer">
+            ← Ajustar zona
+          </button>
+          <div x-show="registerMsg" x-text="registerMsg"
+            :class="registerError ? 'text-red-600 bg-red-50' : 'text-green-700 bg-green-50'"
+            class="text-sm text-center rounded-xl py-2 mt-2"></div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DASHBOARD VOLUNTARIO -->
+  <div x-show="page==='panel'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - 60px)">
+    <div class="max-w-lg mx-auto px-4 py-5">
+
+      <!-- Header bienvenida -->
+      <div class="bg-red-600 rounded-2xl p-5 mb-5 text-white">
+        <p class="text-xs opacity-80 mb-1">Bienvenido/a</p>
+        <h2 class="text-xl font-bold" x-text="user?.full_name"></h2>
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-xs bg-white/20 rounded-full px-3 py-1 font-medium capitalize" x-text="user?.role === 'coordinator' ? '🏛️ Coordinador' : '🙋 Voluntario'"></span>
+          <span x-show="user?.neighborhood" class="text-xs opacity-70">📍 <span x-text="user?.neighborhood"></span></span>
+        </div>
+      </div>
+
+      <!-- Zona de acción — flujo por pasos -->
+      <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-5">
+
+        <!-- Header colapsable -->
+        <button @click="zoneOpen=!zoneOpen; if(zoneOpen) $nextTick(()=>initActionMap())"
+          class="w-full flex items-center justify-between px-4 py-3 border-none bg-transparent cursor-pointer">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📍</span>
+            <div class="text-left">
+              <p class="text-sm font-bold text-gray-900">Mi zona de acción</p>
+              <p class="text-xs text-gray-400" x-text="user?.action_radius_km
+                ? '✅ Radio '+user.action_radius_km+' km configurado'
+                : 'Sin configurar — toca para definir'"></p>
+            </div>
+          </div>
+          <span class="text-gray-400 text-sm transition-transform" :style="zoneOpen ? 'transform:rotate(180deg)' : ''" >▼</span>
+        </button>
+
+        <!-- Contenido desplegable -->
+        <div x-show="zoneOpen">
+
+          <!-- Barra de pasos -->
+          <div class="flex border-t border-gray-100">
+            <template x-for="s in zoneSteps" :key="s.id">
+              <div class="flex-1 flex flex-col items-center py-2 gap-0.5 cursor-pointer"
+                @click="if(s.id==='location' || actionPin) zoneStep=s.id"
+                :style="zoneStep===s.id ? 'border-bottom:2px solid #dc2626' : 'border-bottom:2px solid transparent'">
+                <span class="text-base" x-text="s.emoji"></span>
+                <span class="text-xs font-medium"
+                  :style="zoneStep===s.id ? 'color:#dc2626' : 'color:#9ca3af'"
+                  x-text="s.label"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- MAPA — siempre visible cuando el acordeón está abierto -->
+          <div class="px-4 pt-3">
+            <div id="action-map" style="height:220px;border-radius:12px;overflow:hidden;background:#f1f5f9"></div>
+          </div>
+
+          <!-- PASO 1: Zona -->
+          <div x-show="zoneStep==='location'" class="p-4 pt-3">
+            <button @click="useMyLocation()"
+              :disabled="zoneLocLoading"
+              class="w-full flex items-center justify-center gap-2 bg-red-600 text-white rounded-xl py-3 text-sm font-bold mb-2 border-none cursor-pointer disabled:opacity-50">
+              <span x-text="zoneLocLoading ? '⏳ Obteniendo ubicación...' : '📡 Usar mi ubicación actual'"></span>
+            </button>
+            <p class="text-xs text-center text-gray-400 mb-2">— o toca el mapa para poner el pin —</p>
+            <template x-if="actionPin">
+              <button @click="zoneStep='radius'"
+                class="w-full bg-gray-900 text-white rounded-xl py-3 text-sm font-bold border-none cursor-pointer">
+                Siguiente → Definir alcance ⭕
+              </button>
+            </template>
+          </div>
+
+          <!-- PASO 2: Radio -->
+          <div x-show="zoneStep==='radius'" class="p-4 pt-3">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-semibold text-gray-800">Radio de acción</span>
+              <span class="text-2xl font-bold text-red-600" x-text="actionRadius+' km'"></span>
+            </div>
+            <div class="grid grid-cols-4 gap-2 mb-3">
+              <template x-for="km in [2,5,10,15]" :key="km">
+                <button @click="actionRadius=km; _updateActionCircle()"
+                  class="rounded-xl py-2.5 text-sm font-bold border-2 transition-all cursor-pointer"
+                  :style="actionRadius==km ? 'border-color:#dc2626;background:#fef2f2;color:#991b1b' : 'border-color:#e5e7eb;background:white;color:#374151'"
+                  x-text="km+' km'"></button>
+              </template>
+            </div>
+            <input type="range" x-model="actionRadius" min="1" max="15" step="1"
+              @input="_updateActionCircle()"
+              class="w-full accent-red-600 mb-3" style="height:6px"/>
+            <div class="flex gap-2">
+              <button @click="zoneStep='location'"
+                class="flex-1 bg-gray-100 text-gray-700 rounded-xl py-3 text-sm font-bold border-none cursor-pointer">
+                ← Atrás
+              </button>
+              <button @click="zoneStep='confirm'"
+                class="bg-gray-900 text-white rounded-xl py-3 text-sm font-bold border-none cursor-pointer" style="flex:2">
+                Confirmar ✅
+              </button>
+            </div>
+          </div>
+
+          <!-- PASO 3: Confirmar -->
+          <div x-show="zoneStep==='confirm'" class="p-4 pt-3">
+            <div class="bg-gray-50 rounded-2xl p-4 mb-3 flex flex-col gap-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Radio configurado</span>
+                <span class="font-bold text-red-600" x-text="actionRadius+' km'"></span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Reportes dentro de tu zona</span>
+                <span class="font-bold text-gray-900"
+                  x-text="reports.filter(r=>r.status==='pending' && distKm(r) <= Number(actionRadius)).length+' de '+reports.filter(r=>r.status==='pending').length"></span>
+              </div>
+            </div>
+            <button @click="saveActionZone()"
+              class="w-full bg-red-600 text-white rounded-xl font-bold py-3 text-sm border-none cursor-pointer mb-2">
+              💾 Guardar zona de acción
+            </button>
+            <button @click="zoneStep='radius'"
+              class="w-full bg-gray-100 text-gray-600 rounded-xl py-2.5 text-sm font-medium border-none cursor-pointer">
+              ← Ajustar radio
+            </button>
+            <p x-show="actionZoneMsg" x-text="actionZoneMsg"
+              class="text-sm text-center mt-2 text-green-700 bg-green-50 rounded-xl py-2"></p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Stats rápidas -->
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-white border border-gray-200 rounded-2xl p-3 text-center">
+          <p class="text-2xl font-bold text-red-600" x-text="reports.filter(r=>r.status==='pending').length"></p>
+          <p class="text-xs text-gray-500 mt-1">Pendientes</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-3 text-center">
+          <p class="text-2xl font-bold text-blue-600" x-text="aidPoints.length"></p>
+          <p class="text-xs text-gray-500 mt-1">Puntos ayuda</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-3 text-center">
+          <p class="text-2xl font-bold text-orange-500" x-text="dangerZones.length"></p>
+          <p class="text-xs text-gray-500 mt-1">Zonas peligro</p>
+        </div>
+      </div>
+
+      <!-- Reportes pendientes -->
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="font-bold text-gray-900">Reportes pendientes</h3>
+          <p x-show="user?.action_lat" class="text-xs text-gray-400">Ordenados por distancia a tu zona</p>
+        </div>
+        <button @click="loadData()" class="text-xs text-red-600 bg-transparent border-none cursor-pointer font-medium">🔄 Actualizar</button>
+      </div>
+
+      <template x-if="reports.filter(r=>r.status==='pending').length===0">
+        <div class="text-center py-10 bg-white rounded-2xl border border-gray-200">
+          <div class="text-4xl mb-2">✅</div>
+          <p class="text-gray-500 font-medium text-sm">Sin reportes pendientes</p>
+        </div>
+      </template>
+
+      <div class="flex flex-col gap-3">
+        <template x-for="r in sortedPendingReports().slice(0,20)" :key="r.id">
+          <div class="bg-white border border-gray-200 rounded-2xl p-4">
+            <div class="flex items-start gap-3">
+              <span class="text-2xl flex-shrink-0" x-text="needEmoji[r.need_type]?.emoji||'📌'"></span>
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-gray-900 text-sm" x-text="needOptions.find(o=>o.value===r.need_type)?.label||r.need_type"></p>
+                <p class="text-xs text-gray-500 mt-0.5 truncate" x-text="r.address"></p>
+                <p class="text-xs text-gray-400 mt-0.5" x-text="r.description?.slice(0,80)+'...'"></p>
+              </div>
+              <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                <span class="text-xs text-gray-400" x-text="'👥 '+r.people_count"></span>
+                <span x-show="user?.action_lat" class="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  :style="distKm(r) <= (user?.action_radius_km||5) ? 'background:#dcfce7;color:#166534' : 'background:#f1f5f9;color:#64748b'"
+                  x-text="distKm(r).toFixed(1)+' km'"></span>
+              </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+              <a :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
+                class="flex-1 text-center text-xs font-semibold bg-gray-100 text-gray-700 rounded-xl py-2.5 no-underline">
+                🗺️ Ver en mapa
+              </a>
+              <button @click="attendReport(r.id)"
+                class="flex-1 text-xs font-semibold bg-red-600 text-white rounded-xl py-2.5 border-none cursor-pointer">
+                ✅ Atender
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50" style="height:60px;padding-bottom:env(safe-area-inset-bottom)">
+    <template x-for="item in navItems" :key="item.id">
+      <button @click="navigateTo(item.id)"
+        class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
+        :class="(page===item.id || (item.id==='login' && page==='panel') || (item.id==='panel' && page==='panel')) ? 'text-red-600 bg-red-50' : 'text-gray-500 bg-white'">
+        <span class="text-xl" x-text="item.emoji"></span>
+        <span x-text="item.label"></span>
+      </button>
+    </template>
+  </nav>
+
+<script>
+// Intercepta inputs antes que Alpine y convierte a mayúsculas
+document.addEventListener('input', function(e) {
+  const el = e.target
+  const skipTypes = ['password', 'range', 'file', 'number', 'email']
+  if (skipTypes.includes(el.type)) return
+  if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return
+  const s = el.selectionStart, end = el.selectionEnd
+  el.value = el.value.toUpperCase()
+  try { el.setSelectionRange(s, end) } catch(_) {}
+}, true) // capture=true: corre antes que los handlers de Alpine
+
+function app() {
+  return {
+    page: 'map',
+    user: null,
+    token: null,
+
+    // datos
+    reports: [],
+    aidPoints: [],
+    dangerZones: [],
+    volunteers: [],
+    filters: { reports: true, aidPoints: true, dangerZones: true },
+    skillFilter: '',
+    skillTags: [
+      {v:'',              e:'👥'},
+      {v:'médico',        e:'⚕️'},
+      {v:'rescate',       e:'🆘'},
+      {v:'logística',     e:'📦'},
+      {v:'psicología',    e:'🧠'},
+      {v:'comunicaciones',e:'📡'},
+      {v:'alimentos',        e:'🍲'},
+      {v:'estructuras',   e:'🏗️'},
+    ],
+
+    // formularios
+    reportForm: { reporter_name:'', reporter_last_name:'', reporter_id:'', reporter_phone:'', need_type:'', description:'', address:'', lat:4.8133, lng:-75.6961, people_count:1, extra:{}, photoPreview:null, photoFile:null },
+    reportLoading: false,
+    reportMsg: '',
+    reportError: false,
+    reportId: null,
+    locationOk: false,
+    locationDenied: false,
+    locLoading: false,
+    locationAddress: '',
+    locationAddressLoading: false,
+    reportStep: 'location',
+    reportSteps: [
+      { id:'location', label:'Ubicación' },
+      { id:'need',     label:'Qué necesitas' },
+      { id:'details',  label:'Detalles' },
+      { id:'contact',  label:'Contacto' },
+    ],
+    reportMap: null,
+    reportMarker: null,
+
+    loginForm: { phone:'', password:'' },
+    loginMsg: '',
+    authTab: 'login',
+
+    registerForm: { full_name:'', last_name:'', id_number:'', phone:'', password:'', role:'volunteer', skills:'', skillsArr:[], neighborhood:'', radius:5, actionPin:null },
+    registerMsg: '',
+    registerError: false,
+    regStep: 'tipo',
+    regLocLoading: false,
+    regMap: null,
+    regMarker: null,
+    regCircle: null,
+    regSteps: [
+      { id:'tipo',    emoji:'👤', label:'Tipo'      },
+      { id:'datos',   emoji:'📋', label:'Datos'     },
+      { id:'skills',  emoji:'⚕️', label:'Skills'    },
+      { id:'zona',    emoji:'📍', label:'Zona'      },
+      { id:'confirm', emoji:'✅', label:'Confirmar' },
+    ],
+
+    navItems: [
+      { id:'map', emoji:'🗺️', label:'Mapa' },
+      { id:'report', emoji:'🆘', label:'Pedir ayuda' },
+      { id:'volunteers', emoji:'🤝', label:'Voluntarios' },
+      { id:'login', emoji:'🧑‍🚒', label:'Unirme' },
+    ],
+
+    needOptions: [
+      { value:'rescue',       emoji:'🆘', label:'Rescate' },
+      { value:'medical',      emoji:'⚕️', label:'Atención médica' },
+      { value:'food',         emoji:'🍲', label:'Alimentos / agua' },
+      { value:'shelter',      emoji:'🏠', label:'Albergue' },
+      { value:'family',       emoji:'👨‍👩‍👧', label:'Busco familiar' },
+      { value:'psychological',emoji:'🧠', label:'Apoyo psicológico' },
+      { value:'structural',   emoji:'🏗️', label:'Evaluación estructural' },
+      { value:'pet',          emoji:'🐾', label:'Busco mascota' },
+      { value:'lost_all',     emoji:'🏚️', label:'Lo perdí todo' },
+      { value:'medicine',     emoji:'💊', label:'Medicamentos' },
+      { value:'other',        emoji:'📌', label:'Otro' },
+    ],
+
+    needEmoji: {
+      rescue:       { emoji:'🆘', color:'#ef4444' },
+      medical:      { emoji:'⚕️', color:'#ec4899' },
+      food:         { emoji:'🍲', color:'#f59e0b' },
+      shelter:      { emoji:'🏠', color:'#10b981' },
+      family:       { emoji:'👨‍👩‍👧', color:'#6366f1' },
+      psychological:{ emoji:'🧠', color:'#8b5cf6' },
+      structural:   { emoji:'🏗️', color:'#64748b' },
+      pet:          { emoji:'🐾', color:'#a78bfa' },
+      lost_all:     { emoji:'🏚️', color:'#92400e' },
+      medicine:     { emoji:'💊', color:'#0ea5e9' },
+      other:        { emoji:'📌', color:'#94a3b8' },
+    },
+
+    // Zona de acción
+    actionPin: null,
+    actionRadius: 5,
+    actionMap: null,
+    actionMarker: null,
+    actionCircle: null,
+    actionZoneMsg: '',
+    zoneOpen: false,
+    zoneStep: 'location',
+    zoneLocLoading: false,
+    zoneSteps: [
+      { id:'location', emoji:'📍', label:'Zona' },
+      { id:'radius',   emoji:'⭕', label:'Alcance' },
+      { id:'confirm',  emoji:'✅', label:'Confirmar' },
+    ],
+
+    map: null,
+    markers: [],
+
+    async init() {
+      // Recuperar sesión guardada
+      const saved = localStorage.getItem('pa_token')
+      if (saved) {
+        this.token = saved
+        await this.loadMe()
+      }
+      // Inicializar mapa
+      this.$nextTick(() => this.initMap())
+      // Cargar datos
+      await this.loadData()
+      // Actualizar cada 30s
+      setInterval(() => this.loadData(), 30000)
+    },
+
+    async initMap() {
+      if (this.map) return
+      const el = document.getElementById('map')
+      if (!el) return
+      this.map = L.map('map').setView([4.8133, -75.6961], 13)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(this.map)
+      this.renderMarkers()
+    },
+
+    async loadData() {
+      try {
+        const [r, a, d] = await Promise.all([
+          fetch('/reports/?status=pending').then(x=>x.json()),
+          fetch('/aid-points/?active_only=true').then(x=>x.json()),
+          fetch('/danger-zones/').then(x=>x.json()),
+        ])
+        this.reports = r
+        this.aidPoints = a
+        this.dangerZones = d
+        this.renderMarkers()
+      } catch(e) { console.warn('Error cargando datos', e) }
+    },
+
+    renderMarkers() {
+      if (!this.map) return
+      // Limpiar
+      this.markers.forEach(m => this.map.removeLayer(m))
+      this.markers = []
+
+      const icon = (emoji, color) => L.divIcon({
+        html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3)">${emoji}</div>`,
+        className: '', iconSize:[32,32], iconAnchor:[16,16]
+      })
+
+      if (this.filters.reports) {
+        this.reports.forEach(r => {
+          const { emoji, color } = this.needEmoji[r.need_type] || { emoji:'📌', color:'#94a3b8' }
+          const label = this.needOptions.find(o => o.value === r.need_type)?.label || r.need_type
+          const m = L.marker([r.lat, r.lng], { icon: icon(emoji, color) })
+            .bindPopup(`<b>${emoji} ${label}</b><br>${r.description}<br><small>📍 ${r.address}</small>`)
+          m.addTo(this.map)
+          this.markers.push(m)
+        })
+      }
+
+      if (this.filters.aidPoints) {
+        const colors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280' }
+        const emojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️' }
+        this.aidPoints.forEach(a => {
+          const m = L.marker([a.lat, a.lng], { icon: icon(emojis[a.aid_type]||'🤝', colors[a.aid_type]||'#3b82f6') })
+            .bindPopup(`<b>${a.name}</b><br>${a.description||''}<br><small>${a.address}</small>`)
+          m.addTo(this.map)
+          this.markers.push(m)
+        })
+      }
+
+      if (this.filters.dangerZones) {
+        const lvlColor = { low:'#fbbf24', medium:'#f97316', high:'#ef4444', critical:'#7f1d1d' }
+        this.dangerZones.forEach(z => {
+          const c = L.circle([z.lat, z.lng], {
+            radius: z.radius_meters,
+            color: lvlColor[z.danger_level]||'#ef4444',
+            fillColor: lvlColor[z.danger_level]||'#ef4444',
+            fillOpacity: 0.2, weight: 2
+          }).bindPopup(`<b>⚠️ ${z.name}</b><br>${z.description}`)
+          c.addTo(this.map)
+          this.markers.push(c)
+        })
+      }
+    },
+
+    navigateTo(id) {
+      this.page = id
+      if (id === 'map') {
+        this.$nextTick(() => {
+          if (this.map) this.map.invalidateSize()
+          else this.initMap()
+        })
+      }
+      if (id === 'volunteers') this.loadVolunteers()
+      if (id === 'report') {
+        this.reportStep = 'location'
+      }
+      // 4to tab: si no está logueado lleva a login, si está logueado lleva a panel
+      if (id === 'login' && this.user) {
+        this.page = 'panel'
+      }
+      if (this.page === 'panel') {
+        this.$nextTick(() => this.initActionMap())
+      }
+    },
+
+    handlePhotoChange(e) {
+      const file = e.target.files[0]
+      if (!file) return
+      this.reportForm.photoFile = file
+      const reader = new FileReader()
+      reader.onload = (ev) => { this.reportForm.photoPreview = ev.target.result }
+      reader.readAsDataURL(file)
+    },
+
+    toggleUrgent(item) {
+      if (!this.reportForm.extra.urgent) this.reportForm.extra.urgent = []
+      const idx = this.reportForm.extra.urgent.indexOf(item)
+      if (idx === -1) this.reportForm.extra.urgent.push(item)
+      else this.reportForm.extra.urgent.splice(idx, 1)
+    },
+
+    stepIndex() {
+      if (this.reportStep === 'done') return this.reportSteps.length
+      return this.reportSteps.findIndex(s => s.id === this.reportStep)
+    },
+
+    async reverseGeocode(lat, lng) {
+      this.locationAddress = ''
+      this.locationAddressLoading = true
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
+          { headers: { 'Accept-Language': 'es' } }
+        )
+        const data = await res.json()
+        if (data && data.address) {
+          const a = data.address
+          // Armar dirección legible: calle + barrio + ciudad
+          const parts = [
+            a.road || a.pedestrian || a.footway,
+            a.house_number,
+            a.neighbourhood || a.suburb || a.quarter,
+            a.city || a.town || a.municipality,
+          ].filter(Boolean)
+          this.locationAddress = parts.join(', ')
+          // Pre-llenar el campo de dirección del formulario si está vacío
+          if (!this.reportForm.address) this.reportForm.address = this.locationAddress
+        }
+      } catch { /* sin conexión — no bloquea */ }
+      finally { this.locationAddressLoading = false }
+    },
+
+    getLocation() {
+      if (!navigator.geolocation) {
+        this.locationDenied = true
+        this.$nextTick(() => this.initReportMap(4.8133, -75.6961))
+        return
+      }
+      this.locLoading = true
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.locLoading = false
+          this.locationOk = true
+          this.locationDenied = false
+          this.reportForm.lat = pos.coords.latitude
+          this.reportForm.lng = pos.coords.longitude
+          this.reverseGeocode(pos.coords.latitude, pos.coords.longitude)
+          this.$nextTick(() => this.initReportMap(pos.coords.latitude, pos.coords.longitude))
+        },
+        () => {
+          this.locLoading = false
+          this.locationDenied = true
+          this.$nextTick(() => this.initReportMap(4.8133, -75.6961))
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      )
+    },
+
+    initReportMap(lat, lng) {
+      const el = document.getElementById('report-map')
+      if (!el) return
+      if (this.reportMap) {
+        // Ya existe — solo recentrar y mover marcador
+        this.reportMap.setView([lat, lng], 16)
+        if (this.reportMarker) this.reportMarker.setLatLng([lat, lng])
+        else this.reportMarker = L.marker([lat, lng], { draggable: true }).addTo(this.reportMap)
+        this.reportMarker.on('dragend', (e) => {
+          this.reportForm.lat = e.target.getLatLng().lat
+          this.reportForm.lng = e.target.getLatLng().lng
+          this.locationOk = true
+        })
+        return
+      }
+      this.reportMap = L.map('report-map').setView([lat, lng], 16)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(this.reportMap)
+
+      // Marcador arrastrable
+      this.reportMarker = L.marker([lat, lng], { draggable: true }).addTo(this.reportMap)
+      this.reportMarker.on('dragend', (e) => {
+        const ll = e.target.getLatLng()
+        this.reportForm.lat = ll.lat
+        this.reportForm.lng = ll.lng
+        this.locationOk = true
+        this.reportForm.address = ''
+        this.reverseGeocode(ll.lat, ll.lng)
+      })
+
+      // Toque en el mapa también mueve el pin
+      this.reportMap.on('click', (e) => {
+        this.reportForm.lat = e.latlng.lat
+        this.reportForm.lng = e.latlng.lng
+        this.reportMarker.setLatLng(e.latlng)
+        this.locationOk = true
+        this.reportForm.address = ''
+        this.reverseGeocode(e.latlng.lat, e.latlng.lng)
+      })
+    },
+
+    async loadVolunteers() {
+      const url = this.skillFilter ? `/users/volunteers?skill=${this.skillFilter}` : '/users/volunteers'
+      try {
+        const r = await fetch(url, { headers: this.authHeaders() })
+        this.volunteers = await r.json()
+      } catch(e) { console.warn(e) }
+    },
+
+    async submitReport() {
+      this.reportLoading = true; this.reportMsg = ''; this.reportError = false
+      try {
+        // 1. Subir foto si existe
+        let photo_url = null
+        if (this.reportForm.photoFile) {
+          const fd = new FormData()
+          fd.append('file', this.reportForm.photoFile)
+          const up = await fetch('/upload', { method:'POST', body: fd })
+          if (up.ok) { const upData = await up.json(); photo_url = upData.url }
+        }
+        // 2. Enviar reporte
+        const { extra, photoPreview, photoFile, reporter_last_name, reporter_id, ...formData } = this.reportForm
+        const fullName = [formData.reporter_name, reporter_last_name].filter(Boolean).join(' ')
+        const res = await fetch('/reports/', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            ...formData,
+            reporter_name: fullName,
+            reporter_phone: formData.reporter_phone || reporter_id || '',
+            people_count: Number(formData.people_count),
+            photo_url,
+            extra_data: JSON.stringify({ ...extra, reporter_id, reporter_last_name })
+          })
+        })
+        if (!res.ok) throw new Error()
+        const data = await res.json()
+        this.reportId = data.id
+        this.reportStep = 'done'
+        await this.loadData()
+      } catch {
+        this.reportMsg = '❌ Error al enviar. Intenta de nuevo.'; this.reportError = true
+      } finally { this.reportLoading = false }
+    },
+
+    resetReport() {
+      this.reportForm = { reporter_name:'', reporter_phone:'', need_type:'', description:'', address:'', lat:4.8133, lng:-75.6961, people_count:1, extra:{}, photoPreview:null, photoFile:null }
+      this.locationOk = false; this.locationDenied = false; this.locationAddress = ''
+      this.reportStep = 'location'; this.reportId = null; this.reportMsg = ''
+      if (this.reportMap) { this.reportMap.remove(); this.reportMap = null; this.reportMarker = null }
+    },
+
+    async login() {
+      this.loginMsg = ''
+      try {
+        const res = await fetch('/auth/login', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(this.loginForm)
+        })
+        if (!res.ok) { this.loginMsg='Credenciales incorrectas'; return }
+        const data = await res.json()
+        this.token = data.access_token
+        this.user = data.user
+        localStorage.setItem('pa_token', this.token)
+        this.navItems[3] = { id:'panel', emoji:'📋', label:'Mi panel' }
+        this.page = 'panel'
+        this.$nextTick(() => this.initActionMap())
+      } catch { this.loginMsg = 'Error de conexión' }
+    },
+
+    async register() {
+      this.registerMsg = ''; this.registerError = false
+      const payload = {
+        full_name: this.registerForm.full_name,
+        last_name: this.registerForm.last_name,
+        id_number: this.registerForm.id_number,
+        phone: this.registerForm.phone,
+        password: this.registerForm.password,
+        role: this.registerForm.role,
+        neighborhood: this.registerForm.neighborhood,
+        skills: (this.registerForm.skillsArr || []).join(', '),
+      }
+      try {
+        const res = await fetch('/auth/register', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          this.registerMsg = err.detail || 'Error al registrar'; this.registerError = true; return
+        }
+        // Login automático después de registro
+        const loginRes = await fetch('/auth/login', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ phone: this.registerForm.phone, password: this.registerForm.password })
+        })
+        if (loginRes.ok) {
+          const data = await loginRes.json()
+          this.token = data.access_token
+          this.user = data.user
+          localStorage.setItem('pa_token', this.token)
+          // Guardar zona de acción si fue configurada
+          if (this.registerForm.actionPin) {
+            await fetch('/users/me', {
+              method:'PATCH',
+              headers:{'Content-Type':'application/json', ...this.authHeaders()},
+              body: JSON.stringify({
+                action_lat: this.registerForm.actionPin.lat,
+                action_lng: this.registerForm.actionPin.lng,
+                action_radius_km: Number(this.registerForm.radius)
+              })
+            })
+            this.user = { ...this.user,
+              action_lat: this.registerForm.actionPin.lat,
+              action_lng: this.registerForm.actionPin.lng,
+              action_radius_km: Number(this.registerForm.radius)
+            }
+          }
+          this.navItems[3] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          this.page = 'panel'
+          this.$nextTick(() => this.initActionMap())
+        }
+      } catch { this.registerMsg='Error de conexión'; this.registerError=true }
+    },
+
+    toggleSkill(skill) {
+      if (!this.registerForm.skillsArr) this.registerForm.skillsArr = []
+      const idx = this.registerForm.skillsArr.indexOf(skill)
+      if (idx === -1) this.registerForm.skillsArr.push(skill)
+      else this.registerForm.skillsArr.splice(idx, 1)
+    },
+
+    async attendReport(reportId) {
+      if (!this.token) return
+      try {
+        await fetch(`/reports/${reportId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type':'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ status: 'in_progress', assigned_to: this.user?.id })
+        })
+        await this.loadData()
+      } catch(e) { console.warn('Error al atender reporte', e) }
+    },
+
+    logout() {
+      this.user = null; this.token = null
+      localStorage.removeItem('pa_token')
+      this.navItems[3] = { id:'login', emoji:'🧑‍🚒', label:'Unirme' }
+      this.page = 'map'
+    },
+
+    async loadMe() {
+      try {
+        const res = await fetch('/users/me', { headers: this.authHeaders() })
+        if (res.ok) {
+          this.user = await res.json()
+          this.navItems[3] = { id:'panel', emoji:'📋', label:'Mi panel' }
+        } else {
+          this.token=null; localStorage.removeItem('pa_token')
+        }
+      } catch { this.token=null }
+    },
+
+    // ── Zona de acción ──────────────────────────────────────────────
+
+    initActionMap() {
+      // Esperar 150ms para que el div sea visible antes que Leaflet lo mida
+      setTimeout(() => {
+        const el = document.getElementById('action-map')
+        if (!el) return
+
+        if (this.actionMap) {
+          this.actionMap.invalidateSize()
+          return
+        }
+
+        const center = this.user?.action_lat
+          ? [this.user.action_lat, this.user.action_lng]
+          : [4.8133, -75.6961]
+
+        this.actionMap = L.map('action-map', { zoomControl: true }).setView(center, 13)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OSM'
+        }).addTo(this.actionMap)
+
+        // Si ya tiene zona configurada, cargarla
+        if (this.user?.action_lat) {
+          this.actionPin = { lat: this.user.action_lat, lng: this.user.action_lng }
+          this.actionRadius = this.user.action_radius_km || 5
+          this._placeActionPin(this.user.action_lat, this.user.action_lng)
+          this.zoneStep = 'confirm'
+        }
+
+        this.actionMap.on('click', (e) => {
+          this._placeActionPin(e.latlng.lat, e.latlng.lng)
+          if (this.zoneStep === 'location') this.zoneStep = 'radius'
+        })
+      }, 150)
+    },
+
+    _placeActionPin(lat, lng) {
+      this.actionPin = { lat, lng }
+      const latlng = [lat, lng]
+      const radius = Number(this.actionRadius) * 1000 // a metros
+
+      if (this.actionMarker) this.actionMarker.setLatLng(latlng)
+      else this.actionMarker = L.marker(latlng, { draggable: true })
+        .addTo(this.actionMap)
+        .on('dragend', (e) => {
+          const p = e.target.getLatLng()
+          this.actionPin = { lat: p.lat, lng: p.lng }
+          this._updateActionCircle()
+        })
+
+      if (this.actionCircle) this.actionCircle.setLatLng(latlng).setRadius(radius)
+      else this.actionCircle = L.circle(latlng, {
+        radius,
+        color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.12, weight: 2
+      }).addTo(this.actionMap)
+
+      this.actionMap.setView(latlng, 13)
+    },
+
+    _updateActionCircle() {
+      if (!this.actionCircle || !this.actionPin) return
+      const radius = Number(this.actionRadius) * 1000
+      this.actionCircle.setLatLng([this.actionPin.lat, this.actionPin.lng]).setRadius(radius)
+      if (this.actionMarker) this.actionMarker.setLatLng([this.actionPin.lat, this.actionPin.lng])
+    },
+
+    async useMyLocation() {
+      if (!navigator.geolocation) return
+      this.zoneLocLoading = true
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.zoneLocLoading = false
+          this._placeActionPin(pos.coords.latitude, pos.coords.longitude)
+          this.zoneStep = 'radius'
+        },
+        () => { this.zoneLocLoading = false; alert('No se pudo obtener ubicación') }
+      )
+    },
+
+    async saveActionZone() {
+      if (!this.actionPin) return
+      this._updateActionCircle()
+      try {
+        const res = await fetch('/users/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({
+            action_lat: this.actionPin.lat,
+            action_lng: this.actionPin.lng,
+            action_radius_km: Number(this.actionRadius)
+          })
+        })
+        if (res.ok) {
+          this.user = await res.json()
+          this.actionZoneMsg = '✅ Zona guardada correctamente'
+          setTimeout(() => {
+            this.actionZoneMsg = ''
+            this.zoneOpen = false
+          }, 2000)
+        }
+      } catch(e) { console.warn(e) }
+    },
+
+    async clearActionZone() {
+      try {
+        await fetch('/users/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ action_lat: null, action_lng: null, action_radius_km: null })
+        })
+        this.user = { ...this.user, action_lat: null, action_lng: null, action_radius_km: null }
+        this.actionPin = null
+        this.zoneStep = 'location'
+        if (this.actionMarker) { this.actionMarker.remove(); this.actionMarker = null }
+        if (this.actionCircle) { this.actionCircle.remove(); this.actionCircle = null }
+      } catch(e) { console.warn(e) }
+    },
+
+    // Distancia Haversine en km entre el pin de acción del user y un reporte
+    distKm(report) {
+      if (!this.user?.action_lat) return 9999
+      const R = 6371
+      const dLat = (report.lat - this.user.action_lat) * Math.PI / 180
+      const dLng = (report.lng - this.user.action_lng) * Math.PI / 180
+      const a = Math.sin(dLat/2)**2 +
+        Math.cos(this.user.action_lat * Math.PI/180) *
+        Math.cos(report.lat * Math.PI/180) *
+        Math.sin(dLng/2)**2
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    },
+
+    sortedPendingReports() {
+      const pending = this.reports.filter(r => r.status === 'pending')
+      if (!this.user?.action_lat) return pending
+      return [...pending].sort((a, b) => this.distKm(a) - this.distKm(b))
+    },
+
+    // ── Registro por pasos ───────────────────────────────────────────
+
+    regStepIndex() {
+      return this.regSteps.findIndex(s => s.id === this.regStep)
+    },
+
+    regNextFromDatos() {
+      if (!this.registerForm.full_name || !this.registerForm.last_name) {
+        alert('Ingresa nombre y apellido'); return
+      }
+      if (!this.registerForm.id_number) {
+        alert('Ingresa tu número de identificación'); return
+      }
+      if (!this.registerForm.phone || !this.registerForm.password) {
+        alert('Completa teléfono y contraseña'); return
+      }
+      this.regStep = this.registerForm.role === 'volunteer' ? 'skills' : 'zona'
+    },
+
+    initRegMap() {
+      setTimeout(() => {
+        const el = document.getElementById('reg-map')
+        if (!el) return
+        if (this.regMap) { this.regMap.invalidateSize(); return }
+
+        const center = this.registerForm.actionPin
+          ? [this.registerForm.actionPin.lat, this.registerForm.actionPin.lng]
+          : [4.8133, -75.6961]
+
+        this.regMap = L.map('reg-map', { zoomControl: true }).setView(center, 13)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OSM'
+        }).addTo(this.regMap)
+
+        this.regMap.on('click', (e) => {
+          this._placeRegPin(e.latlng.lat, e.latlng.lng)
+        })
+      }, 150)
+    },
+
+    _placeRegPin(lat, lng) {
+      this.registerForm.actionPin = { lat, lng }
+      const latlng = [lat, lng]
+      const radius = Number(this.registerForm.radius) * 1000
+
+      if (this.regMarker) this.regMarker.setLatLng(latlng)
+      else this.regMarker = L.marker(latlng, { draggable: true })
+        .addTo(this.regMap)
+        .on('dragend', (e) => {
+          const p = e.target.getLatLng()
+          this.registerForm.actionPin = { lat: p.lat, lng: p.lng }
+          this._updateRegCircle()
+        })
+
+      if (this.regCircle) this.regCircle.setLatLng(latlng).setRadius(radius)
+      else this.regCircle = L.circle(latlng, {
+        radius, color: '#dc2626', fillColor: '#dc2626', fillOpacity: 0.12, weight: 2
+      }).addTo(this.regMap)
+
+      this.regMap.setView(latlng, 13)
+    },
+
+    _updateRegCircle() {
+      if (!this.regCircle || !this.registerForm.actionPin) return
+      const radius = Number(this.registerForm.radius) * 1000
+      this.regCircle.setLatLng([this.registerForm.actionPin.lat, this.registerForm.actionPin.lng]).setRadius(radius)
+    },
+
+    useMyLocationReg() {
+      if (!navigator.geolocation) return
+      this.regLocLoading = true
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          this.regLocLoading = false
+          this._placeRegPin(pos.coords.latitude, pos.coords.longitude)
+        },
+        () => { this.regLocLoading = false; alert('No se pudo obtener ubicación') }
+      )
+    },
+
+    authHeaders() {
+      return this.token ? { 'Authorization': `Bearer ${this.token}` } : {}
+    }
+  }
+}
+</script>
+</body>
+</html>
