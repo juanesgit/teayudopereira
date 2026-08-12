@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     # Ruta absoluta para evitar errores de I/O con rutas relativas
     DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/pereira_alerta.db"
+    # Inalambria SMS — dejar vacío para deshabilitar
+    INALAMBRIA_USER: str = ""
+    INALAMBRIA_PASS: str = ""
 
     class Config:
         env_file = ".env"
