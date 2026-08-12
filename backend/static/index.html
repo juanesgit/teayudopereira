@@ -1900,12 +1900,204 @@
     </div>
   </template>
 
+  <!-- ══════════════════════════════════════════════
+       PANEL ADMIN DEL SISTEMA (solo rol admin)
+  ══════════════════════════════════════════════ -->
+  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="height:calc(100vh - var(--nav-h))">
+    <div class="max-w-2xl mx-auto px-4 py-5">
+
+      <!-- Header -->
+      <div class="bg-gray-900 text-white rounded-2xl p-5 mb-5 flex items-center justify-between">
+        <div>
+          <p class="text-xs opacity-60 mb-0.5">Sistema</p>
+          <h1 class="text-xl font-bold">⚙️ Administración</h1>
+          <p class="text-xs opacity-60 mt-0.5" x-text="user?.full_name"></p>
+        </div>
+        <button @click="logout()" class="text-xs text-gray-400 bg-white/10 rounded-xl px-3 py-2 border-none cursor-pointer">
+          Cerrar sesión
+        </button>
+      </div>
+
+      <!-- Stats globales -->
+      <div x-show="adminStats" class="grid grid-cols-3 gap-3 mb-5">
+        <div class="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
+          <p class="text-2xl font-bold text-gray-900" x-text="adminStats?.reports?.total||0"></p>
+          <p class="text-xs text-gray-400 mt-1">Solicitudes</p>
+        </div>
+        <div class="bg-red-50 rounded-2xl p-4 text-center border border-red-100 shadow-sm">
+          <p class="text-2xl font-bold text-red-600" x-text="adminStats?.reports?.pending||0"></p>
+          <p class="text-xs text-gray-400 mt-1">Pendientes</p>
+        </div>
+        <div class="bg-green-50 rounded-2xl p-4 text-center border border-green-100 shadow-sm">
+          <p class="text-2xl font-bold text-green-600" x-text="adminStats?.reports?.resolved||0"></p>
+          <p class="text-xs text-gray-400 mt-1">Resueltas</p>
+        </div>
+        <div class="bg-blue-50 rounded-2xl p-4 text-center border border-blue-100 shadow-sm">
+          <p class="text-2xl font-bold text-blue-600" x-text="adminStats?.users?.volunteers||0"></p>
+          <p class="text-xs text-gray-400 mt-1">Voluntarios</p>
+        </div>
+        <div class="bg-yellow-50 rounded-2xl p-4 text-center border border-yellow-100 shadow-sm">
+          <p class="text-2xl font-bold text-yellow-600" x-text="adminStats?.users?.coordinators||0"></p>
+          <p class="text-xs text-gray-400 mt-1">Coordinadores</p>
+        </div>
+        <div class="bg-orange-50 rounded-2xl p-4 text-center border border-orange-100 shadow-sm">
+          <p class="text-2xl font-bold text-orange-600" x-text="adminStats?.danger_zones||0"></p>
+          <p class="text-xs text-gray-400 mt-1">Zonas peligro</p>
+        </div>
+      </div>
+
+      <!-- Tabs internos -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
+        <div class="flex border-b border-gray-100">
+          <template x-for="t in [{id:'users',l:'👥 Usuarios'},{id:'sms',l:'📱 SMS'},{id:'reports',l:'🆘 Reportes'}]" :key="t.id">
+            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers();"
+              class="flex-1 py-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent"
+              :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
+              <span x-text="t.l"></span>
+            </button>
+          </template>
+        </div>
+
+        <!-- TAB: USUARIOS -->
+        <div x-show="sysTab==='users'" class="p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm text-gray-900">Usuarios registrados</h3>
+            <button @click="loadAdminVolunteers(true)"
+              class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄 Recargar</button>
+          </div>
+          <div class="flex flex-col gap-2">
+            <template x-for="v in adminVolunteers" :key="v.id">
+              <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-900 truncate"
+                    x-text="v.full_name+' '+(v.last_name||'')"></p>
+                  <p class="text-xs text-gray-400"
+                    x-text="v.phone+' · '+(v.neighborhood||'Sin barrio')"></p>
+                </div>
+                <!-- Badge rol -->
+                <select @change="changeUserRole(v.id, $event.target.value)"
+                  class="text-xs rounded-lg border border-gray-200 px-2 py-1 bg-white cursor-pointer"
+                  :value="v.role">
+                  <option value="volunteer">Voluntario</option>
+                  <option value="coordinator">Coordinador</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <!-- Toggle activo -->
+                <button @click="toggleUserActive(v.id, !v.is_active)"
+                  class="text-xs rounded-lg px-2 py-1 border-none cursor-pointer font-bold"
+                  :style="v.is_active ? 'background:#dcfce7;color:#166534' : 'background:#fee2e2;color:#991b1b'"
+                  x-text="v.is_active ? 'Activo' : 'Inactivo'"></button>
+              </div>
+            </template>
+            <div x-show="adminVolunteers.length===0" class="text-center py-6 text-gray-400 text-sm">
+              Cargando usuarios...
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SMS -->
+        <div x-show="sysTab==='sms'" class="p-4">
+          <!-- Saldo -->
+          <div x-show="smsBalance" class="bg-gray-900 text-white rounded-xl p-4 mb-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs opacity-60">Créditos disponibles</p>
+              <p class="text-2xl font-bold" x-text="smsBalance?.balance||0"></p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs opacity-60">Mensajes estimados</p>
+              <p class="text-lg font-bold" x-text="smsBalance?.estimatedMessages||0"></p>
+            </div>
+            <button @click="loadSmsBalance()"
+              class="text-xs bg-white/10 rounded-lg px-3 py-2 border-none cursor-pointer text-white">🔄</button>
+          </div>
+
+          <!-- SMS directo -->
+          <div class="mb-4">
+            <h3 class="font-bold text-sm text-gray-900 mb-2">📱 Envío directo</h3>
+            <input x-model="adminSms.phones" placeholder="Números separados por coma: 3001234567, 3107654321"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2 focus:outline-none focus:border-gray-400"/>
+            <textarea x-model="adminSms.message" placeholder="Mensaje..."
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2 resize-none focus:outline-none focus:border-gray-400"
+              rows="3" maxlength="500"></textarea>
+            <button @click="sendAdminSms()" :disabled="adminSms.loading||!adminSms.phones||!adminSms.message"
+              class="w-full bg-gray-900 text-white rounded-xl font-bold text-sm py-3 border-none cursor-pointer disabled:opacity-40">
+              <span x-show="!adminSms.loading">📤 Enviar SMS</span>
+              <span x-show="adminSms.loading">Enviando...</span>
+            </button>
+            <p x-show="adminSms.result" x-text="adminSms.result"
+              class="text-xs text-center mt-2 rounded-lg py-2"
+              :style="adminSms.error?'color:#991b1b':'color:#166534'"></p>
+          </div>
+
+          <!-- Broadcast -->
+          <div>
+            <h3 class="font-bold text-sm text-gray-900 mb-2">📢 Broadcast masivo</h3>
+            <div class="flex gap-2 mb-3">
+              <template x-for="t in [{v:'all',l:'Todos'},{v:'volunteers',l:'Voluntarios'},{v:'coordinators',l:'Coordinadores'}]" :key="t.v">
+                <button type="button" @click="adminBroadcast.target=t.v"
+                  class="flex-1 py-2 rounded-xl border-2 cursor-pointer text-xs font-bold"
+                  :style="adminBroadcast.target===t.v?'border-color:#111827;background:#f9fafb;color:#111827':'border-color:#e5e7eb;background:white;color:#6b7280'">
+                  <span x-text="t.l"></span>
+                </button>
+              </template>
+            </div>
+            <div class="flex flex-col gap-1.5 mb-2">
+              <template x-for="tpl in adminTemplates" :key="tpl.label">
+                <button type="button" @click="adminBroadcast.message=tpl.text"
+                  class="text-left text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer">
+                  <span x-text="tpl.label"></span>
+                </button>
+              </template>
+            </div>
+            <textarea x-model="adminBroadcast.message" placeholder="Mensaje a enviar..."
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2 resize-none focus:outline-none"
+              rows="3" maxlength="500"></textarea>
+            <button @click="sendBroadcast()" :disabled="adminBroadcast.loading||!adminBroadcast.message"
+              class="w-full bg-gray-900 text-white rounded-xl font-bold text-sm py-3 border-none cursor-pointer disabled:opacity-40">
+              <span x-show="!adminBroadcast.loading">📢 Enviar broadcast</span>
+              <span x-show="adminBroadcast.loading">Enviando...</span>
+            </button>
+            <p x-show="adminBroadcast.result" x-text="adminBroadcast.result"
+              class="text-xs text-center mt-2 rounded-lg py-2"
+              :style="adminBroadcast.error?'color:#991b1b':'color:#166534'"></p>
+          </div>
+        </div>
+
+        <!-- TAB: REPORTES -->
+        <div x-show="sysTab==='reports'" class="p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm text-gray-900">Todos los reportes</h3>
+            <button @click="loadData()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+          </div>
+          <div class="flex flex-col gap-2">
+            <template x-for="r in reports.slice(0,30)" :key="r.id">
+              <div class="bg-gray-50 rounded-xl p-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 truncate"
+                      x-text="'#'+r.id+' · '+(r.contact_name||'Anónimo')"></p>
+                    <p class="text-xs text-gray-400 truncate" x-text="r.address||'Sin dirección'"></p>
+                  </div>
+                  <span class="text-xs font-bold rounded-full px-2 py-0.5 flex-shrink-0"
+                    :style="r.status==='pending'?'background:#fee2e2;color:#991b1b':r.status==='resolved'?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'"
+                    x-text="r.status==='pending'?'Pendiente':r.status==='resolved'?'Resuelto':'En atención'"></span>
+                </div>
+              </div>
+            </template>
+            <div x-show="reports.length===0" class="text-center py-6 text-gray-400 text-sm">Cargando...</div>
+          </div>
+        </div>
+
+      </div><!-- /card tabs -->
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:2000">
     <template x-for="item in navItems" :key="item.id">
       <button @click="navigateTo(item.id)"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
-        :class="(page===item.id || (item.id==='login' && page==='panel') || (item.id==='panel' && page==='panel')) ? (item.id==='danger' ? 'text-orange-600 bg-orange-50' : 'text-red-600 bg-red-50') : 'text-gray-500 bg-white'">
+        :class="(page===item.id || (item.id==='login' && (page==='panel'||page==='sysadmin')) || (item.id==='panel' && page==='panel') || (item.id==='sysadmin' && page==='sysadmin')) ? (item.id==='danger' ? 'text-orange-600 bg-orange-50' : item.id==='sysadmin' ? 'text-gray-900 bg-gray-100' : 'text-red-600 bg-red-50') : 'text-gray-500 bg-white'">
         <span class="text-xl" x-text="item.emoji"></span>
         <span x-text="item.label"></span>
       </button>
@@ -2067,6 +2259,9 @@ function app() {
     actionZoneMsg: '',
     panelTab: 'pendientes',
     adminVolunteers: [],
+    adminStats: null,
+    smsBalance: null,
+    sysTab: 'users',
     adminSms: { phones:'', message:'', loading:false, result:'', error:false },
     adminBroadcast: { target:'all', message:'', loading:false, result:'', error:false },
     adminTemplates: [
@@ -2186,9 +2381,12 @@ function app() {
       if (id === 'volunteers') this.loadVolunteers()
       if (id === 'report') this.reportStep = 'location'
       if (id === 'danger') this.resetDangerForm()
-      // 5to tab: login/panel
-      if (id === 'login' && this.user) this.page = 'panel'
+      // 5to tab: login/panel/admin
+      if (id === 'login' && this.user) {
+        this.page = this.user.role === 'admin' ? 'sysadmin' : 'panel'
+      }
       if (this.page === 'panel') this.$nextTick(() => this.initActionMap())
+      if (this.page === 'sysadmin') this.loadAdminStats()
     },
 
     handlePhotoChange(e) {
@@ -2400,9 +2598,15 @@ function app() {
         this.token = data.access_token
         this.user = data.user
         localStorage.setItem('pa_token', this.token)
-        this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-        this.page = 'panel'
-        this.$nextTick(() => this.initActionMap())
+        if (this.user.role === 'admin') {
+          this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
+          this.page = 'sysadmin'
+          this.loadAdminStats()
+        } else {
+          this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          this.page = 'panel'
+          this.$nextTick(() => this.initActionMap())
+        }
       } catch { this.loginMsg = 'Error de conexión' }
     },
 
@@ -2766,12 +2970,54 @@ function app() {
 
     // ─── Admin SMS ────────────────────────────────────────────────────────────
 
-    async loadAdminVolunteers() {
-      if (this.adminVolunteers.length > 0) return
+    async loadAdminStats() {
+      try {
+        const res = await fetch('/admin/stats', { headers: this.authHeaders() })
+        if (res.ok) this.adminStats = await res.json()
+      } catch(e) { console.warn(e) }
+    },
+
+    async loadSmsBalance() {
+      try {
+        const res = await fetch('/admin/sms/balance', { headers: this.authHeaders() })
+        if (res.ok) this.smsBalance = await res.json()
+      } catch(e) { console.warn(e) }
+    },
+
+    async loadAdminVolunteers(force = false) {
+      if (this.adminVolunteers.length > 0 && !force) return
       try {
         const res = await fetch('/admin/volunteers', { headers: this.authHeaders() })
         if (res.ok) this.adminVolunteers = await res.json()
       } catch(e) { console.warn('Error cargando voluntarios', e) }
+    },
+
+    async changeUserRole(userId, newRole) {
+      try {
+        const res = await fetch(`/admin/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ role: newRole })
+        })
+        if (res.ok) {
+          const idx = this.adminVolunteers.findIndex(v => v.id === userId)
+          if (idx >= 0) this.adminVolunteers[idx].role = newRole
+        }
+      } catch(e) { console.warn(e) }
+    },
+
+    async toggleUserActive(userId, active) {
+      try {
+        const res = await fetch(`/admin/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ is_active: active })
+        })
+        if (res.ok) {
+          const idx = this.adminVolunteers.findIndex(v => v.id === userId)
+          if (idx >= 0) this.adminVolunteers[idx].is_active = active
+        }
+      } catch(e) { console.warn(e) }
     },
 
     async sendAdminSms() {

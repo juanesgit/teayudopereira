@@ -8,9 +8,10 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
-    victim = "victim"        # persona afectada
-    volunteer = "volunteer"  # voluntario
-    coordinator = "coordinator"  # coordinador / entidad
+    victim = "victim"              # persona afectada
+    volunteer = "volunteer"        # voluntario
+    coordinator = "coordinator"    # coordinador / entidad
+    admin = "admin"                # administrador del sistema
 
 
 class User(Base):

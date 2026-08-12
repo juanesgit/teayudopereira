@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/pereira_alerta.db"
     # Inalambria SMS — dejar vacío para deshabilitar
     INALAMBRIA_API_KEY: str = ""
+    # Admin inicial — se crea automáticamente al arrancar si no existe
+    ADMIN_PHONE: str = ""
+    ADMIN_PASSWORD: str = ""
+    ADMIN_NAME: str = "Administrador"
 
     class Config:
         env_file = ".env"

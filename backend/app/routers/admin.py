@@ -1,5 +1,5 @@
 """
-Endpoints de administración — solo coordinadores.
+Endpoints de administración — solo rol admin.
 """
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ from app.services import sms
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
 
-def _require_coordinator(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != UserRole.coordinator:
-        raise HTTPException(status_code=403, detail="Solo coordinadores pueden acceder")
+def _require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Solo administradores del sistema pueden acceder")
     return current_user
 
 
@@ -47,7 +47,7 @@ class SmsSendResponse(BaseModel):
 async def sms_send_direct(
     data: SmsSendRequest,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(_require_coordinator),
+    current_user: User = Depends(_require_admin),
 ):
     """Envía SMS a una lista de números específicos."""
     if not data.phones:
@@ -64,7 +64,7 @@ async def sms_broadcast(
     data: SmsBroadcastRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(_require_coordinator),
+    current_user: User = Depends(_require_admin),
 ):
     """Envía SMS masivo a todos los voluntarios y/o coordinadores activos."""
     if not data.message.strip():
@@ -90,7 +90,7 @@ async def sms_broadcast(
 
 
 @router.get("/sms/balance")
-async def sms_balance(current_user: User = Depends(_require_coordinator)):
+async def sms_balance(current_user: User = Depends(_require_admin)):
     """Consulta saldo de créditos SMS."""
     data = await sms.get_balance()
     if data is None:
@@ -102,7 +102,7 @@ async def sms_balance(current_user: User = Depends(_require_coordinator)):
 async def sms_history(
     limit: int = 20,
     offset: int = 0,
-    current_user: User = Depends(_require_coordinator),
+    current_user: User = Depends(_require_admin),
 ):
     """Historial de SMS enviados."""
     data = await sms.get_history(limit=limit, offset=offset)
@@ -114,13 +114,12 @@ async def sms_history(
 @router.get("/volunteers")
 async def list_volunteers(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(_require_coordinator),
+    current_user: User = Depends(_require_admin),
 ):
-    """Lista voluntarios y coordinadores con sus datos de contacto."""
+    """Lista todos los usuarios excepto víctimas."""
     result = await db.execute(
         select(User).where(
-            User.role.in_([UserRole.volunteer, UserRole.coordinator]),
-            User.is_active == True,  # noqa: E712
+            User.role.in_([UserRole.volunteer, UserRole.coordinator, UserRole.admin]),
         ).order_by(User.created_at.desc())
     )
     users = result.scalars().all()
@@ -133,7 +132,77 @@ async def list_volunteers(
             "phone": u.phone,
             "neighborhood": u.neighborhood or "",
             "skills": u.skills or "",
+            "is_active": u.is_active,
             "created_at": u.created_at.isoformat(),
         }
         for u in users
     ]
+
+
+class UserPatchRequest(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+@router.patch("/users/{user_id}")
+async def patch_user(
+    user_id: int,
+    data: UserPatchRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    """Cambia el rol o activa/desactiva un usuario."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puedes modificarte a ti mismo")
+
+    if data.role is not None:
+        try:
+            user.role = UserRole(data.role)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Rol inválido: {data.role}")
+
+    if data.is_active is not None:
+        user.is_active = data.is_active
+
+    await db.commit()
+    await db.refresh(user)
+    return {"id": user.id, "role": user.role, "is_active": user.is_active}
+
+
+@router.get("/stats")
+async def system_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(_require_admin),
+):
+    """Estadísticas globales del sistema."""
+    from app.models.report import Report, ReportStatus
+    from app.models.danger_zone import DangerZone
+    from sqlalchemy import func
+
+    total_users = (await db.execute(select(func.count(User.id)))).scalar()
+    total_volunteers = (await db.execute(
+        select(func.count(User.id)).where(User.role == UserRole.volunteer)
+    )).scalar()
+    total_coordinators = (await db.execute(
+        select(func.count(User.id)).where(User.role == UserRole.coordinator)
+    )).scalar()
+    total_reports = (await db.execute(select(func.count(Report.id)))).scalar()
+    pending_reports = (await db.execute(
+        select(func.count(Report.id)).where(Report.status == ReportStatus.pending)
+    )).scalar()
+    resolved_reports = (await db.execute(
+        select(func.count(Report.id)).where(Report.status == ReportStatus.resolved)
+    )).scalar()
+    danger_zones = (await db.execute(
+        select(func.count(DangerZone.id)).where(DangerZone.is_active == True)  # noqa: E712
+    )).scalar()
+
+    return {
+        "users": {"total": total_users, "volunteers": total_volunteers, "coordinators": total_coordinators},
+        "reports": {"total": total_reports, "pending": pending_reports, "resolved": resolved_reports},
+        "danger_zones": danger_zones,
+    }

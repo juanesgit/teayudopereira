@@ -36,3 +36,36 @@ async def init_db():
                 await conn.execute(__import__('sqlalchemy').text(sql))
             except Exception:
                 pass  # columna ya existe — ignorar
+
+    # Crear admin inicial si está configurado y no existe
+    await _seed_admin()
+
+
+async def _seed_admin():
+    from app.config import settings
+    from app.models.user import User, UserRole
+    from sqlalchemy import select
+    import bcrypt
+
+    if not settings.ADMIN_PHONE or not settings.ADMIN_PASSWORD:
+        return
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.phone == settings.ADMIN_PHONE)
+        )
+        if result.scalar_one_or_none():
+            return  # ya existe
+
+        hashed = bcrypt.hashpw(settings.ADMIN_PASSWORD.encode(), bcrypt.gensalt()).decode()
+        admin = User(
+            full_name=settings.ADMIN_NAME,
+            phone=settings.ADMIN_PHONE,
+            hashed_password=hashed,
+            role=UserRole.admin,
+            is_active=True,
+        )
+        session.add(admin)
+        await session.commit()
+        import logging
+        logging.getLogger(__name__).info("Admin creado: %s", settings.ADMIN_PHONE)
