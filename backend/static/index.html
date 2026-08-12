@@ -28,14 +28,6 @@
     .bottom-nav-item { min-height: 44px; }
     .hide-scroll { overflow-x: auto; scrollbar-width: none; }
     .hide-scroll::-webkit-scrollbar { display: none; }
-    .fab {
-      position: fixed; bottom: calc(var(--nav-h) + 16px); right: 16px;
-      width: 56px; height: 56px; border-radius: 50%;
-      background: #dc2626; color: white; font-size: 24px;
-      box-shadow: 0 4px 16px rgba(220,38,38,.5);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 1000; border: none;
-    }
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,.5);
       z-index: 2000; display: flex; align-items: flex-end;
@@ -72,7 +64,7 @@
   <!-- PÁGINAS -->
 
   <!-- MAPA -->
-  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); position:relative; overflow:hidden;">
+  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <!-- Emergencias -->
@@ -116,11 +108,20 @@
       </button>
     </div>
 
-    <!-- Mapa Leaflet -->
-    <div id="map" style="height:calc(100% - 44px - 40px)"></div>
+    <!-- Mapa Leaflet: total - chips(50) - botón(80) - leyenda(36) -->
+    <div id="map" style="height:calc(100vh - 56px - var(--nav-h) - 50px - 80px - 36px); flex-shrink:0;"></div>
 
-    <!-- Leyenda — explica los 3 tipos de marcadores del mapa -->
-    <div class="bg-white border-t border-gray-100 px-3 py-2 flex gap-4 hide-scroll items-center">
+    <!-- Botón SOS -->
+    <div class="bg-white px-4 py-3 flex-shrink-0">
+      <button @click="page='report'"
+        class="w-full bg-red-600 text-white font-extrabold rounded-2xl flex items-center justify-center gap-3 border-none cursor-pointer"
+        style="height:56px; font-size:18px; letter-spacing:0.3px; box-shadow:0 4px 20px rgba(220,38,38,.4)">
+        🆘 Necesito ayuda
+      </button>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="bg-white border-t border-gray-100 px-3 py-2 flex gap-4 hide-scroll items-center flex-shrink-0">
       <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
         <span class="text-base">🆘</span>
         <span>Pide ayuda</span>
@@ -138,8 +139,6 @@
         <span>Zona peligro</span>
       </div>
     </div>
-    <!-- FAB principal: Pedir ayuda -->
-    <button class="fab" @click="page='report'" title="Pedir ayuda">🆘</button>
   </div>
 
   <!-- PEDIR AYUDA -->
