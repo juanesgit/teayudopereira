@@ -29,6 +29,7 @@ async def init_db():
             "ALTER TABLE users ADD COLUMN action_radius_km FLOAT",
             "ALTER TABLE users ADD COLUMN last_name VARCHAR(120)",
             "ALTER TABLE users ADD COLUMN id_number VARCHAR(30)",
+            "ALTER TABLE danger_zones ADD COLUMN photo_url VARCHAR(512)",
         ]
         for sql in migrations:
             try:

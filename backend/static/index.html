@@ -75,43 +75,70 @@
   <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); position:relative; overflow:hidden;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
+      <!-- Emergencias -->
       <button @click="filters.reports=!filters.reports"
-        class="flex-shrink-0 px-4 rounded-full border text-sm font-medium transition-colors"
-        :style="filters.reports ? 'background:#1f2937;color:white;border-color:#1f2937' : 'background:white;color:#6b7280;border-color:#e5e7eb'"
-        style="min-height:36px">
-        🆘 <span x-text="reports.length"></span>
+        class="flex-shrink-0 flex items-center gap-1.5 px-3 rounded-full border text-xs font-semibold transition-all"
+        :style="filters.reports
+          ? 'background:#fef2f2;color:#991b1b;border-color:#fca5a5'
+          : 'background:white;color:#9ca3af;border-color:#e5e7eb'"
+        style="min-height:34px">
+        🆘
+        <span>Emergencias</span>
+        <span class="rounded-full px-1.5 py-0.5 text-xs font-bold"
+          :style="filters.reports ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#6b7280'"
+          x-text="reports.filter(r=>r.status!=='resolved').length"></span>
       </button>
+      <!-- Puntos de ayuda -->
       <button @click="filters.aidPoints=!filters.aidPoints"
-        class="flex-shrink-0 px-4 rounded-full border text-sm font-medium transition-colors"
-        :style="filters.aidPoints ? 'background:#1f2937;color:white;border-color:#1f2937' : 'background:white;color:#6b7280;border-color:#e5e7eb'"
-        style="min-height:36px">
-        🤝 <span x-text="aidPoints.length"></span>
+        class="flex-shrink-0 flex items-center gap-1.5 px-3 rounded-full border text-xs font-semibold transition-all"
+        :style="filters.aidPoints
+          ? 'background:#eff6ff;color:#1e40af;border-color:#93c5fd'
+          : 'background:white;color:#9ca3af;border-color:#e5e7eb'"
+        style="min-height:34px">
+        🤝
+        <span>Puntos ayuda</span>
+        <span class="rounded-full px-1.5 py-0.5 text-xs font-bold"
+          :style="filters.aidPoints ? 'background:#2563eb;color:white' : 'background:#f3f4f6;color:#6b7280'"
+          x-text="aidPoints.length"></span>
       </button>
+      <!-- Zonas peligro -->
       <button @click="filters.dangerZones=!filters.dangerZones"
-        class="flex-shrink-0 px-4 rounded-full border text-sm font-medium transition-colors"
-        :style="filters.dangerZones ? 'background:#1f2937;color:white;border-color:#1f2937' : 'background:white;color:#6b7280;border-color:#e5e7eb'"
-        style="min-height:36px">
-        ⚠️ <span x-text="dangerZones.length"></span>
+        class="flex-shrink-0 flex items-center gap-1.5 px-3 rounded-full border text-xs font-semibold transition-all"
+        :style="filters.dangerZones
+          ? 'background:#fff7ed;color:#9a3412;border-color:#fdba74'
+          : 'background:white;color:#9ca3af;border-color:#e5e7eb'"
+        style="min-height:34px">
+        ⚠️
+        <span>Zonas peligro</span>
+        <span class="rounded-full px-1.5 py-0.5 text-xs font-bold"
+          :style="filters.dangerZones ? 'background:#ea580c;color:white' : 'background:#f3f4f6;color:#6b7280'"
+          x-text="dangerZones.length"></span>
       </button>
     </div>
+
     <!-- Mapa Leaflet -->
     <div id="map" style="height:calc(100% - 44px - 40px)"></div>
-    <!-- Leyenda -->
-    <div class="bg-white border-t border-gray-100 px-3 py-2 flex gap-3 hide-scroll">
+
+    <!-- Leyenda — explica los 3 tipos de marcadores del mapa -->
+    <div class="bg-white border-t border-gray-100 px-3 py-2 flex gap-4 hide-scroll items-center">
       <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
-        <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span> Emergencia
+        <span class="text-base">🆘</span>
+        <span>Pide ayuda</span>
       </div>
       <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
-        <span class="w-4 h-4 rounded-full bg-blue-500 inline-block"></span> Albergue
+        <span class="w-3.5 h-3.5 rounded-full inline-block flex-shrink-0" style="background:#94a3b8"></span>
+        <span>En atención</span>
       </div>
       <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
-        <span class="w-4 h-4 rounded-full bg-green-500 inline-block"></span> Médico
+        <span class="text-base">🤝</span>
+        <span>Punto de ayuda</span>
       </div>
       <div class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
-        <span class="w-4 h-4 rounded-full bg-yellow-500 inline-block"></span> Alimentos
+        <span class="w-3.5 h-3.5 rounded-full inline-block flex-shrink-0" style="background:#f97316;opacity:0.7"></span>
+        <span>Zona peligro</span>
       </div>
     </div>
-    <!-- FAB -->
+    <!-- FAB principal: Pedir ayuda -->
     <button class="fab" @click="page='report'" title="Pedir ayuda">🆘</button>
   </div>
 
@@ -519,6 +546,103 @@
             </div>
           </template>
 
+          <!-- ── MASCOTA BUSCA HOGAR ── -->
+          <template x-if="reportForm.need_type==='pet_home'">
+            <div class="flex flex-col gap-4">
+
+              <!-- Situación -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuál es la situación?</label>
+                <div class="flex flex-col gap-2">
+                  <template x-for="s in [
+                    {v:'found',    e:'🔍', label:'Encontré una mascota extraviada'},
+                    {v:'owner',    e:'💔', label:'Soy el dueño — no puedo seguir cuidándola'},
+                    {v:'rescue',   e:'🚑', label:'Mascota rescatada — necesita atención y hogar'},
+                  ]" :key="s.v">
+                    <button type="button" @click="reportForm.extra.pet_home_situation=s.v"
+                      class="flex items-center gap-3 w-full rounded-xl border-2 px-4 py-3 text-sm font-medium text-left cursor-pointer"
+                      :style="reportForm.extra.pet_home_situation===s.v ? 'border-color:#f97316;background:#fff7ed;color:#9a3412' : 'border-color:#e5e7eb;background:white;color:#374151'">
+                      <span class="text-xl" x-text="s.e"></span>
+                      <span x-text="s.label"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Tipo de mascota -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de mascota</label>
+                <div class="flex gap-2">
+                  <template x-for="t in [{v:'perro',e:'🐕'},{v:'gato',e:'🐈'},{v:'ave',e:'🐦'},{v:'otro',e:'🐾'}]" :key="t.v">
+                    <button type="button" @click="reportForm.extra.pet_type=t.v"
+                      class="flex-1 py-3 rounded-xl border-2 font-medium text-sm cursor-pointer"
+                      :style="reportForm.extra.pet_type===t.v ? 'background:#fff7ed;border-color:#f97316;color:#9a3412' : 'background:white;border-color:#e5e7eb;color:#374151'">
+                      <span x-text="t.e"></span><br>
+                      <span class="text-xs" x-text="t.v"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Nombre -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la mascota <span class="text-gray-400 font-normal">(si se sabe)</span></label>
+                <input x-model="reportForm.extra.pet_name" placeholder="Ej: Firulais, Luna, sin nombre..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400"/>
+              </div>
+
+              <!-- Descripción -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción física</label>
+                <textarea x-model="reportForm.description" rows="3"
+                  placeholder="Raza, color, tamaño, collar, señas particulares... Ej: Labrador dorado, mediano, sin collar, asustado"
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" style="resize:none;font-family:inherit"></textarea>
+              </div>
+
+              <!-- Condición -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Estado de salud</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <template x-for="c in [{v:'sano',e:'✅',l:'Sano/a'},{v:'herido',e:'🩹',l:'Herido/a'},{v:'asustado',e:'😨',l:'Asustado/a'}]" :key="c.v">
+                    <button type="button" @click="reportForm.extra.pet_condition=c.v"
+                      class="py-2.5 rounded-xl border-2 text-xs font-semibold cursor-pointer"
+                      :style="reportForm.extra.pet_condition===c.v ? 'border-color:#f97316;background:#fff7ed;color:#9a3412' : 'border-color:#e5e7eb;background:white;color:#374151'">
+                      <div x-text="c.e"></div>
+                      <div x-text="c.l"></div>
+                    </button>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Foto -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Foto de la mascota <span class="text-orange-500 font-medium">(muy importante 📷)</span></label>
+                <div @click="$refs.petHomePhoto.click()"
+                  class="border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors"
+                  :style="reportForm.photoPreview ? 'border-color:#16a34a;background:#f0fdf4' : 'border-color:#fdba74;background:#fff7ed'">
+                  <img x-show="reportForm.photoPreview" :src="reportForm.photoPreview" class="w-full max-h-48 object-cover rounded-lg mb-2"/>
+                  <template x-if="!reportForm.photoPreview">
+                    <div>
+                      <p class="text-3xl mb-1">📷</p>
+                      <p class="text-sm font-medium text-orange-700">Sube una foto — ayuda a encontrar dueño o adoptante</p>
+                      <p class="text-xs text-gray-400 mt-1">Toca para seleccionar</p>
+                    </div>
+                  </template>
+                  <p x-show="reportForm.photoPreview" class="text-green-600 text-xs font-medium">✓ Foto cargada — toca para cambiar</p>
+                </div>
+                <input type="file" x-ref="petHomePhoto" accept="image/*" capture="environment" class="hidden"
+                  @change="handlePhotoChange($event)"/>
+              </div>
+
+              <!-- Dónde está ahora -->
+              <div class="bg-orange-50 border border-orange-200 rounded-xl p-3">
+                <p class="text-sm text-orange-800 font-medium">📍 La ubicación del mapa indica dónde está la mascota actualmente</p>
+                <p class="text-xs text-orange-600 mt-1">Puedes ajustar el pin en el paso anterior</p>
+              </div>
+
+            </div>
+          </template>
+
           <!-- ── LO PERDÍ TODO ── -->
           <template x-if="reportForm.need_type==='lost_all'">
             <div class="flex flex-col gap-4">
@@ -599,7 +723,7 @@
 
         </div>
 
-        <button type="button" @click="reportStep='contact'" :disabled="!reportForm.description && !reportForm.extra.missing_name && !reportForm.extra.pet_name"
+        <button type="button" @click="reportStep='contact'" :disabled="!reportForm.description && !reportForm.extra.missing_name && !reportForm.extra.pet_name && !reportForm.extra.pet_home_situation"
           class="w-full bg-red-600 text-white rounded-xl font-bold text-base disabled:opacity-40 mt-6"
           style="min-height:52px">Continuar →</button>
         <button type="button" @click="reportStep='need'"
@@ -1306,6 +1430,215 @@
     </div>
   </div>
 
+  <!-- REPORTAR ZONA DE PELIGRO -->
+  <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+    <div class="max-w-lg mx-auto px-4 py-5">
+
+      <!-- STEPPER -->
+      <div class="flex items-center mb-6">
+        <template x-for="(s, i) in dangerSteps" :key="s.id">
+          <div class="flex items-center" :class="i < dangerSteps.length-1 ? 'flex-1' : ''">
+            <div class="flex flex-col items-center gap-1">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                :style="dangerStep===s.id ? 'background:#ea580c;color:white' :
+                        dangerSteps.indexOf(dangerSteps.find(x=>x.id===dangerStep)) > i ? 'background:#16a34a;color:white' :
+                        'background:#f1f5f9;color:#94a3b8'"
+                x-text="dangerSteps.indexOf(dangerSteps.find(x=>x.id===dangerStep)) > i ? '✓' : (i+1)"></div>
+              <span class="text-xs" :style="dangerStep===s.id ? 'color:#ea580c;font-weight:600' : 'color:#94a3b8'" x-text="s.label"></span>
+            </div>
+            <div x-show="i < dangerSteps.length-1" class="flex-1 h-0.5 mx-2 mb-4"
+              :style="dangerSteps.indexOf(dangerSteps.find(x=>x.id===dangerStep)) > i ? 'background:#16a34a' : 'background:#e5e7eb'"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- PASO 1: TIPO DE PELIGRO -->
+      <div x-show="dangerStep==='type'">
+        <h2 class="text-lg font-bold text-gray-900 mb-1">¿Qué tipo de peligro es?</h2>
+        <p class="text-sm text-gray-400 mb-4">Selecciona la categoría que mejor describe la situación</p>
+        <div class="flex flex-col gap-2 mb-5">
+          <template x-for="t in dangerTypes" :key="t.v">
+            <button type="button" @click="dangerForm.name=t.v"
+              class="flex items-center gap-3 w-full rounded-2xl border-2 px-4 py-3 text-left cursor-pointer transition-all"
+              :style="dangerForm.name===t.v ? 'border-color:#ea580c;background:#fff7ed' : 'border-color:#e5e7eb;background:white'">
+              <span class="text-2xl flex-shrink-0" x-text="t.e"></span>
+              <div>
+                <p class="text-sm font-semibold" :style="dangerForm.name===t.v ? 'color:#9a3412' : 'color:#1f2937'" x-text="t.v"></p>
+                <p class="text-xs text-gray-400" x-text="t.desc"></p>
+              </div>
+            </button>
+          </template>
+        </div>
+        <button @click="dangerStep='location'" :disabled="!dangerForm.name"
+          class="w-full bg-orange-600 text-white rounded-2xl font-bold text-base disabled:opacity-40 border-none cursor-pointer"
+          style="min-height:52px">Continuar → Marcar ubicación</button>
+        <button @click="page='map'" class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">✕ Cancelar</button>
+      </div>
+
+      <!-- PASO 2: UBICACIÓN -->
+      <div x-show="dangerStep==='location'">
+        <h2 class="text-lg font-bold text-gray-900 mb-1">¿Dónde está el peligro?</h2>
+        <p class="text-sm text-gray-400 mb-4">Marca el centro de la zona afectada en el mapa</p>
+
+        <!-- Botón GPS -->
+        <template x-if="!dangerLocOk && !dangerLocLoading">
+          <button type="button" @click="getDangerLocation()"
+            class="w-full bg-orange-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-3 mb-3 border-none cursor-pointer"
+            style="min-height:52px">📍 Usar mi ubicación actual</button>
+          <button type="button" @click="dangerLocOk=false; $nextTick(()=>initDangerMap(4.8133,-75.6961))"
+            class="w-full bg-white border border-gray-300 text-gray-600 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 cursor-pointer"
+            style="min-height:44px">🗺️ Seleccionar manualmente en el mapa</button>
+        </template>
+        <template x-if="dangerLocLoading">
+          <div class="text-center py-6"><p class="text-gray-500">📡 Obteniendo ubicación...</p></div>
+        </template>
+        <div x-show="dangerLocOk" class="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3">
+          <span class="text-2xl">📍</span>
+          <div>
+            <p class="text-sm font-semibold text-orange-800">Ubicación marcada</p>
+            <p class="text-xs text-orange-600">Arrastra el pin para ajustar</p>
+          </div>
+        </div>
+
+        <!-- Mapa -->
+        <div id="danger-map" class="rounded-2xl overflow-hidden border-2 mb-4"
+          :style="dangerLocOk ? 'height:260px;border-color:#ea580c' : 'height:260px;border-color:#d1d5db'"></div>
+
+        <p x-show="!dangerLocOk" class="text-xs text-center text-gray-400 mb-3">— o toca el mapa para marcar el pin —</p>
+
+        <!-- Radio afectado -->
+        <div x-show="dangerLocOk" class="bg-gray-50 rounded-2xl p-4 mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-gray-700">Radio afectado</span>
+            <span class="text-lg font-bold text-orange-600" x-text="dangerForm.radius_meters >= 1000 ? (dangerForm.radius_meters/1000).toFixed(1)+' km' : dangerForm.radius_meters+' m'"></span>
+          </div>
+          <div class="grid grid-cols-4 gap-2 mb-3">
+            <template x-for="r in [100,200,500,1000]" :key="r">
+              <button type="button" @click="dangerForm.radius_meters=r; updateDangerCircle()"
+                class="rounded-xl py-2 text-xs font-bold border-2 cursor-pointer"
+                :style="dangerForm.radius_meters===r ? 'border-color:#ea580c;background:#fff7ed;color:#9a3412' : 'border-color:#e5e7eb;background:white;color:#374151'"
+                x-text="r>=1000 ? (r/1000)+'km' : r+'m'"></button>
+            </template>
+          </div>
+          <input type="range" x-model="dangerForm.radius_meters" min="50" max="2000" step="50"
+            @input="updateDangerCircle()" class="w-full accent-orange-600" style="height:6px"/>
+        </div>
+
+        <button @click="dangerStep='details'" :disabled="!dangerLocOk"
+          class="w-full bg-orange-600 text-white rounded-2xl font-bold text-base disabled:opacity-40 border-none cursor-pointer mb-2"
+          style="min-height:52px">Continuar → Detalles</button>
+        <button @click="dangerStep='type'" class="w-full text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">← Atrás</button>
+      </div>
+
+      <!-- PASO 3: DETALLES -->
+      <div x-show="dangerStep==='details'">
+        <h2 class="text-lg font-bold text-gray-900 mb-1">Describe el peligro</h2>
+        <p class="text-sm text-gray-400 mb-4">Esta información ayuda a los equipos a actuar correctamente</p>
+
+        <!-- Nivel de peligro -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Nivel de peligro</label>
+          <div class="grid grid-cols-2 gap-2">
+            <template x-for="lvl in [
+              {v:'low',      e:'🟡', l:'Precaución',        d:'Riesgo bajo, vigilar'},
+              {v:'medium',   e:'🟠', l:'Peligro moderado',  d:'Evitar si es posible'},
+              {v:'high',     e:'🔴', l:'Peligro alto',      d:'No acercarse'},
+              {v:'critical', e:'🚨', l:'Zona roja',         d:'Evacuar inmediatamente'},
+            ]" :key="lvl.v">
+              <button type="button" @click="dangerForm.danger_level=lvl.v"
+                class="flex items-start gap-2 rounded-2xl border-2 p-3 cursor-pointer text-left"
+                :style="dangerForm.danger_level===lvl.v ? 'border-color:#ea580c;background:#fff7ed' : 'border-color:#e5e7eb;background:white'">
+                <span class="text-xl flex-shrink-0" x-text="lvl.e"></span>
+                <div>
+                  <p class="text-xs font-bold" :style="dangerForm.danger_level===lvl.v ? 'color:#9a3412' : 'color:#374151'" x-text="lvl.l"></p>
+                  <p class="text-xs text-gray-400" x-text="lvl.d"></p>
+                </div>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Descripción -->
+        <div class="mb-5">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">¿Qué observas exactamente?</label>
+          <textarea x-model="dangerForm.description" rows="4"
+            placeholder="Describe lo que ves: grietas, derrumbe parcial, humo, olor a gas, qué tan grave parece, si hay personas en riesgo..."
+            class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-400" style="resize:none;font-family:inherit"></textarea>
+        </div>
+
+        <!-- Foto opcional -->
+        <div class="mb-5">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Foto del peligro <span class="text-gray-400 font-normal">(opcional pero muy útil)</span></label>
+          <div @click="$refs.dangerPhoto.click()"
+            class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors"
+            :style="dangerForm.photoPreview ? 'border-color:#16a34a;background:#f0fdf4' : 'border-color:#fdba74;background:#fff7ed'">
+            <img x-show="dangerForm.photoPreview" :src="dangerForm.photoPreview" class="w-full max-h-48 object-cover rounded-lg mb-2"/>
+            <template x-if="!dangerForm.photoPreview">
+              <div>
+                <p class="text-2xl mb-1">📷</p>
+                <p class="text-sm font-medium text-orange-700">Sube una foto de la zona</p>
+                <p class="text-xs text-gray-400 mt-1">Ayuda a los equipos a evaluar el riesgo</p>
+              </div>
+            </template>
+            <p x-show="dangerForm.photoPreview" class="text-green-600 text-xs font-medium">✓ Foto cargada — toca para cambiar</p>
+          </div>
+          <input type="file" x-ref="dangerPhoto" accept="image/*" capture="environment" class="hidden"
+            @change="e => { const f=e.target.files[0]; if(!f) return; dangerForm.photoFile=f; const r=new FileReader(); r.onload=ev=>dangerForm.photoPreview=ev.target.result; r.readAsDataURL(f) }"/>
+        </div>
+
+        <button @click="dangerStep='confirm'" :disabled="!dangerForm.danger_level || !dangerForm.description"
+          class="w-full bg-orange-600 text-white rounded-2xl font-bold text-base disabled:opacity-40 border-none cursor-pointer mb-2"
+          style="min-height:52px">Continuar → Confirmar</button>
+        <button @click="dangerStep='location'" class="w-full text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">← Atrás</button>
+      </div>
+
+      <!-- PASO 4: CONFIRMAR -->
+      <div x-show="dangerStep==='confirm'">
+        <div class="text-center mb-5">
+          <div class="text-5xl mb-2" x-text="dangerTypes.find(t=>t.v===dangerForm.name)?.e||'⚠️'"></div>
+          <h2 class="text-lg font-bold text-gray-900" x-text="dangerForm.name"></h2>
+          <p class="text-sm text-gray-400">Revisa antes de reportar</p>
+        </div>
+
+        <div class="bg-gray-50 rounded-2xl p-4 mb-5 flex flex-col gap-3">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Nivel</span>
+            <span class="font-bold"
+              x-text="({low:'🟡 Precaución', medium:'🟠 Moderado', high:'🔴 Alto', critical:'🚨 Zona roja'})[dangerForm.danger_level]||dangerForm.danger_level"></span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Radio</span>
+            <span class="font-bold" x-text="dangerForm.radius_meters >= 1000 ? (dangerForm.radius_meters/1000).toFixed(1)+' km' : dangerForm.radius_meters+' m'"></span>
+          </div>
+          <div class="text-sm">
+            <p class="text-gray-500 mb-1">Descripción</p>
+            <p class="text-gray-800" x-text="dangerForm.description"></p>
+          </div>
+          <template x-if="dangerForm.photoPreview">
+            <div>
+              <p class="text-gray-500 text-sm mb-1">Foto</p>
+              <img :src="dangerForm.photoPreview" class="w-full max-h-40 object-cover rounded-xl"/>
+            </div>
+          </template>
+        </div>
+
+        <div x-show="dangerMsg" x-text="dangerMsg"
+          class="text-center text-sm rounded-xl py-3 px-4 mb-4"
+          :style="dangerError ? 'background:#fef2f2;color:#991b1b' : 'background:#f0fdf4;color:#166534'"></div>
+
+        <button @click="submitDangerZone()" :disabled="dangerLoading"
+          class="w-full bg-orange-600 text-white rounded-2xl font-bold text-base disabled:opacity-50 border-none cursor-pointer mb-2"
+          style="min-height:52px">
+          <span x-show="!dangerLoading">⚠️ Reportar zona de peligro</span>
+          <span x-show="dangerLoading">Enviando...</span>
+        </button>
+        <button @click="dangerStep='details'" :disabled="dangerLoading"
+          class="w-full text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">← Atrás</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- MODAL ATENDER REPORTE -->
   <template x-if="reportModal">
     <div class="modal-backdrop" @click.self="reportModal=null" style="z-index:3000">
@@ -1375,7 +1708,7 @@
     <template x-for="item in navItems" :key="item.id">
       <button @click="navigateTo(item.id)"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
-        :class="(page===item.id || (item.id==='login' && page==='panel') || (item.id==='panel' && page==='panel')) ? 'text-red-600 bg-red-50' : 'text-gray-500 bg-white'">
+        :class="(page===item.id || (item.id==='login' && page==='panel') || (item.id==='panel' && page==='panel')) ? (item.id==='danger' ? 'text-orange-600 bg-orange-50' : 'text-red-600 bg-red-50') : 'text-gray-500 bg-white'">
         <span class="text-xl" x-text="item.emoji"></span>
         <span x-text="item.label"></span>
       </button>
@@ -1440,6 +1773,33 @@ function app() {
     reportMarker: null,
     reportModal: null,
 
+    dangerForm: { name:'', description:'', danger_level:'', lat:4.8133, lng:-75.6961, radius_meters:200, photoPreview:null, photoFile:null },
+    dangerStep: 'type',
+    dangerLocOk: false,
+    dangerLocLoading: false,
+    dangerMap: null,
+    dangerMarker: null,
+    dangerCircle: null,
+    dangerLoading: false,
+    dangerMsg: '',
+    dangerError: false,
+    dangerSteps: [
+      { id:'type',    label:'Tipo' },
+      { id:'location',label:'Ubicación' },
+      { id:'details', label:'Detalles' },
+      { id:'confirm', label:'Confirmar' },
+    ],
+    dangerTypes: [
+      { v:'Derrumbe estructural',   e:'🏚️', desc:'Edificio, muro o estructura colapsada' },
+      { v:'Incendio',               e:'🔥', desc:'Fuego activo o riesgo de incendio' },
+      { v:'Fuga de gas',            e:'💨', desc:'Olor a gas o tubería rota' },
+      { v:'Inundación',             e:'🌊', desc:'Agua acumulada o riesgo de inundación' },
+      { v:'Vía bloqueada',          e:'🚧', desc:'Carretera o acceso cortado' },
+      { v:'Riesgo eléctrico',       e:'⚡', desc:'Cables caídos o postes en riesgo' },
+      { v:'Deslizamiento',          e:'⛰️', desc:'Talud, ladera o tierra inestable' },
+      { v:'Otro peligro',           e:'⚠️', desc:'Otro tipo de riesgo no listado' },
+    ],
+
     loginForm: { phone:'', password:'' },
     loginMsg: '',
     authTab: 'login',
@@ -1461,10 +1821,11 @@ function app() {
     ],
 
     navItems: [
-      { id:'map', emoji:'🗺️', label:'Mapa' },
-      { id:'report', emoji:'🆘', label:'Pedir ayuda' },
+      { id:'map',        emoji:'🗺️', label:'Mapa' },
+      { id:'report',     emoji:'🆘', label:'Pedir ayuda' },
+      { id:'danger',     emoji:'⚠️', label:'Peligro' },
       { id:'volunteers', emoji:'🤝', label:'Voluntarios' },
-      { id:'login', emoji:'🧑‍🚒', label:'Unirme' },
+      { id:'login',      emoji:'🧑‍🚒', label:'Unirme' },
     ],
 
     needOptions: [
@@ -1475,7 +1836,8 @@ function app() {
       { value:'family',       emoji:'👨‍👩‍👧', label:'Busco familiar' },
       { value:'psychological',emoji:'🧠', label:'Apoyo psicológico' },
       { value:'structural',   emoji:'🏗️', label:'Evaluación estructural' },
-      { value:'pet',          emoji:'🐾', label:'Busco mascota' },
+      { value:'pet',          emoji:'🐾', label:'Busco mi mascota' },
+      { value:'pet_home',     emoji:'🏡', label:'Mascota busca hogar' },
       { value:'lost_all',     emoji:'🏚️', label:'Lo perdí todo' },
       { value:'medicine',     emoji:'💊', label:'Medicamentos' },
       { value:'other',        emoji:'📌', label:'Otro' },
@@ -1490,6 +1852,7 @@ function app() {
       psychological:{ emoji:'🧠', color:'#8b5cf6' },
       structural:   { emoji:'🏗️', color:'#64748b' },
       pet:          { emoji:'🐾', color:'#a78bfa' },
+      pet_home:     { emoji:'🏡', color:'#f97316' },
       lost_all:     { emoji:'🏚️', color:'#92400e' },
       medicine:     { emoji:'💊', color:'#0ea5e9' },
       other:        { emoji:'📌', color:'#94a3b8' },
@@ -1609,22 +1972,14 @@ function app() {
     navigateTo(id) {
       this.page = id
       if (id === 'map') {
-        this.$nextTick(() => {
-          if (this.map) this.map.invalidateSize()
-          else this.initMap()
-        })
+        this.$nextTick(() => { if (this.map) this.map.invalidateSize(); else this.initMap() })
       }
       if (id === 'volunteers') this.loadVolunteers()
-      if (id === 'report') {
-        this.reportStep = 'location'
-      }
-      // 4to tab: si no está logueado lleva a login, si está logueado lleva a panel
-      if (id === 'login' && this.user) {
-        this.page = 'panel'
-      }
-      if (this.page === 'panel') {
-        this.$nextTick(() => this.initActionMap())
-      }
+      if (id === 'report') this.reportStep = 'location'
+      if (id === 'danger') this.resetDangerForm()
+      // 5to tab: login/panel
+      if (id === 'login' && this.user) this.page = 'panel'
+      if (this.page === 'panel') this.$nextTick(() => this.initActionMap())
     },
 
     handlePhotoChange(e) {
@@ -1807,7 +2162,7 @@ function app() {
         this.token = data.access_token
         this.user = data.user
         localStorage.setItem('pa_token', this.token)
-        this.navItems[3] = { id:'panel', emoji:'📋', label:'Mi panel' }
+        this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
         this.page = 'panel'
         this.$nextTick(() => this.initActionMap())
       } catch { this.loginMsg = 'Error de conexión' }
@@ -1863,7 +2218,7 @@ function app() {
               action_radius_km: Number(this.registerForm.radius)
             }
           }
-          this.navItems[3] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
         }
@@ -1918,10 +2273,125 @@ function app() {
       } catch(e) { console.warn('Error al atender reporte', e) }
     },
 
+    resetDangerForm() {
+      this.dangerForm = { name:'', description:'', danger_level:'', lat:4.8133, lng:-75.6961, radius_meters:200, photoPreview:null, photoFile:null }
+      this.dangerStep = 'type'
+      this.dangerLocOk = false
+      this.dangerLocLoading = false
+      this.dangerMsg = ''
+      this.dangerError = false
+      if (this.dangerMap) { this.dangerMap.remove(); this.dangerMap = null; this.dangerMarker = null; this.dangerCircle = null }
+    },
+
+    getDangerLocation() {
+      if (!navigator.geolocation) { this.dangerLocOk = false; return }
+      this.dangerLocLoading = true
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          this.dangerLocLoading = false
+          this.dangerLocOk = true
+          this.dangerForm.lat = pos.coords.latitude
+          this.dangerForm.lng = pos.coords.longitude
+          this.$nextTick(() => this.initDangerMap(this.dangerForm.lat, this.dangerForm.lng))
+        },
+        () => {
+          this.dangerLocLoading = false
+          this.$nextTick(() => this.initDangerMap(4.8133, -75.6961))
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+    },
+
+    initDangerMap(lat, lng) {
+      const el = document.getElementById('danger-map')
+      if (!el) return
+      if (this.dangerMap) {
+        this.dangerMap.setView([lat, lng], 16)
+        if (this.dangerMarker) this.dangerMarker.setLatLng([lat, lng])
+        this.updateDangerCircle()
+        setTimeout(() => this.dangerMap.invalidateSize(), 200)
+        return
+      }
+      this.dangerMap = L.map('danger-map').setView([lat, lng], 16)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(this.dangerMap)
+      setTimeout(() => this.dangerMap.invalidateSize(), 200)
+
+      this.dangerMarker = L.marker([lat, lng], { draggable: true }).addTo(this.dangerMap)
+      this.dangerCircle = L.circle([lat, lng], {
+        radius: this.dangerForm.radius_meters,
+        color: '#ea580c', fillColor: '#ea580c', fillOpacity: 0.15, weight: 2
+      }).addTo(this.dangerMap)
+
+      this.dangerMarker.on('dragend', e => {
+        const ll = e.target.getLatLng()
+        this.dangerForm.lat = ll.lat; this.dangerForm.lng = ll.lng
+        this.dangerLocOk = true
+        this.updateDangerCircle()
+      })
+      this.dangerMap.on('click', e => {
+        this.dangerForm.lat = e.latlng.lat; this.dangerForm.lng = e.latlng.lng
+        this.dangerMarker.setLatLng(e.latlng)
+        this.dangerLocOk = true
+        this.updateDangerCircle()
+      })
+    },
+
+    updateDangerCircle() {
+      if (!this.dangerCircle || !this.dangerMarker) return
+      const ll = [this.dangerForm.lat, this.dangerForm.lng]
+      this.dangerCircle.setLatLng(ll)
+      this.dangerCircle.setRadius(Number(this.dangerForm.radius_meters))
+    },
+
+    async submitDangerZone() {
+      this.dangerLoading = true; this.dangerMsg = ''; this.dangerError = false
+      try {
+        // Subir foto si existe
+        let photoUrl = null
+        if (this.dangerForm.photoFile) {
+          const fd = new FormData()
+          fd.append('file', this.dangerForm.photoFile)
+          const up = await fetch('/upload', { method:'POST', body: fd })
+          if (up.ok) { const d = await up.json(); photoUrl = d.url }
+        }
+
+        const headers = { 'Content-Type':'application/json' }
+        if (this.token) Object.assign(headers, this.authHeaders())
+
+        const res = await fetch('/danger-zones/', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: this.dangerForm.name,
+            description: this.dangerForm.description,
+            danger_level: this.dangerForm.danger_level,
+            lat: this.dangerForm.lat,
+            lng: this.dangerForm.lng,
+            radius_meters: Number(this.dangerForm.radius_meters),
+            photo_url: photoUrl,
+          })
+        })
+        if (res.ok) {
+          this.dangerMsg = '✅ Zona de peligro reportada. Gracias por alertar a la comunidad.'
+          this.dangerError = false
+          await this.loadData()
+          setTimeout(() => { this.page = 'map'; this.resetDangerForm() }, 2500)
+        } else {
+          const err = await res.json()
+          this.dangerMsg = err.detail || 'Error al reportar'
+          this.dangerError = true
+        }
+      } catch(e) {
+        this.dangerMsg = 'Error de conexión'
+        this.dangerError = true
+      }
+      this.dangerLoading = false
+    },
+
     logout() {
       this.user = null; this.token = null
       localStorage.removeItem('pa_token')
-      this.navItems[3] = { id:'login', emoji:'🧑‍🚒', label:'Unirme' }
+      this.navItems[4] = { id:'login', emoji:'🧑‍🚒', label:'Unirme' }
       this.page = 'map'
     },
 
@@ -1930,7 +2400,7 @@ function app() {
         const res = await fetch('/users/me', { headers: this.authHeaders() })
         if (res.ok) {
           this.user = await res.json()
-          this.navItems[3] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
         } else {
           this.token=null; localStorage.removeItem('pa_token')
         }

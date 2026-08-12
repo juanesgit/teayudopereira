@@ -15,7 +15,8 @@ class NeedType(str, enum.Enum):
     family = "family"          # búsqueda de familiar
     psychological = "psychological"  # apoyo psicológico
     structural = "structural"        # evaluación estructural de edificio
-    pet = "pet"                      # búsqueda de mascota
+    pet = "pet"                      # búsqueda de mascota perdida
+    pet_home = "pet_home"            # mascota busca hogar
     lost_all = "lost_all"            # lo perdió todo
     medicine = "medicine"            # necesita medicamentos
     other = "other"

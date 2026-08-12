@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models.danger_zone import DangerZone
 from app.models.user import User, UserRole
 from app.schemas.danger_zone import DangerZoneCreate, DangerZoneUpdate, DangerZoneOut
-from app.services.auth import get_current_user
+from app.services.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(prefix="/danger-zones", tags=["Zonas de peligro"])
 
@@ -16,13 +16,10 @@ router = APIRouter(prefix="/danger-zones", tags=["Zonas de peligro"])
 async def create_danger_zone(
     data: DangerZoneCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Solo coordinadores pueden crear zonas de peligro."""
-    if current_user.role not in (UserRole.coordinator, UserRole.volunteer):
-        raise HTTPException(status_code=403, detail="Sin permisos para definir zonas de peligro")
-
-    zone = DangerZone(**data.model_dump(), created_by=current_user.id)
+    """Cualquier persona puede reportar una zona de peligro."""
+    zone = DangerZone(**data.model_dump(), created_by=current_user.id if current_user else None)
     db.add(zone)
     await db.commit()
     await db.refresh(zone)
