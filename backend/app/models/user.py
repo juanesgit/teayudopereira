@@ -24,7 +24,7 @@ class User(Base):
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     email: Mapped[Optional[str]] = mapped_column(String(120), unique=True, nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(256))
-    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.victim)
+    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole, create_constraint=False), default=UserRole.victim)
     # Habilidades del voluntario (ej: "médico,logística,psicología")
     skills: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     # Barrio o zona en Pereira
