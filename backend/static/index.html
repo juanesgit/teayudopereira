@@ -1242,6 +1242,13 @@
         :style="panelTab==='zona' ? 'border-bottom:3px solid #dc2626;color:#dc2626' : 'border-bottom:3px solid transparent;color:#6b7280'">
         📍 Mi zona
       </button>
+      <template x-if="user?.role==='coordinator'">
+        <button @click="panelTab='admin'; loadAdminVolunteers()"
+          class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent"
+          :style="panelTab==='admin' ? 'border-bottom:3px solid #7c3aed;color:#7c3aed' : 'border-bottom:3px solid transparent;color:#6b7280'">
+          ⚙️ Admin
+        </button>
+      </template>
     </div>
 
     <!-- Contenido scrollable -->
@@ -1424,6 +1431,113 @@
           </div>
         </div>
       </div>
+
+      <!-- TAB: ADMIN (solo coordinadores) -->
+      <div x-show="panelTab==='admin' && user?.role==='coordinator'">
+
+        <!-- SMS DIRECTO -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
+          <h3 class="font-bold text-gray-900 mb-1 flex items-center gap-2">📱 SMS directo</h3>
+          <p class="text-xs text-gray-400 mb-3">Envía un mensaje a uno o varios números específicos</p>
+          <textarea x-model="adminSms.phones" placeholder="Ej: 3001234567, 3107654321"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-2 resize-none focus:outline-none focus:border-violet-400"
+            rows="2"></textarea>
+          <textarea x-model="adminSms.message" placeholder="Escribe el mensaje (máx. 500 caracteres)"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 resize-none focus:outline-none focus:border-violet-400"
+            rows="3" maxlength="500"></textarea>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-gray-400" x-text="(adminSms.message||'').length+'/500 caracteres'"></span>
+          </div>
+          <button @click="sendAdminSms()"
+            :disabled="adminSms.loading || !adminSms.phones || !adminSms.message"
+            class="w-full rounded-xl font-bold text-sm text-white border-none cursor-pointer disabled:opacity-50"
+            style="min-height:44px;background:#7c3aed">
+            <span x-show="!adminSms.loading">📤 Enviar SMS</span>
+            <span x-show="adminSms.loading">Enviando...</span>
+          </button>
+          <p x-show="adminSms.result" x-text="adminSms.result"
+            class="text-xs text-center mt-2 rounded-lg py-2 px-3"
+            :style="adminSms.error ? 'background:#fef2f2;color:#991b1b' : 'background:#f0fdf4;color:#166534'"></p>
+        </div>
+
+        <!-- BROADCAST -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
+          <h3 class="font-bold text-gray-900 mb-1 flex items-center gap-2">📢 Broadcast masivo</h3>
+          <p class="text-xs text-gray-400 mb-3">Envía un mensaje a todos los voluntarios registrados</p>
+
+          <!-- Target selector -->
+          <div class="flex gap-2 mb-3">
+            <template x-for="t in [{v:'all',l:'Todos',e:'👥'},{v:'volunteers',l:'Voluntarios',e:'🙋'},{v:'coordinators',l:'Coordinadores',e:'🏛️'}]" :key="t.v">
+              <button type="button" @click="adminBroadcast.target=t.v"
+                class="flex-1 flex flex-col items-center py-2 rounded-xl border-2 cursor-pointer text-xs font-semibold transition-all"
+                :style="adminBroadcast.target===t.v ? 'border-color:#7c3aed;background:#f5f3ff;color:#5b21b6' : 'border-color:#e5e7eb;background:white;color:#6b7280'">
+                <span class="text-lg" x-text="t.e"></span>
+                <span x-text="t.l"></span>
+              </button>
+            </template>
+          </div>
+
+          <textarea x-model="adminBroadcast.message" placeholder="Mensaje a enviar a todos..."
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 resize-none focus:outline-none focus:border-violet-400"
+            rows="3" maxlength="500"></textarea>
+
+          <!-- Plantillas rápidas -->
+          <p class="text-xs text-gray-400 mb-2 font-medium">Plantillas rápidas:</p>
+          <div class="flex flex-col gap-1.5 mb-3">
+            <template x-for="tpl in adminTemplates" :key="tpl.label">
+              <button type="button" @click="adminBroadcast.message=tpl.text"
+                class="text-left text-xs text-violet-700 bg-violet-50 border border-violet-200 rounded-lg px-3 py-2 cursor-pointer">
+                <span x-text="tpl.label"></span>
+              </button>
+            </template>
+          </div>
+
+          <button @click="sendBroadcast()"
+            :disabled="adminBroadcast.loading || !adminBroadcast.message"
+            class="w-full rounded-xl font-bold text-sm text-white border-none cursor-pointer disabled:opacity-50"
+            style="min-height:44px;background:#7c3aed">
+            <span x-show="!adminBroadcast.loading">📢 Enviar broadcast</span>
+            <span x-show="adminBroadcast.loading">Enviando...</span>
+          </button>
+          <p x-show="adminBroadcast.result" x-text="adminBroadcast.result"
+            class="text-xs text-center mt-2 rounded-lg py-2 px-3"
+            :style="adminBroadcast.error ? 'background:#fef2f2;color:#991b1b' : 'background:#f0fdf4;color:#166534'"></p>
+        </div>
+
+        <!-- LISTA DE VOLUNTARIOS -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-gray-900">🙋 Voluntarios registrados</h3>
+            <span class="text-xs bg-violet-100 text-violet-700 font-bold rounded-full px-2 py-0.5"
+              x-text="adminVolunteers.length+' total'"></span>
+          </div>
+          <div x-show="adminVolunteers.length===0" class="text-center py-6 text-gray-400 text-sm">
+            Cargando...
+          </div>
+          <div class="flex flex-col gap-2">
+            <template x-for="v in adminVolunteers" :key="v.id">
+              <div class="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-semibold text-gray-900 truncate"
+                    x-text="v.full_name+' '+(v.last_name||'')"></p>
+                  <p class="text-xs text-gray-400"
+                    x-text="(v.role==='coordinator'?'🏛️ Coord.':'🙋 Vol.')+' · '+(v.neighborhood||'Sin barrio')"></p>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <a :href="'tel:'+v.phone"
+                    class="text-xs bg-green-100 text-green-700 font-bold rounded-lg px-2 py-1 no-underline"
+                    x-text="v.phone"></a>
+                  <button @click="adminBroadcast.target='all'; adminBroadcast.message='Hola '+v.full_name+', '"
+                    class="text-xs bg-violet-100 text-violet-700 rounded-lg px-2 py-1 border-none cursor-pointer font-bold">
+                    SMS
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+      </div><!-- /admin tab -->
 
     </div>
     </div>
@@ -1952,6 +2066,15 @@ function app() {
     actionCircle: null,
     actionZoneMsg: '',
     panelTab: 'pendientes',
+    adminVolunteers: [],
+    adminSms: { phones:'', message:'', loading:false, result:'', error:false },
+    adminBroadcast: { target:'all', message:'', loading:false, result:'', error:false },
+    adminTemplates: [
+      { label:'🆘 Activación de emergencia', text:'[TeAyudoPereira] ACTIVACIÓN: Se requiere presencia de voluntarios de inmediato. Ingresa a teayudopereira.com y revisa los casos asignados.' },
+      { label:'✅ Fin de emergencia', text:'[TeAyudoPereira] La situación de emergencia ha sido controlada. Gracias por tu apoyo. Sigue pendiente de nuevos reportes en teayudopereira.com' },
+      { label:'📍 Punto de encuentro', text:'[TeAyudoPereira] Punto de encuentro para voluntarios: Cuba, frente al CAI. Preséntate con documento de identidad. Info: teayudopereira.com' },
+      { label:'🔔 Nuevo caso urgente', text:'[TeAyudoPereira] Hay casos urgentes sin atender en tu zona. Ingresa al panel de voluntarios: teayudopereira.com' },
+    ],
     zoneOpen: false,
     zoneStep: 'location',
     zoneLocLoading: false,
@@ -2639,6 +2762,61 @@ function app() {
         if (this.actionMarker) { this.actionMarker.remove(); this.actionMarker = null }
         if (this.actionCircle) { this.actionCircle.remove(); this.actionCircle = null }
       } catch(e) { console.warn(e) }
+    },
+
+    // ─── Admin SMS ────────────────────────────────────────────────────────────
+
+    async loadAdminVolunteers() {
+      if (this.adminVolunteers.length > 0) return
+      try {
+        const res = await fetch('/admin/volunteers', { headers: this.authHeaders() })
+        if (res.ok) this.adminVolunteers = await res.json()
+      } catch(e) { console.warn('Error cargando voluntarios', e) }
+    },
+
+    async sendAdminSms() {
+      this.adminSms.loading = true
+      this.adminSms.result = ''
+      try {
+        const phones = this.adminSms.phones.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean)
+        const res = await fetch('/admin/sms/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ phones, message: this.adminSms.message })
+        })
+        const data = await res.json()
+        this.adminSms.error = !data.ok
+        this.adminSms.result = data.ok
+          ? `✅ SMS enviado a ${data.recipients} número(s)`
+          : `❌ ${data.message}`
+        if (data.ok) { this.adminSms.phones = ''; this.adminSms.message = '' }
+      } catch(e) {
+        this.adminSms.error = true
+        this.adminSms.result = '❌ Error de conexión'
+      }
+      this.adminSms.loading = false
+    },
+
+    async sendBroadcast() {
+      this.adminBroadcast.loading = true
+      this.adminBroadcast.result = ''
+      try {
+        const res = await fetch('/admin/sms/broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ message: this.adminBroadcast.message, target: this.adminBroadcast.target })
+        })
+        const data = await res.json()
+        this.adminBroadcast.error = !data.ok
+        this.adminBroadcast.result = data.ok
+          ? `✅ Broadcast enviado a ${data.recipients} voluntario(s)`
+          : `❌ ${data.message}`
+        if (data.ok) this.adminBroadcast.message = ''
+      } catch(e) {
+        this.adminBroadcast.error = true
+        this.adminBroadcast.result = '❌ Error de conexión'
+      }
+      this.adminBroadcast.loading = false
     },
 
     // Distancia Haversine en km entre el pin de acción del user y un reporte

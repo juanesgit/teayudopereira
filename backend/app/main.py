@@ -7,7 +7,7 @@ from pathlib import Path
 import uuid, shutil
 
 from app.database import init_db
-from app.routers import auth, reports, aid_points, danger_zones, users
+from app.routers import auth, reports, aid_points, danger_zones, users, admin
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 UPLOAD_DIR = STATIC_DIR / "uploads"
@@ -40,6 +40,7 @@ app.include_router(reports.router)
 app.include_router(aid_points.router)
 app.include_router(danger_zones.router)
 app.include_router(users.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")
