@@ -72,7 +72,7 @@
   <!-- PÁGINAS -->
 
   <!-- MAPA -->
-  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); position:relative;">
+  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); position:relative; overflow:hidden;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <button @click="filters.reports=!filters.reports"
@@ -1262,7 +1262,7 @@
   </div>
 
   <!-- BOTTOM NAV -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50" style="height:60px;padding-bottom:env(safe-area-inset-bottom)">
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:2000">
     <template x-for="item in navItems" :key="item.id">
       <button @click="navigateTo(item.id)"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
