@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset base para mobile */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Touch targets mínimo 44px */
+button, a, [role="button"] {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Evita zoom en iOS al enfocar inputs */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Leaflet */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Scrollbar oculto en chips */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
