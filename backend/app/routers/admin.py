@@ -89,6 +89,28 @@ async def sms_broadcast(
     return SmsSendResponse(ok=True, recipients=len(phones), message=f"Broadcast a {len(phones)} número(s) en envío")
 
 
+@router.get("/sms/balance")
+async def sms_balance(current_user: User = Depends(_require_coordinator)):
+    """Consulta saldo de créditos SMS."""
+    data = await sms.get_balance()
+    if data is None:
+        raise HTTPException(status_code=503, detail="No se pudo consultar el saldo")
+    return data
+
+
+@router.get("/sms/history")
+async def sms_history(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: User = Depends(_require_coordinator),
+):
+    """Historial de SMS enviados."""
+    data = await sms.get_history(limit=limit, offset=offset)
+    if data is None:
+        raise HTTPException(status_code=503, detail="No se pudo consultar el historial")
+    return data
+
+
 @router.get("/volunteers")
 async def list_volunteers(
     db: AsyncSession = Depends(get_db),
