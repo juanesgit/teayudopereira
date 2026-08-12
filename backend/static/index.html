@@ -2093,30 +2093,29 @@ function app() {
       if (!navigator.geolocation) return
       this.neighborhoodDetecting = true
       this.neighborhoodDetected = false
-      const self = this
-      navigator.geolocation.getCurrentPosition(
-        async pos => {
-          try {
-            const { latitude: lat, longitude: lng } = pos.coords
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
-              { headers: { 'Accept-Language': 'es' } }
-            )
-            const data = await res.json()
-            if (data?.address) {
-              const a = data.address
-              const neighborhood = a.neighbourhood || a.suburb || a.quarter || a.municipality || a.town || a.city || ''
-              if (neighborhood) {
-                self.registerForm.neighborhood = neighborhood
-                self.neighborhoodDetected = true
-              }
-            }
-          } catch(e) { console.warn('Error detectando barrio', e) }
-          self.neighborhoodDetecting = false
-        },
-        () => { self.neighborhoodDetecting = false },
-        { enableHighAccuracy: true, timeout: 8000 }
-      )
+      try {
+        const pos = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 })
+        )
+        const { latitude: lat, longitude: lng } = pos.coords
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+          { headers: { 'Accept-Language': 'es' } }
+        )
+        const data = await res.json()
+        if (data?.address) {
+          const a = data.address
+          const neighborhood = a.neighbourhood || a.suburb || a.quarter || a.municipality || a.town || a.city || ''
+          if (neighborhood) {
+            this.registerForm.neighborhood = neighborhood
+            this.neighborhoodDetected = true
+          }
+        }
+      } catch(e) {
+        console.warn('Error detectando barrio', e)
+      } finally {
+        this.neighborhoodDetecting = false
+      }
     },
 
     async reverseGeocode(lat, lng) {
