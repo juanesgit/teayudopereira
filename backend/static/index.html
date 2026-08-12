@@ -884,44 +884,34 @@
 
       <div class="flex flex-col gap-3">
         <template x-for="v in volunteers" :key="v.id">
-          <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+          <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm cursor-pointer active:bg-gray-50"
+            @click="volunteerModal = v">
             <div class="flex items-start gap-3">
               <!-- Avatar -->
               <div class="w-12 h-12 rounded-2xl bg-red-100 text-red-600 font-bold text-lg flex items-center justify-center flex-shrink-0"
                 x-text="v.full_name.charAt(0).toUpperCase()"></div>
-
               <!-- Info -->
               <div class="flex-1 min-w-0">
-                <p class="font-bold text-gray-900 text-base leading-tight" x-text="v.full_name"></p>
-                <p x-show="v.neighborhood" class="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                <p class="font-bold text-gray-900 text-base leading-tight"
+                  x-text="v.full_name + (v.last_name ? ' '+v.last_name : '')"></p>
+                <p x-show="v.neighborhood" class="text-xs text-gray-400 mt-0.5">
                   📍 <span x-text="v.neighborhood"></span>
                 </p>
+                <!-- Skills en tarjeta (resumen) -->
+                <div x-show="v.skills" class="flex flex-wrap gap-1.5 mt-2">
+                  <template x-for="sk in (v.skills||'').split(',').slice(0,3)" :key="sk">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe"
+                      x-text="sk.trim()"></span>
+                  </template>
+                  <span x-show="(v.skills||'').split(',').length > 3"
+                    class="text-xs px-2 py-0.5 rounded-full text-gray-400"
+                    style="background:#f3f4f6"
+                    x-text="'+'+ ((v.skills||'').split(',').length - 3) +' más'"></span>
+                </div>
               </div>
-
-              <!-- Llamar -->
-              <template x-if="v.phone">
-                <a :href="'tel:'+v.phone"
-                  class="flex-shrink-0 bg-green-600 text-white rounded-xl px-3 font-bold text-sm no-underline flex items-center gap-1"
-                  style="min-height:44px">
-                  📞 <span class="hidden sm:inline">Llamar</span>
-                </a>
-              </template>
-            </div>
-
-            <!-- Skills como badges prominentes -->
-            <div x-show="v.skills" class="flex flex-wrap gap-2 mt-3">
-              <template x-for="sk in (v.skills||'').split(',')" :key="sk">
-                <span class="flex items-center gap-1 text-xs px-3 py-1 rounded-full font-medium"
-                  :style="skillFilter && sk.trim().toLowerCase().includes(skillFilter.toLowerCase())
-                    ? 'background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5'
-                    : 'background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe'"
-                  x-text="sk.trim()"></span>
-              </template>
-            </div>
-
-            <!-- Sin teléfono registrado -->
-            <div x-show="!v.phone" class="mt-3 text-xs text-gray-400 flex items-center gap-1">
-              💬 Sin teléfono registrado
+              <!-- Chevron -->
+              <span class="text-gray-300 text-lg flex-shrink-0 self-center">›</span>
             </div>
           </div>
         </template>
@@ -1058,9 +1048,19 @@
               class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Barrio o zona de referencia</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs font-medium text-gray-600">Barrio o zona de referencia</label>
+              <button type="button" @click="detectNeighborhood()"
+                :disabled="neighborhoodDetecting"
+                class="text-xs font-semibold text-red-600 bg-transparent border-none cursor-pointer disabled:opacity-50 flex items-center gap-1">
+                <span x-show="!neighborhoodDetecting">📍 Detectar automáticamente</span>
+                <span x-show="neighborhoodDetecting">⏳ Detectando...</span>
+              </button>
+            </div>
             <input x-model="registerForm.neighborhood" placeholder="Cuba, Dosquebradas, Centro..."
-              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"/>
+              class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"
+              :style="neighborhoodDetected ? 'border-color:#16a34a;background:#f0fdf4' : ''"/>
+            <p x-show="neighborhoodDetected" class="text-xs text-green-600 mt-1">✓ Detectado por GPS — puedes editarlo</p>
           </div>
           <div class="flex gap-2 mt-1">
             <button @click="regStep='tipo'"
@@ -1638,6 +1638,89 @@
     </div>
   </div>
 
+  <!-- MODAL DETALLE VOLUNTARIO -->
+  <template x-if="volunteerModal">
+    <div class="modal-backdrop" @click.self="volunteerModal=null" style="z-index:3000">
+      <div class="modal-sheet" style="max-height:88vh">
+        <!-- Handle -->
+        <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-5"></div>
+
+        <!-- Avatar + nombre -->
+        <div class="flex items-center gap-4 mb-5">
+          <div class="w-16 h-16 rounded-2xl bg-red-100 text-red-600 font-bold text-2xl flex items-center justify-center flex-shrink-0"
+            x-text="volunteerModal.full_name.charAt(0).toUpperCase()"></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 leading-tight"
+              x-text="volunteerModal.full_name + (volunteerModal.last_name ? ' '+volunteerModal.last_name : '')"></h2>
+            <span class="text-xs font-semibold px-2 py-1 rounded-full"
+              :style="volunteerModal.role==='coordinator' ? 'background:#fef3c7;color:#92400e' : 'background:#eff6ff;color:#1e40af'"
+              x-text="volunteerModal.role==='coordinator' ? '🏛️ Coordinador' : '🙋 Voluntario'"></span>
+          </div>
+        </div>
+
+        <!-- Datos personales -->
+        <div class="bg-gray-50 rounded-2xl p-4 mb-4 flex flex-col gap-3">
+          <template x-if="volunteerModal.id_number">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">🪪 Identificación</span>
+              <span class="font-semibold text-gray-800" x-text="volunteerModal.id_number"></span>
+            </div>
+          </template>
+          <template x-if="volunteerModal.neighborhood">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">📍 Barrio</span>
+              <span class="font-semibold text-gray-800" x-text="volunteerModal.neighborhood"></span>
+            </div>
+          </template>
+          <template x-if="volunteerModal.action_radius_km">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">⭕ Radio de acción</span>
+              <span class="font-semibold text-gray-800" x-text="volunteerModal.action_radius_km+' km'"></span>
+            </div>
+          </template>
+          <template x-if="volunteerModal.email">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">✉️ Correo</span>
+              <span class="font-semibold text-gray-800 truncate ml-4" x-text="volunteerModal.email"></span>
+            </div>
+          </template>
+        </div>
+
+        <!-- Habilidades -->
+        <template x-if="volunteerModal.skills">
+          <div class="mb-4">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Habilidades</p>
+            <div class="flex flex-wrap gap-2">
+              <template x-for="sk in (volunteerModal.skills||'').split(',')" :key="sk">
+                <span class="text-sm px-3 py-1.5 rounded-full font-medium"
+                  style="background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe"
+                  x-text="sk.trim()"></span>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <!-- Botones de acción -->
+        <template x-if="volunteerModal.phone">
+          <a :href="'tel:'+volunteerModal.phone"
+            class="flex items-center justify-center gap-2 w-full bg-green-600 text-white rounded-2xl font-bold text-base no-underline mb-3"
+            style="min-height:52px">
+            📞 Llamar — <span x-text="volunteerModal.phone"></span>
+          </a>
+        </template>
+        <div x-show="!volunteerModal.phone"
+          class="text-center text-sm text-gray-400 bg-gray-50 rounded-xl py-3 mb-3">
+          Sin teléfono registrado
+        </div>
+
+        <button @click="volunteerModal=null"
+          class="w-full text-gray-400 text-sm bg-transparent border-none cursor-pointer py-2">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </template>
+
   <!-- MODAL ATENDER REPORTE -->
   <template x-if="reportModal">
     <div class="modal-backdrop" @click.self="reportModal=null" style="z-index:3000">
@@ -1737,6 +1820,9 @@ function app() {
     aidPoints: [],
     dangerZones: [],
     volunteers: [],
+    volunteerModal: null,
+    neighborhoodDetecting: false,
+    neighborhoodDetected: false,
     filters: { reports: true, aidPoints: true, dangerZones: true },
     skillFilter: '',
     skillTags: [
@@ -2000,6 +2086,34 @@ function app() {
     stepIndex() {
       if (this.reportStep === 'done') return this.reportSteps.length
       return this.reportSteps.findIndex(s => s.id === this.reportStep)
+    },
+
+    async detectNeighborhood() {
+      if (!navigator.geolocation) return
+      this.neighborhoodDetecting = true
+      this.neighborhoodDetected = false
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          try {
+            const { latitude: lat, longitude: lng } = pos.coords
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
+              { headers: { 'Accept-Language': 'es' } }
+            )
+            const data = await res.json()
+            if (data?.address) {
+              const a = data.address
+              // Prioridad: barrio > suburbio > municipio
+              const neighborhood = a.neighbourhood || a.suburb || a.quarter || a.municipality || a.town || a.city || ''
+              this.registerForm.neighborhood = neighborhood.toUpperCase()
+              this.neighborhoodDetected = true
+            }
+          } catch(e) { console.warn('Error detectando barrio', e) }
+          this.neighborhoodDetecting = false
+        },
+        () => { this.neighborhoodDetecting = false },
+        { enableHighAccuracy: true, timeout: 8000 }
+      )
     },
 
     async reverseGeocode(lat, lng) {
