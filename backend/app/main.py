@@ -76,3 +76,25 @@ async def frontend():
             "Pragma": "no-cache",
         }
     )
+
+
+@app.get("/sw.js")
+async def service_worker():
+    """Service Worker en la raíz para que tenga scope /"""
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Service-Worker-Allowed": "/",
+        }
+    )
+
+
+@app.get("/manifest.json")
+async def manifest():
+    return FileResponse(
+        STATIC_DIR / "manifest.json",
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )

@@ -6,6 +6,13 @@
   <meta name="theme-color" content="#dc2626"/>
   <title>Te Ayudo Pereira 🚨</title>
 
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="TeAyuda"/>
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png"/>
+
   <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -68,6 +75,15 @@
       </template>
     </div>
   </header>
+
+  <!-- Banner: sin conexión (visible en todas las páginas) -->
+  <div x-show="!isOnline"
+    class="flex items-center gap-3 px-4 py-2"
+    style="background:#854d0e;color:white;font-size:13px;">
+    <span>📵 <strong>Sin conexión</strong> — mostrando datos guardados</span>
+    <span x-show="offlineQueue.length > 0" class="ml-auto text-xs opacity-90"
+      x-text="offlineQueue.length + ' reporte(s) en cola'"></span>
+  </div>
 
   <!-- PÁGINAS -->
 
@@ -2292,6 +2308,8 @@ function app() {
     ],
     newReportsCount: 0,
     pendingNewReports: [],
+    isOnline: navigator.onLine,
+    offlineQueue: JSON.parse(localStorage.getItem('tap_offline_queue') || '[]'),
     zoneOpen: false,
     zoneStep: 'location',
     zoneLocLoading: false,
@@ -2305,6 +2323,18 @@ function app() {
     markers: [],
 
     async init() {
+      // Registrar Service Worker (PWA)
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(() => console.log('SW registrado ✓'))
+          .catch(e => console.warn('SW error:', e))
+        navigator.serviceWorker.addEventListener('message', e => {
+          if (e.data?.type === 'SYNC_REPORTS') this.syncOfflineQueue()
+        })
+      }
+      // Monitorear conectividad
+      this.setupConnectivity()
+
       // Recuperar sesión guardada
       const saved = localStorage.getItem('pa_token')
       if (saved) {
@@ -2313,8 +2343,10 @@ function app() {
       }
       // Inicializar mapa
       this.$nextTick(() => this.initMap())
-      // Cargar datos
+      // Cargar datos (con fallback a caché offline)
       await this.loadData()
+      // Sincronizar cola offline si hay conexión
+      await this.syncOfflineQueue()
       // Registrar IDs conocidos tras carga inicial (para no notificar reportes existentes)
       this._lastKnownReportIds = new Set(this.reports.map(r => r.id))
       // Polling inteligente cada 15s — solo notifica si hay nuevos
@@ -2342,8 +2374,27 @@ function app() {
         this.reports = r
         this.aidPoints = a
         this.dangerZones = d
+        // Guardar en caché local para uso offline
+        localStorage.setItem('tap_cache', JSON.stringify({
+          reports: r, aidPoints: a, dangerZones: d, ts: Date.now()
+        }))
         this.renderMarkers()
-      } catch(e) { console.warn('Error cargando datos', e) }
+      } catch(e) {
+        console.warn('Error cargando datos — usando caché offline', e)
+        // Cargar última copia guardada
+        const raw = localStorage.getItem('tap_cache')
+        if (raw) {
+          try {
+            const { reports, aidPoints, dangerZones, ts } = JSON.parse(raw)
+            this.reports = reports || []
+            this.aidPoints = aidPoints || []
+            this.dangerZones = dangerZones || []
+            const mins = Math.round((Date.now() - ts) / 60000)
+            console.info(`Datos offline cargados (hace ${mins} min)`)
+            this.renderMarkers()
+          } catch {}
+        }
+      }
     },
 
     async pollReports() {
@@ -2392,6 +2443,42 @@ function app() {
 
       // Limpiar animación después de que termine
       setTimeout(() => { this._newMarkerIds = null }, 3000)
+    },
+
+    setupConnectivity() {
+      window.addEventListener('online', () => {
+        this.isOnline = true
+        this.syncOfflineQueue()
+        this.loadData()   // refrescar datos al reconectar
+      })
+      window.addEventListener('offline', () => {
+        this.isOnline = false
+      })
+    },
+
+    async syncOfflineQueue() {
+      if (!this.isOnline || !this.offlineQueue.length) return
+      const queue = [...this.offlineQueue]
+      let synced = 0
+      for (const item of queue) {
+        try {
+          const { _qid, _queued_at, ...payload } = item
+          const res = await fetch('/reports/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          if (res.ok) {
+            this.offlineQueue = this.offlineQueue.filter(q => q._qid !== _qid)
+            localStorage.setItem('tap_offline_queue', JSON.stringify(this.offlineQueue))
+            synced++
+          }
+        } catch { break }
+      }
+      if (synced > 0) {
+        console.info(`${synced} reporte(s) sincronizado(s) desde cola offline`)
+        await this.loadData()
+      }
     },
 
     renderMarkers() {
@@ -2625,28 +2712,39 @@ function app() {
     async submitReport() {
       this.reportLoading = true; this.reportMsg = ''; this.reportError = false
       try {
-        // 1. Subir foto si existe
-        let photo_url = null
-        if (this.reportForm.photoFile) {
-          const fd = new FormData()
-          fd.append('file', this.reportForm.photoFile)
-          const up = await fetch('/upload', { method:'POST', body: fd })
-          if (up.ok) { const upData = await up.json(); photo_url = upData.url }
-        }
-        // 2. Enviar reporte
         const { extra, photoPreview, photoFile, reporter_last_name, reporter_id, ...formData } = this.reportForm
         const fullName = [formData.reporter_name, reporter_last_name].filter(Boolean).join(' ')
+        const payload = {
+          ...formData,
+          reporter_name: fullName,
+          reporter_phone: formData.reporter_phone || reporter_id || '',
+          people_count: Number(formData.people_count),
+          photo_url: null,
+          extra_data: JSON.stringify({ ...extra, reporter_id, reporter_last_name })
+        }
+
+        // Sin conexión → encolar para sincronizar después
+        if (!this.isOnline) {
+          const queued = { ...payload, _qid: Date.now() + Math.random().toString(36).slice(2), _queued_at: new Date().toISOString() }
+          this.offlineQueue.push(queued)
+          localStorage.setItem('tap_offline_queue', JSON.stringify(this.offlineQueue))
+          this.reportStep = 'done'
+          this.reportMsg = '📵 Sin conexión: tu reporte fue guardado y se enviará automáticamente cuando vuelvas a tener red.'
+          return
+        }
+
+        // Con conexión: subir foto primero si existe
+        if (photoFile) {
+          const fd = new FormData()
+          fd.append('file', photoFile)
+          const up = await fetch('/upload', { method:'POST', body: fd })
+          if (up.ok) { const upData = await up.json(); payload.photo_url = upData.url }
+        }
+
         const res = await fetch('/reports/', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({
-            ...formData,
-            reporter_name: fullName,
-            reporter_phone: formData.reporter_phone || reporter_id || '',
-            people_count: Number(formData.people_count),
-            photo_url,
-            extra_data: JSON.stringify({ ...extra, reporter_id, reporter_last_name })
-          })
+          body: JSON.stringify(payload)
         })
         if (!res.ok) throw new Error()
         const data = await res.json()
