@@ -27,14 +27,17 @@ async def create_report(data: ReportCreate, db: AsyncSession = Depends(get_db)):
 async def list_reports(
     status: Optional[str] = None,
     need_type: Optional[str] = None,
+    assigned_to: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Lista todos los reportes activos. Filtrable por estado y tipo de necesidad."""
+    """Lista todos los reportes activos. Filtrable por estado, tipo y voluntario asignado."""
     query = select(Report)
     if status:
         query = query.where(Report.status == status)
     if need_type:
         query = query.where(Report.need_type == need_type)
+    if assigned_to is not None:
+        query = query.where(Report.assigned_to == assigned_to)
     query = query.order_by(Report.created_at.desc())
     result = await db.execute(query)
     return result.scalars().all()
