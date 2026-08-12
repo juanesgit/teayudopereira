@@ -24,11 +24,12 @@
     input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
+    :root { --nav-h: calc(60px + env(safe-area-inset-bottom, 0px)); }
     .bottom-nav-item { min-height: 44px; }
     .hide-scroll { overflow-x: auto; scrollbar-width: none; }
     .hide-scroll::-webkit-scrollbar { display: none; }
     .fab {
-      position: fixed; bottom: 76px; right: 16px;
+      position: fixed; bottom: calc(var(--nav-h) + 16px); right: 16px;
       width: 56px; height: 56px; border-radius: 50%;
       background: #dc2626; color: white; font-size: 24px;
       box-shadow: 0 4px 16px rgba(220,38,38,.5);
@@ -71,7 +72,7 @@
   <!-- PÁGINAS -->
 
   <!-- MAPA -->
-  <div x-show="page==='map'" style="height:calc(100vh - 56px - 60px); position:relative;">
+  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); position:relative;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <button @click="filters.reports=!filters.reports"
@@ -115,7 +116,7 @@
   </div>
 
   <!-- PEDIR AYUDA -->
-  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - 60px)">
+  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER 4 pasos -->
@@ -710,7 +711,7 @@
   </div>
 
   <!-- VOLUNTARIOS -->
-  <div x-show="page==='volunteers'" style="height:calc(100vh - 56px - 60px); display:flex; flex-direction:column">
+  <div x-show="page==='volunteers'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column">
 
     <!-- Header fijo con contador y búsqueda -->
     <div class="bg-white border-b border-gray-100 px-4 pt-4 pb-3 flex-shrink-0">
@@ -806,7 +807,7 @@
   </div>
 
   <!-- ACCESO VOLUNTARIO (login + registro en una sola página) -->
-  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - 60px)">
+  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
     <div class="max-w-sm mx-auto px-4 py-6">
 
       <!-- Hero -->
@@ -1068,7 +1069,7 @@
   </div>
 
   <!-- DASHBOARD VOLUNTARIO -->
-  <div x-show="page==='panel'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - 60px)">
+  <div x-show="page==='panel'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- Header bienvenida -->
