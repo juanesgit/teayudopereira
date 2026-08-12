@@ -18,8 +18,16 @@ router = APIRouter(prefix="/admin", tags=["Administración"])
 
 
 def _require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """Solo admin del sistema."""
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Solo administradores del sistema pueden acceder")
+    return current_user
+
+
+def _require_staff(current_user: User = Depends(get_current_user)) -> User:
+    """Coordinadores Y admin del sistema."""
+    if current_user.role not in (UserRole.coordinator, UserRole.admin):
+        raise HTTPException(status_code=403, detail="Se requiere rol coordinador o admin")
     return current_user
 
 
@@ -47,9 +55,9 @@ class SmsSendResponse(BaseModel):
 async def sms_send_direct(
     data: SmsSendRequest,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(_require_admin),
+    current_user: User = Depends(_require_staff),
 ):
-    """Envía SMS a una lista de números específicos."""
+    """Envía SMS a una lista de números específicos. Coordinadores y admin."""
     if not data.phones:
         raise HTTPException(status_code=400, detail="Debes indicar al menos un número")
     if not data.message.strip():
@@ -64,9 +72,9 @@ async def sms_broadcast(
     data: SmsBroadcastRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(_require_admin),
+    current_user: User = Depends(_require_staff),
 ):
-    """Envía SMS masivo a todos los voluntarios y/o coordinadores activos."""
+    """Envía SMS masivo. Coordinadores y admin."""
     if not data.message.strip():
         raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
 
