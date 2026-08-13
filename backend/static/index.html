@@ -114,6 +114,13 @@
       font-size: 18px !important;
       font-weight: 700 !important;
     }
+    /* Panel voluntario — flex column de altura fija (igual que chat-view) */
+    .panel-view {
+      height: calc(100vh  - 56px - var(--nav-h));
+      height: calc(100dvh - 56px - var(--nav-h));
+      display: flex;
+      flex-direction: column;
+    }
     /* DM voluntario — flex column que llena el espacio restante del panel */
     .dm-panel {
       flex: 1;
@@ -1616,7 +1623,7 @@
   </div>
 
   <!-- DASHBOARD VOLUNTARIO -->
-  <div x-show="page==='panel'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
+  <div x-show="page==='panel'" class="panel-view">
 
     <!-- Header fijo -->
     <div class="bg-red-600 text-white px-4 pt-4 pb-4 flex-shrink-0">
