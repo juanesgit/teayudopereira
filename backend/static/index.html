@@ -2940,6 +2940,13 @@
               class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none"
               placeholder="Describe la situación actual de la zona..."></textarea>
           </div>
+          <!-- Dirección -->
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Dirección / Referencia</label>
+            <input type="text" x-model="zoneEditForm.address"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+              placeholder="Ej: Cra 12 con Calle 15, barrio Cuba"/>
+          </div>
           <!-- Radio -->
           <div>
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Radio del área
@@ -3997,6 +4004,7 @@ function app() {
         danger_level: zone.danger_level,
         description: zone.description,
         radius_meters: zone.radius_meters,
+        address: zone.address || '',
       }
       this.zoneEditModal = true
     },
