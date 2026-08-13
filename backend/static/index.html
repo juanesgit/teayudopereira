@@ -3596,6 +3596,7 @@ function app() {
       { id:'danger',     emoji:'⚠️', label:'Peligro' },
       { id:'volunteers', emoji:'🤝', label:'Voluntarios' },
       { id:'login',      emoji:'🧑‍🚒', label:'Unirme' },
+      { id:'victim-chat',emoji:'💬', label:'Ayuda' },
     ],
 
     needOptions: [
@@ -5232,6 +5233,7 @@ function app() {
       localStorage.removeItem('pa_token')
       sessionStorage.removeItem('pa_token')
       this.navItems[4] = { id:'login', emoji:'🧑‍🚒', label:'Unirme' }
+      this.navItems[5] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
       this.page = 'map'
     },
 
