@@ -2914,7 +2914,8 @@
 
   <!-- ════════════════════════════════════════════ CHAT ════════════ -->
   <div x-show="page==='chat'"
-    style="height:calc(100vh - 56px - var(--nav-h));height:calc(100dvh - 56px - var(--nav-h));display:flex;flex-direction:column;background:#f8fafc">
+    style="height:calc(100vh - 56px - var(--nav-h));height:calc(100dvh - 56px - var(--nav-h));flex-direction:column;background:#f8fafc"
+    :style="page==='chat' ? 'display:flex' : 'display:none'">
 
     <!-- Header chat -->
     <div style="background:white;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
@@ -2930,7 +2931,7 @@
 
     <!-- Mensajes -->
     <div id="chat-messages"
-      style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+      style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
 
       <template x-if="chatMessages.length === 0">
         <div class="text-center text-gray-400 text-sm mt-8">
@@ -2945,7 +2946,7 @@
           <!-- Mensaje de sistema -->
           <template x-if="msg.is_system">
             <div class="flex justify-center">
-              <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1" x-text="msg.text"></span>
+              <span style="font-size:11px;color:#9ca3af;background:#f3f4f6;border-radius:999px;padding:3px 10px;font-style:italic" x-text="msg.text"></span>
             </div>
           </template>
 
@@ -3684,12 +3685,24 @@ function app() {
         try {
           const msg = JSON.parse(e.data)
           if (msg.type === 'history') {
-            this.chatMessages = msg.data || []
+            // El historial no incluye mensajes efímeros (join/leave)
+            this.chatMessages = (msg.data || []).filter(m => !m.ephemeral)
             if (msg.online) this.chatOnline = msg.online
           } else if (msg.type === 'message') {
-            this.chatMessages.push(msg.data)
+            // Los efímeros solo se muestran en sesión actual, no se acumulan
+            if (msg.data.ephemeral) {
+              // Sustituir el anterior efímero si existe para no acumular
+              const lastIdx = this.chatMessages.length - 1
+              if (lastIdx >= 0 && this.chatMessages[lastIdx].ephemeral) {
+                this.chatMessages.splice(lastIdx, 1, msg.data)
+              } else {
+                this.chatMessages.push(msg.data)
+              }
+            } else {
+              this.chatMessages.push(msg.data)
+              if (this.page !== 'chat') this.chatUnread++
+            }
             if (msg.online) this.chatOnline = msg.online
-            if (this.page !== 'chat') this.chatUnread++
             this.$nextTick(() => {
               const el = document.getElementById('chat-messages')
               if (el) el.scrollTop = el.scrollHeight
