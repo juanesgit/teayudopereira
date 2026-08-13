@@ -496,8 +496,10 @@
               <p class="text-xs text-amber-600">Luego arrastra el pin para afinar</p>
             </div>
           </div>
-          <div id="report-map" class="rounded-xl overflow-hidden border-2 mb-4"
-            :style="locationOk ? 'height:240px;border-color:#16a34a' : 'height:240px;border-color:#d1d5db'"></div>
+          <div class="rounded-xl overflow-hidden border-2 mb-4"
+            :style="locationOk ? 'height:240px;border-color:#16a34a' : 'height:240px;border-color:#d1d5db'">
+            <div id="report-map" style="height:100%;width:100%"></div>
+          </div>
           <button type="button" @click="reportStep='need'" :disabled="!locationOk"
             class="w-full bg-red-600 text-white rounded-xl font-bold text-base disabled:opacity-40"
             style="min-height:52px">
@@ -2069,8 +2071,10 @@
         </div>
 
         <!-- Mapa -->
-        <div id="danger-map" class="rounded-2xl overflow-hidden border-2 mb-4"
-          :style="dangerLocOk ? 'height:260px;border-color:#ea580c' : 'height:260px;border-color:#d1d5db'"></div>
+        <div class="rounded-2xl overflow-hidden border-2 mb-4"
+          :style="dangerLocOk ? 'height:260px;border-color:#ea580c' : 'height:260px;border-color:#d1d5db'">
+          <div id="danger-map" style="height:100%;width:100%"></div>
+        </div>
 
         <p x-show="!dangerLocOk" class="text-xs text-center text-gray-400 mb-3">— o toca el mapa para marcar el pin —</p>
 
