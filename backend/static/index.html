@@ -30,7 +30,7 @@
   <style>
     [x-cloak] { display: none !important; }
     html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
-    #map { width: 100%; } /* height controlado por flex:1 en el inline style */
+    #map { position:absolute; top:0; left:0; right:0; bottom:0; }
     input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
@@ -185,8 +185,10 @@
       <span class="text-xs opacity-70">↑</span>
     </div>
 
-    <!-- Mapa Leaflet: flex:1 llena el espacio entre chips, botón y leyenda -->
-    <div id="map" style="flex:1; min-height:0;"></div>
+    <!-- Mapa Leaflet: el wrapper flex:1 define el espacio, #map llena con absolute -->
+    <div style="flex:1; min-height:0; position:relative;">
+      <div id="map"></div>
+    </div>
 
     <!-- Botón SOS -->
     <div class="bg-white px-4 py-3 flex-shrink-0">
