@@ -2912,6 +2912,96 @@
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════ CHAT ════════════ -->
+  <div x-show="page==='chat'"
+    style="height:calc(100vh - 56px - var(--nav-h));height:calc(100dvh - 56px - var(--nav-h));display:flex;flex-direction:column;background:#f8fafc">
+
+    <!-- Header chat -->
+    <div style="background:white;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <p class="font-bold text-gray-900" style="font-size:15px">💬 Canal de Coordinación</p>
+        <p class="text-xs text-gray-400 mt-0.5">
+          <span :style="chatConnected ? 'color:#16a34a' : 'color:#9ca3af'">●</span>
+          <span x-text="chatConnected ? chatOnline + ' en línea' : 'Conectando...'"></span>
+        </p>
+      </div>
+      <div class="text-xs text-gray-400">Canal grupal</div>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="chat-messages"
+      style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+
+      <template x-if="chatMessages.length === 0">
+        <div class="text-center text-gray-400 text-sm mt-8">
+          <p style="font-size:32px;margin-bottom:8px">💬</p>
+          <p>Sin mensajes aún.</p>
+          <p class="text-xs mt-1">Sé el primero en escribir.</p>
+        </div>
+      </template>
+
+      <template x-for="(msg, idx) in chatMessages" :key="msg.id">
+        <div>
+          <!-- Mensaje de sistema -->
+          <template x-if="msg.is_system">
+            <div class="flex justify-center">
+              <span class="text-xs text-gray-400 bg-gray-100 rounded-full px-3 py-1" x-text="msg.text"></span>
+            </div>
+          </template>
+
+          <!-- Mensaje propio -->
+          <template x-if="!msg.is_system && user && msg.user_id == user.id">
+            <div class="flex flex-col items-end gap-0.5">
+              <div style="max-width:78%;background:#dc2626;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word"
+                x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
+          </template>
+
+          <!-- Mensaje de otros -->
+          <template x-if="!msg.is_system && (!user || msg.user_id != user.id)">
+            <div class="flex flex-col items-start gap-0.5">
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <span class="text-xs font-semibold" :style="'color:'+chatRoleColor(msg.sender_role)" x-text="msg.sender_name"></span>
+                <span class="text-xs rounded-full px-1.5 py-0.5 font-semibold"
+                  :style="'background:'+chatRoleColor(msg.sender_role)+'22;color:'+chatRoleColor(msg.sender_role)"
+                  x-text="chatRoleLabel(msg.sender_role)"></span>
+              </div>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.06)"
+                x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <!-- Input enviar -->
+    <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 12px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;padding-bottom:max(10px, env(safe-area-inset-bottom))">
+      <textarea
+        x-model="chatInput"
+        @keydown.enter.prevent="if(!$event.shiftKey){ sendChatMessage() }"
+        @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,100)+'px'"
+        placeholder="Escribe un mensaje..."
+        rows="1"
+        maxlength="500"
+        style="flex:1;resize:none;border:1.5px solid #e5e7eb;border-radius:20px;padding:9px 14px;font-size:14px;outline:none;line-height:1.4;font-family:inherit;max-height:100px;overflow-y:auto"
+        :disabled="!chatConnected"
+      ></textarea>
+      <button
+        @click="sendChatMessage()"
+        :disabled="!chatInput.trim() || !chatConnected"
+        style="width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s"
+        :style="chatInput.trim() && chatConnected ? 'background:#dc2626' : 'background:#e5e7eb'"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <!-- ══════════════════════════════════════════════════════════════ -->
+
   <!-- MODAL EDITAR ZONA -->
   <template x-if="zoneEditModal">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8000;display:flex;align-items:center;justify-content:center;padding:20px"
@@ -2999,8 +3089,13 @@
     <template x-for="item in navItems" :key="item.id">
       <button @click="navigateTo(item.id)"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
-        :class="(page===item.id || (item.id==='login' && (page==='panel'||page==='sysadmin')) || (item.id==='panel' && page==='panel') || (item.id==='sysadmin' && page==='sysadmin')) ? (item.id==='danger' ? 'text-orange-600 bg-orange-50' : item.id==='sysadmin' ? 'text-gray-900 bg-gray-100' : 'text-red-600 bg-red-50') : 'text-gray-500 bg-white'">
-        <span class="text-xl" x-text="item.emoji"></span>
+        :class="(page===item.id || (item.id==='login' && (page==='panel'||page==='sysadmin')) || (item.id==='panel' && page==='panel') || (item.id==='sysadmin' && page==='sysadmin')) ? (item.id==='danger' ? 'text-orange-600 bg-orange-50' : item.id==='sysadmin' ? 'text-gray-900 bg-gray-100' : item.id==='chat' ? 'text-blue-600 bg-blue-50' : 'text-red-600 bg-red-50') : 'text-gray-500 bg-white'">
+        <span class="relative" style="line-height:1">
+          <span class="text-xl" x-text="item.emoji"></span>
+          <span x-show="item.id==='chat' && chatUnread > 0"
+            style="position:absolute;top:-4px;right:-8px;background:#dc2626;color:white;border-radius:999px;font-size:9px;font-weight:700;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px"
+            x-text="chatUnread > 9 ? '9+' : chatUnread"></span>
+        </span>
         <span x-text="item.label"></span>
       </button>
     </template>
@@ -3236,6 +3331,14 @@ function app() {
     ],
     newReportsCount: 0,
     pendingNewReports: [],
+    // ── Chat ──────────────────────────────────────────────────────────────
+    chatMessages: [],
+    chatInput: '',
+    chatWs: null,
+    chatConnected: false,
+    chatUnread: 0,
+    chatOnline: 0,
+    // ─────────────────────────────────────────────────────────────────────
     isOnline: navigator.onLine,
     offlineQueue: JSON.parse(localStorage.getItem('tap_offline_queue') || '[]'),
     zoneOpen: false,
@@ -3570,6 +3673,62 @@ function app() {
       return `Hace ${Math.floor(h/24)}d`
     },
 
+    // ── Chat WebSocket ────────────────────────────────────────────────────
+    connectChat() {
+      if (!this.token) return
+      if (this.chatWs && (this.chatWs.readyState === WebSocket.OPEN || this.chatWs.readyState === WebSocket.CONNECTING)) return
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+      this.chatWs = new WebSocket(`${proto}//${location.host}/ws/chat?token=${this.token}`)
+      this.chatWs.onopen = () => { this.chatConnected = true }
+      this.chatWs.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data)
+          if (msg.type === 'history') {
+            this.chatMessages = msg.data || []
+            if (msg.online) this.chatOnline = msg.online
+          } else if (msg.type === 'message') {
+            this.chatMessages.push(msg.data)
+            if (msg.online) this.chatOnline = msg.online
+            if (this.page !== 'chat') this.chatUnread++
+            this.$nextTick(() => {
+              const el = document.getElementById('chat-messages')
+              if (el) el.scrollTop = el.scrollHeight
+            })
+          }
+        } catch {}
+      }
+      this.chatWs.onclose = () => {
+        this.chatConnected = false
+        if (this.token) setTimeout(() => this.connectChat(), 4000)
+      }
+      this.chatWs.onerror = () => { this.chatWs && this.chatWs.close() }
+    },
+
+    sendChatMessage() {
+      const text = this.chatInput.trim()
+      if (!text || !this.chatWs || this.chatWs.readyState !== WebSocket.OPEN) return
+      this.chatWs.send(JSON.stringify({ text }))
+      this.chatInput = ''
+    },
+
+    chatRoleLabel(role) {
+      return { admin:'Admin', coordinator:'Coord.', volunteer:'Voluntario', victim:'Ciudadano', system:'' }[role] || role
+    },
+
+    chatRoleColor(role) {
+      return { admin:'#7c3aed', coordinator:'#0369a1', volunteer:'#15803d', victim:'#6b7280', system:'#9ca3af' }[role] || '#6b7280'
+    },
+
+    chatTimeLabel(iso) {
+      const d = new Date(iso)
+      const now = new Date()
+      const sameDay = d.toDateString() === now.toDateString()
+      return sameDay
+        ? d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })
+        : d.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit' }) + ' ' + d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })
+    },
+    // ─────────────────────────────────────────────────────────────────────
+
     navigateTo(id) {
       this.page = id
       if (id === 'map') {
@@ -3586,6 +3745,13 @@ function app() {
       if (id === 'volunteers') this.loadVolunteers()
       if (id === 'report') this.reportStep = 'location'
       if (id === 'danger') this.resetDangerForm()
+      if (id === 'chat') {
+        this.chatUnread = 0
+        this.$nextTick(() => {
+          const el = document.getElementById('chat-messages')
+          if (el) el.scrollTop = el.scrollHeight
+        })
+      }
       // 5to tab: login/panel/admin
       if (id === 'login' && this.user) {
         this.page = this.user.role === 'admin' ? 'sysadmin' : 'panel'
@@ -3851,16 +4017,19 @@ function app() {
         }
         if (this.user.role === 'admin') {
           this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
+          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'sysadmin'
           this.loadAdminStats()
         } else {
           this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
           if (!this.user.sms_consent_at) {
             setTimeout(() => { this.smsConsentModal = true }, 800)
           }
         }
+        this.connectChat()
       } catch { this.loginMsg = 'Error de conexión'; this.loginError = true }
       finally { this.loginLoading = false }
     },
@@ -3916,6 +4085,7 @@ function app() {
             }
           }
           this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
+          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           // Si aceptó consentimiento SMS, registrarlo en el backend
           if (this.registerForm.smsConsent) {
             try {
@@ -3928,6 +4098,7 @@ function app() {
           }
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
+          this.connectChat()
         }
       } catch { this.registerMsg='Error de conexión'; this.registerError=true }
     },
@@ -4462,6 +4633,8 @@ function app() {
               setTimeout(() => { this.smsConsentModal = true }, 1200)
             }
           }
+          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          this.connectChat()
         } else {
           this.token=null; localStorage.removeItem('pa_token')
         }
