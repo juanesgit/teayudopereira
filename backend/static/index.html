@@ -30,7 +30,7 @@
   <style>
     [x-cloak] { display: none !important; }
     html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
-    #map { height: 100%; width: 100%; }
+    #map { width: 100%; } /* height controlado por flex:1 en el inline style */
     input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
