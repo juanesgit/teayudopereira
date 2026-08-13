@@ -2072,6 +2072,7 @@
           <textarea x-model="dmInput"
             @keydown.enter.prevent="if(!$event.shiftKey){ sendDmMessage() }"
             @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
+            @focus="setTimeout(_applyKeyboardLayout, 350)"
             placeholder="Escribe un mensaje..."
             rows="1" maxlength="500"
             class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
@@ -3113,6 +3114,7 @@
         <textarea x-model="adminDmInput"
           @keydown.enter.prevent="if(!$event.shiftKey){ sendAdminDmMessage() }"
           @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,80)+'px'"
+          @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe una respuesta..."
           rows="1" maxlength="500"
           class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
@@ -3199,6 +3201,7 @@
           x-model="chatInput"
           @keydown.enter.prevent="if(!$event.shiftKey){ sendChatMessage() }"
           @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
+          @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe un mensaje..."
           rows="1"
           maxlength="500"
@@ -3603,25 +3606,38 @@ function app() {
           if (e.data?.type === 'SYNC_REPORTS') this.syncOfflineQueue()
         })
       }
-      // ── visualViewport: ajustar layout cuando aparece teclado virtual (iOS/Android) ──
-      if (window.visualViewport) {
-        const root = document.documentElement
-        const updateKeyboard = () => {
-          const kbH = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
-          root.style.setProperty('--keyboard-h', kbH + 'px')
-          // Scroll al final de cualquier chat activo
-          if (kbH > 50) {
-            this.$nextTick(() => {
-              for (const id of ['chat-messages','dm-messages','admin-dm-messages']) {
-                const el = document.getElementById(id)
-                if (el) el.scrollTop = el.scrollHeight
-              }
-            })
+      // ── Teclado virtual: ajuste directo de altura (iOS Safari + Android) ──
+      const _applyKeyboardLayout = () => {
+        const vvh = window.visualViewport ? window.visualViewport.height : window.innerHeight
+        const navEl = document.getElementById('bottom-nav')
+        const navH = navEl ? navEl.offsetHeight : 60
+        const headerH = 56
+        const available = vvh - headerH - navH
+
+        // Ajustar contenedores de altura fija directamente en px
+        document.querySelectorAll('.panel-view, .chat-view').forEach(el => {
+          el.style.height = available + 'px'
+        })
+        // Admin DM overlay: bottom sube con el teclado
+        const kbH = Math.max(0, window.innerHeight - vvh)
+        document.querySelectorAll('.admin-dm-overlay').forEach(el => {
+          el.style.bottom = (navH + kbH) + 'px'
+          el.style.top = headerH + 'px'
+        })
+        // Scroll al final de mensajes activos
+        requestAnimationFrame(() => {
+          for (const id of ['chat-messages','dm-messages','admin-dm-messages']) {
+            const el = document.getElementById(id)
+            if (el) el.scrollTop = el.scrollHeight
           }
-        }
-        window.visualViewport.addEventListener('resize', updateKeyboard)
-        window.visualViewport.addEventListener('scroll', updateKeyboard)
+        })
       }
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', _applyKeyboardLayout)
+        window.visualViewport.addEventListener('scroll', _applyKeyboardLayout)
+      }
+      // Fallback: resize del window (Android Chrome)
+      window.addEventListener('resize', _applyKeyboardLayout)
 
       // Monitorear conectividad
       this.setupConnectivity()
