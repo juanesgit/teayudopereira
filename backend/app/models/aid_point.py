@@ -8,12 +8,13 @@ from app.database import Base
 
 
 class AidType(str, enum.Enum):
-    shelter = "shelter"      # albergue
-    food = "food"            # alimentación
-    medical = "medical"      # centro médico / brigada
-    water = "water"          # agua potable
-    supplies = "supplies"    # ropa, colchonetas, kit de aseo
+    shelter = "shelter"          # albergue
+    food = "food"                # alimentación
+    medical = "medical"          # centro médico / brigada
+    water = "water"              # agua potable
+    supplies = "supplies"        # ropa, colchonetas, kit de aseo
     information = "information"  # punto de información
+    veterinary = "veterinary"    # centro veterinario
 
 
 class AidPoint(Base):
@@ -21,7 +22,7 @@ class AidPoint(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(150))
-    aid_type: Mapped[AidType] = mapped_column(SAEnum(AidType))
+    aid_type: Mapped[AidType] = mapped_column(SAEnum(AidType, create_constraint=False))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     address: Mapped[str] = mapped_column(String(256))
     lat: Mapped[float] = mapped_column(Float)

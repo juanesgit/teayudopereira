@@ -53,8 +53,9 @@
       50% { transform: scale(1.5); filter: brightness(1.4); }
     }
     @keyframes panic-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.7), 0 4px 20px rgba(220,38,38,.5); }
-      60% { box-shadow: 0 0 0 16px rgba(220,38,38,0), 0 4px 20px rgba(220,38,38,.5); }
+      0%   { box-shadow: 0 0 0 0px rgba(220,38,38,.8), 0 4px 20px rgba(220,38,38,.5); transform: scale(1); }
+      50%  { box-shadow: 0 0 0 14px rgba(220,38,38,0), 0 4px 20px rgba(220,38,38,.5); transform: scale(1.06); }
+      100% { box-shadow: 0 0 0 0px rgba(220,38,38,.8), 0 4px 20px rgba(220,38,38,.5); transform: scale(1); }
     }
   </style>
 </head>
@@ -155,7 +156,7 @@
       <button @click="page='report'"
         class="w-full bg-red-600 text-white font-extrabold rounded-2xl flex items-center justify-center gap-3 border-none cursor-pointer"
         style="height:56px; font-size:18px; letter-spacing:0.3px; box-shadow:0 4px 20px rgba(220,38,38,.4)">
-        🆘 Necesito ayuda
+        🆘 Reportar emergencia
       </button>
     </div>
 
@@ -184,10 +185,9 @@
   <div x-show="page==='map'"
     style="position:fixed; right:14px; bottom:calc(var(--nav-h) + 136px); z-index:1500; pointer-events:auto">
     <button @click="panicModal=true"
-      style="width:64px;height:64px;border-radius:50%;background:#dc2626;color:white;border:none;cursor:pointer;animation:panic-pulse 1.8s infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 4px 16px rgba(220,38,38,.5)"
-      title="Botón de pánico — emergencia inmediata">
-      <span style="font-size:22px;line-height:1">🚨</span>
-      <span style="font-size:9px;font-weight:800;letter-spacing:.8px;line-height:1">SOS</span>
+      title="Botón de pánico — emergencia inmediata"
+      style="width:68px;height:68px;border-radius:50%;background:#dc2626;color:white;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;box-shadow:0 0 0 4px rgba(220,38,38,.25), 0 4px 20px rgba(220,38,38,.6);animation:panic-pulse 1.4s ease-in-out infinite;position:relative">
+      <span style="font-size:16px;font-weight:900;letter-spacing:3px;line-height:1;color:white">SOS</span>
     </button>
   </div>
 
@@ -2132,8 +2132,8 @@
       <!-- Tabs internos -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
         <div class="flex border-b border-gray-100">
-          <template x-for="t in [{id:'users',l:'👥 Usuarios'},{id:'sms',l:'📱 SMS'},{id:'reports',l:'🆘 Reportes'}]" :key="t.id">
-            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers();"
+          <template x-for="t in [{id:'users',l:'👥 Usuarios'},{id:'centers',l:'🤝 Centros'},{id:'sms',l:'📱 SMS'},{id:'reports',l:'🆘 Reportes'}]" :key="t.id">
+            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}"
               class="flex-1 py-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent"
               :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
               <span x-text="t.l"></span>
@@ -2246,28 +2246,215 @@
           </div>
         </div>
 
-        <!-- TAB: REPORTES -->
-        <div x-show="sysTab==='reports'" class="p-4">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-bold text-sm text-gray-900">Todos los reportes</h3>
-            <button @click="loadData()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+        <!-- TAB: CENTROS DE AYUDA -->
+        <div x-show="sysTab==='centers'" class="p-4">
+
+          <!-- Formulario nuevo centro -->
+          <h3 class="font-bold text-sm text-gray-900 mb-3">Agregar centro de ayuda</h3>
+
+          <!-- Tipo -->
+          <p class="text-xs text-gray-500 mb-1.5">Tipo de centro</p>
+          <div class="grid grid-cols-4 gap-1.5 mb-3">
+            <template x-for="t in aidCenterTypes" :key="t.v">
+              <button @click="aidCenterForm.aid_type=t.v"
+                class="flex flex-col items-center justify-center rounded-xl border-2 py-2 px-1 transition-all"
+                :style="aidCenterForm.aid_type===t.v ? 'border-color:#2563eb;background:#eff6ff' : 'border-color:#e5e7eb;background:white'">
+                <span class="text-xl leading-none mb-0.5" x-text="t.e"></span>
+                <span class="text-xs font-semibold leading-tight text-center" x-text="t.l"
+                  :style="aidCenterForm.aid_type===t.v ? 'color:#1e40af' : 'color:#6b7280'"></span>
+              </button>
+            </template>
+          </div>
+
+          <!-- Nombre -->
+          <input x-model="aidCenterForm.name" type="text" placeholder="Nombre del centro (ej: Albergue Colegio San José)"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none"
+            style="outline:none">
+
+          <!-- Búsqueda de dirección -->
+          <div class="relative mb-3">
+            <div class="flex gap-2">
+              <input x-model="aidCenterSearch" @input.debounce.400ms="searchAidCenter()"
+                type="text" placeholder="Buscar dirección o lugar..."
+                class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none">
+              <button @click="getAidCenterLocation()" :disabled="aidCenterLocLoading"
+                class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white cursor-pointer flex-shrink-0">
+                <span x-show="!aidCenterLocLoading">📍</span>
+                <span x-show="aidCenterLocLoading">⏳</span>
+              </button>
+            </div>
+            <div x-show="aidCenterSearchResults.length > 0"
+              class="absolute z-10 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-lg overflow-hidden">
+              <template x-for="r in aidCenterSearchResults" :key="r.place_id">
+                <button @click="selectAidCenterResult(r)"
+                  class="w-full text-left px-3 py-2.5 text-sm border-none bg-transparent cursor-pointer border-b border-gray-100 last:border-0"
+                  style="line-height:1.3">
+                  <span x-text="r.display_name.split(',').slice(0,3).join(', ')"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Dirección confirmada -->
+          <div x-show="aidCenterForm.address" class="bg-blue-50 rounded-xl px-3 py-2 mb-3 text-xs text-blue-700">
+            📍 <span x-text="aidCenterForm.address"></span>
+          </div>
+
+          <!-- Teléfono y capacidad -->
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <input x-model="aidCenterForm.contact_phone" type="tel" placeholder="Teléfono contacto"
+              class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none">
+            <input x-model="aidCenterForm.capacity" type="number" placeholder="Capacidad (cupos)"
+              class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none" min="0">
+          </div>
+
+          <!-- Descripción -->
+          <textarea x-model="aidCenterForm.description" placeholder="Descripción breve (horario, servicios disponibles...)"
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 resize-none outline-none" rows="2"></textarea>
+
+          <!-- Mensaje -->
+          <div x-show="aidCenterMsg" x-text="aidCenterMsg" class="text-xs rounded-xl px-3 py-2 mb-3 text-center"
+            :style="aidCenterError ? 'background:#fef2f2;color:#991b1b' : 'background:#f0fdf4;color:#166534'"></div>
+
+          <!-- Botón guardar -->
+          <button @click="submitAidCenter()" :disabled="aidCenterLoading || !aidCenterForm.aid_type || !aidCenterForm.name || !aidCenterForm.address"
+            class="w-full bg-blue-600 text-white rounded-xl font-bold text-sm border-none cursor-pointer mb-5 disabled:opacity-40"
+            style="height:44px">
+            <span x-show="!aidCenterLoading">🤝 Guardar centro</span>
+            <span x-show="aidCenterLoading">Guardando...</span>
+          </button>
+
+          <!-- Lista centros existentes -->
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-sm text-gray-900">Centros registrados</h3>
+            <button @click="loadAdminAidPoints()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
           </div>
           <div class="flex flex-col gap-2">
-            <template x-for="r in reports.slice(0,30)" :key="r.id">
-              <div class="bg-gray-50 rounded-xl p-3">
-                <div class="flex items-start justify-between gap-2">
+            <template x-for="a in adminAidPoints" :key="a.id">
+              <div class="flex items-center gap-3 rounded-xl p-3"
+                :style="a.is_active ? 'background:#f0fdf4' : 'background:#f9fafb'">
+                <span class="text-2xl flex-shrink-0"
+                  x-text="aidCenterTypes.find(t=>t.v===a.aid_type)?.e||'🤝'"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-900 truncate" x-text="a.name"></p>
+                  <p class="text-xs text-gray-400 truncate" x-text="a.address"></p>
+                  <p class="text-xs mt-0.5"
+                    :style="a.is_active ? 'color:#16a34a' : 'color:#9ca3af'"
+                    x-text="a.is_active ? '✅ Activo' : '⚫ Inactivo'"></p>
+                </div>
+                <button @click="toggleAidPoint(a.id, !a.is_active)"
+                  class="text-xs rounded-lg px-3 py-1.5 border-none cursor-pointer flex-shrink-0"
+                  :style="a.is_active ? 'background:#fee2e2;color:#991b1b' : 'background:#dcfce7;color:#166534'"
+                  x-text="a.is_active ? 'Cerrar' : 'Abrir'">
+                </button>
+              </div>
+            </template>
+            <div x-show="adminAidPoints.length===0" class="text-center py-6 text-gray-400 text-sm">
+              No hay centros registrados aún
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: REPORTES -->
+        <div x-show="sysTab==='reports'" class="p-4">
+
+          <!-- Filtros + recarga -->
+          <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <div class="flex gap-1 flex-1">
+              <template x-for="f in [{v:'all',l:'Todos'},{v:'pending',l:'🔴 Pendientes'},{v:'in_progress',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
+                <button @click="adminReportFilter=f.v"
+                  class="text-xs rounded-lg px-2.5 py-1.5 border-none cursor-pointer font-semibold transition-all"
+                  :style="adminReportFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                  x-text="f.l"></button>
+              </template>
+            </div>
+            <button @click="loadData()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+          </div>
+
+          <!-- Contador -->
+          <p class="text-xs text-gray-400 mb-3"
+            x-text="adminFilteredReports.length + ' reporte(s)'"></p>
+
+          <!-- Lista de reportes -->
+          <div class="flex flex-col gap-2">
+            <template x-for="r in adminFilteredReports" :key="r.id">
+              <div class="rounded-xl border overflow-hidden"
+                :style="r.status==='pending' ? 'border-color:#fca5a5' : r.status==='in_progress' ? 'border-color:#93c5fd' : 'border-color:#86efac'">
+
+                <!-- Cabecera — siempre visible -->
+                <div class="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                  :style="r.status==='pending' ? 'background:#fef2f2' : r.status==='in_progress' ? 'background:#eff6ff' : 'background:#f0fdf4'"
+                  @click="adminReportExpanded = adminReportExpanded===r.id ? null : r.id">
+                  <span class="text-lg flex-shrink-0"
+                    x-text="needEmoji[r.need_type]?.emoji||'📌'"></span>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 truncate"
-                      x-text="'#'+r.id+' · '+(r.contact_name||'Anónimo')"></p>
-                    <p class="text-xs text-gray-400 truncate" x-text="r.address||'Sin dirección'"></p>
+                    <p class="text-sm font-bold text-gray-900 leading-tight"
+                      x-text="'#'+r.id+' · '+(needOptions.find(o=>o.value===r.need_type)?.label||r.need_type)"></p>
+                    <p class="text-xs text-gray-500 truncate" x-text="r.address||'Sin dirección'"></p>
                   </div>
-                  <span class="text-xs font-bold rounded-full px-2 py-0.5 flex-shrink-0"
-                    :style="r.status==='pending'?'background:#fee2e2;color:#991b1b':r.status==='resolved'?'background:#dcfce7;color:#166534':'background:#dbeafe;color:#1e40af'"
-                    x-text="r.status==='pending'?'Pendiente':r.status==='resolved'?'Resuelto':'En atención'"></span>
+                  <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="text-xs font-bold rounded-full px-2 py-0.5"
+                      :style="r.status==='pending'?'background:#dc2626;color:white':r.status==='resolved'?'background:#16a34a;color:white':'background:#2563eb;color:white'"
+                      x-text="r.status==='pending'?'Pendiente':r.status==='resolved'?'Resuelto':'En atención'"></span>
+                    <span class="text-gray-400 text-xs" x-text="adminReportExpanded===r.id ? '▲' : '▼'"></span>
+                  </div>
+                </div>
+
+                <!-- Detalle expandible -->
+                <div x-show="adminReportExpanded===r.id" class="px-3 py-3 bg-white border-t border-gray-100">
+
+                  <!-- Info del reporte -->
+                  <div class="bg-gray-50 rounded-xl p-3 mb-3 flex flex-col gap-1.5 text-xs">
+                    <p><span class="text-gray-400">Reportado por:</span> <span class="font-semibold" x-text="r.reporter_name||'Anónimo'"></span>
+                      <span x-show="r.reporter_phone" class="text-gray-400"> · </span>
+                      <a x-show="r.reporter_phone" :href="'tel:'+r.reporter_phone" class="text-blue-600 font-semibold" x-text="r.reporter_phone"></a>
+                    </p>
+                    <p><span class="text-gray-400">Personas:</span> <span class="font-semibold" x-text="r.people_count"></span></p>
+                    <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
+                    <p><span class="text-gray-400">Fecha:</span> <span x-text="new Date(r.created_at).toLocaleString('es-CO')"></span></p>
+                  </div>
+
+                  <!-- Asignar voluntario -->
+                  <div class="mb-3">
+                    <p class="text-xs text-gray-500 mb-1.5 font-semibold">Asignar a voluntario</p>
+                    <div class="flex gap-2">
+                      <select :id="'assign-'+r.id"
+                        class="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                        <option value="">— Sin asignar —</option>
+                        <template x-for="v in adminVolunteers.filter(u=>u.role!=='victim')" :key="v.id">
+                          <option :value="v.id" :selected="r.assigned_to===v.id"
+                            x-text="v.full_name+' ('+v.role+')'"></option>
+                        </template>
+                      </select>
+                      <button @click="adminAssignReport(r.id, document.getElementById('assign-'+r.id).value)"
+                        class="text-xs bg-gray-800 text-white rounded-xl px-3 py-2 border-none cursor-pointer flex-shrink-0">
+                        Asignar
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Cambiar estado -->
+                  <div>
+                    <p class="text-xs text-gray-500 mb-1.5 font-semibold">Cambiar estado</p>
+                    <div class="flex gap-2">
+                      <button @click="adminChangeStatus(r.id,'pending')" :disabled="r.status==='pending'"
+                        class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
+                        style="background:#fee2e2;color:#991b1b">🔴 Pendiente</button>
+                      <button @click="adminChangeStatus(r.id,'in_progress')" :disabled="r.status==='in_progress'"
+                        class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
+                        style="background:#dbeafe;color:#1e40af">🔵 En atención</button>
+                      <button @click="adminChangeStatus(r.id,'resolved')" :disabled="r.status==='resolved'"
+                        class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
+                        style="background:#dcfce7;color:#166534">✅ Resuelto</button>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </template>
-            <div x-show="reports.length===0" class="text-center py-6 text-gray-400 text-sm">Cargando...</div>
+            <div x-show="adminFilteredReports.length===0" class="text-center py-8 text-gray-400 text-sm">
+              No hay reportes con este filtro
+            </div>
           </div>
         </div>
 
@@ -2351,6 +2538,27 @@ function app() {
     panicModal: false,
     panicLoading: false,
     panicDone: false,
+
+    aidCenterTypes: [
+      { v:'shelter',     e:'🏠', l:'Albergue' },
+      { v:'food',        e:'🍲', l:'Alimentos' },
+      { v:'medical',     e:'⚕️', l:'Médico' },
+      { v:'water',       e:'💧', l:'Agua' },
+      { v:'supplies',    e:'📦', l:'Suministros' },
+      { v:'information', e:'ℹ️', l:'Información' },
+      { v:'veterinary',  e:'🐾', l:'Veterinario' },
+    ],
+    aidCenterForm: { name:'', aid_type:'', description:'', address:'', lat:4.8133, lng:-75.6961, contact_phone:'', capacity:null },
+    aidCenterSearch: '',
+    aidCenterSearchResults: [],
+    aidCenterSearchLoading: false,
+    aidCenterLocLoading: false,
+    aidCenterLoading: false,
+    aidCenterMsg: '',
+    aidCenterError: false,
+    adminAidPoints: [],
+    adminReportFilter: 'all',
+    adminReportExpanded: null,
 
     dangerForm: { name:'', description:'', danger_level:'', lat:4.8133, lng:-75.6961, radius_meters:100, address:'', photoPreview:null, photoFile:null },
     dangerStep: 'type',
@@ -2674,8 +2882,8 @@ function app() {
       }
 
       if (this.filters.aidPoints) {
-        const colors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280' }
-        const emojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️' }
+        const colors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280', veterinary:'#ec4899' }
+        const emojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️', veterinary:'🐾' }
         this.aidPoints.forEach(a => {
           const m = L.marker([a.lat, a.lng], { icon: icon(emojis[a.aid_type]||'🤝', colors[a.aid_type]||'#3b82f6') })
             .bindPopup(`<b>${a.name}</b><br>${a.description||''}<br><small>${a.address}</small>`)
@@ -3050,6 +3258,129 @@ function app() {
         })
         await this.loadData()
       } catch(e) { console.warn('Error al atender reporte', e) }
+    },
+
+    get adminFilteredReports() {
+      if (this.adminReportFilter === 'all') return this.reports
+      return this.reports.filter(r => r.status === this.adminReportFilter)
+    },
+
+    async adminChangeStatus(reportId, status) {
+      try {
+        const res = await fetch(`/reports/${reportId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${this.token}` },
+          body: JSON.stringify({ status })
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          const idx = this.reports.findIndex(r => r.id === reportId)
+          if (idx !== -1) this.reports[idx] = updated
+        }
+      } catch {}
+    },
+
+    async adminAssignReport(reportId, volunteerId) {
+      try {
+        const res = await fetch(`/reports/${reportId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${this.token}` },
+          body: JSON.stringify({ assigned_to: volunteerId ? Number(volunteerId) : null, status: 'in_progress' })
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          const idx = this.reports.findIndex(r => r.id === reportId)
+          if (idx !== -1) this.reports[idx] = updated
+        }
+      } catch {}
+    },
+
+    async loadAdminAidPoints() {
+      try {
+        const res = await fetch('/aid-points/?active_only=false', { headers: this.token ? { Authorization:`Bearer ${this.token}` } : {} })
+        if (res.ok) this.adminAidPoints = await res.json()
+      } catch {}
+    },
+
+    async searchAidCenter() {
+      if (this.aidCenterSearch.length < 3) { this.aidCenterSearchResults = []; return }
+      this.aidCenterSearchLoading = true
+      try {
+        const q = encodeURIComponent(this.aidCenterSearch + ' Pereira Colombia')
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=4&accept-language=es`)
+        this.aidCenterSearchResults = await r.json()
+      } catch {} finally { this.aidCenterSearchLoading = false }
+    },
+
+    selectAidCenterResult(r) {
+      this.aidCenterForm.lat = parseFloat(r.lat)
+      this.aidCenterForm.lng = parseFloat(r.lon)
+      this.aidCenterForm.address = r.display_name.split(',').slice(0,3).join(', ')
+      this.aidCenterSearch = this.aidCenterForm.address
+      this.aidCenterSearchResults = []
+    },
+
+    async getAidCenterLocation() {
+      if (!navigator.geolocation) return
+      this.aidCenterLocLoading = true
+      try {
+        const pos = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy:true, timeout:8000 })
+        )
+        this.aidCenterForm.lat = pos.coords.latitude
+        this.aidCenterForm.lng = pos.coords.longitude
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=es`)
+          const d = await r.json()
+          if (d?.display_name) {
+            this.aidCenterForm.address = d.display_name.split(',').slice(0,3).join(', ')
+            this.aidCenterSearch = this.aidCenterForm.address
+          }
+        } catch {}
+      } catch {} finally { this.aidCenterLocLoading = false }
+    },
+
+    async submitAidCenter() {
+      this.aidCenterLoading = true; this.aidCenterMsg = ''; this.aidCenterError = false
+      try {
+        const payload = {
+          name: this.aidCenterForm.name,
+          aid_type: this.aidCenterForm.aid_type,
+          description: this.aidCenterForm.description || null,
+          address: this.aidCenterForm.address,
+          lat: this.aidCenterForm.lat,
+          lng: this.aidCenterForm.lng,
+          contact_phone: this.aidCenterForm.contact_phone || null,
+          capacity: this.aidCenterForm.capacity ? Number(this.aidCenterForm.capacity) : null,
+        }
+        const res = await fetch('/aid-points/', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${this.token}` },
+          body: JSON.stringify(payload)
+        })
+        if (res.ok) {
+          this.aidCenterMsg = '✅ Centro registrado exitosamente'
+          this.aidCenterForm = { name:'', aid_type:'', description:'', address:'', lat:4.8133, lng:-75.6961, contact_phone:'', capacity:null }
+          this.aidCenterSearch = ''
+          await this.loadAdminAidPoints()
+          await this.loadData()
+        } else {
+          const err = await res.json()
+          this.aidCenterMsg = err.detail || 'Error al guardar'; this.aidCenterError = true
+        }
+      } catch { this.aidCenterMsg = 'Error de conexión'; this.aidCenterError = true }
+      finally { this.aidCenterLoading = false }
+    },
+
+    async toggleAidPoint(id, isActive) {
+      try {
+        const res = await fetch(`/aid-points/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type':'application/json', Authorization:`Bearer ${this.token}` },
+          body: JSON.stringify({ is_active: isActive })
+        })
+        if (res.ok) { await this.loadAdminAidPoints(); await this.loadData() }
+      } catch {}
     },
 
     async sendPanic() {

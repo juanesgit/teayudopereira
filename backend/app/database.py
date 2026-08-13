@@ -40,6 +40,8 @@ async def init_db():
 
     # Migración: eliminar CHECK constraint del rol para soportar 'admin'
     await _migrate_role_column()
+    # Migración: eliminar CHECK constraint de aid_type para soportar 'veterinary'
+    await _migrate_aid_type_column()
 
     # Crear admin inicial si está configurado y no existe
     await _seed_admin()
@@ -103,6 +105,53 @@ async def _migrate_role_column():
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("Error en migración role column: %s", e)
+
+
+async def _migrate_aid_type_column():
+    """Elimina el CHECK constraint de aid_type en aid_points para soportar 'veterinary'."""
+    import aiosqlite
+    from app.config import settings
+    db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "")
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            async with db.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='aid_points'"
+            ) as cur:
+                row = await cur.fetchone()
+            if not row:
+                return
+            schema = row[0] or ""
+            if "veterinary" in schema or "CHECK" not in schema:
+                return  # ya migrado o sin constraint
+            import logging
+            logging.getLogger(__name__).info("Migrando aid_points: eliminando CHECK constraint de aid_type")
+            await db.executescript("""
+                PRAGMA foreign_keys=OFF;
+                CREATE TABLE IF NOT EXISTS aid_points_new (
+                    id INTEGER PRIMARY KEY,
+                    name VARCHAR(150) NOT NULL,
+                    aid_type VARCHAR(20) NOT NULL,
+                    description TEXT,
+                    address VARCHAR(256) NOT NULL,
+                    lat FLOAT NOT NULL,
+                    lng FLOAT NOT NULL,
+                    contact_phone VARCHAR(20),
+                    capacity INTEGER,
+                    is_active BOOLEAN NOT NULL DEFAULT 1,
+                    created_by INTEGER REFERENCES users(id),
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL
+                );
+                INSERT INTO aid_points_new SELECT * FROM aid_points;
+                DROP TABLE aid_points;
+                ALTER TABLE aid_points_new RENAME TO aid_points;
+                PRAGMA foreign_keys=ON;
+            """)
+            await db.commit()
+            logging.getLogger(__name__).info("Migración aid_points completada")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Error en migración aid_type: %s", e)
 
 
 async def _seed_admin():
