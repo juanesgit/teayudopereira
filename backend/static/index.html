@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="theme-color" content="#dc2626"/>
   <title>Te Ayudo Pereira 🚨</title>
 
@@ -10,7 +10,7 @@
   <link rel="manifest" href="/manifest.json"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="TeAyuda"/>
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png"/>
   <link rel="icon" type="image/png" href="/static/icons/icon-192.png"/>
@@ -51,7 +51,7 @@
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
     :root {
-      --nav-h: calc(60px + env(safe-area-inset-bottom, 0px));
+      --nav-h: 60px;
       --safe-top: 0px;
       --header-h: 56px;
     }
@@ -3462,7 +3462,7 @@
   </template>
 
   <!-- BOTTOM NAV -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:2000">
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;z-index:2000">
     <template x-for="item in navItems" :key="item.id">
       <button @click="navigateTo(item.id)"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
