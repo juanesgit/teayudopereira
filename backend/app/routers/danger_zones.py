@@ -66,6 +66,18 @@ async def list_danger_zones(
     return result.scalars().all()
 
 
+@router.get("/admin/all", response_model=List[DangerZoneOut])
+async def list_all_danger_zones(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Admin: lista todas las zonas incluidas las inactivas."""
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    result = await db.execute(select(DangerZone).order_by(DangerZone.created_at.desc()))
+    return result.scalars().all()
+
+
 @router.patch("/{zone_id}", response_model=DangerZoneOut)
 async def update_danger_zone(
     zone_id: int,
@@ -73,7 +85,7 @@ async def update_danger_zone(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in (UserRole.coordinator, UserRole.volunteer):
+    if current_user.role not in (UserRole.admin, UserRole.coordinator, UserRole.volunteer):
         raise HTTPException(status_code=403, detail="Sin permisos")
 
     result = await db.execute(select(DangerZone).where(DangerZone.id == zone_id))

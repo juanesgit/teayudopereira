@@ -2444,8 +2444,8 @@
       <!-- Tabs internos -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
         <div class="flex border-b border-gray-100">
-          <template x-for="t in [{id:'users',l:'👥 Usuarios'},{id:'reports',l:'🆘 Reportes'},{id:'centers',l:'🤝 Centros'},{id:'avisos',l:'📢 Avisos'},{id:'sms',l:'📱 SMS'}]" :key="t.id">
-            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats();"
+          <template x-for="t in [{id:'users',l:'👥 Usuarios'},{id:'reports',l:'🆘 Reportes'},{id:'centers',l:'🤝 Centros'},{id:'zones',l:'⚠️ Zonas'},{id:'avisos',l:'📢 Avisos'},{id:'sms',l:'📱 SMS'}]" :key="t.id">
+            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones();"
               class="flex-1 py-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent"
               :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
               <span x-text="t.l"></span>
@@ -2856,9 +2856,111 @@
           </div>
         </div>
 
+        <!-- TAB: ZONAS DE PELIGRO -->
+        <div x-show="sysTab==='zones'" class="p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm text-gray-900">Zonas de peligro</h3>
+            <button @click="loadAdminDangerZones(true)" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+          </div>
+
+          <!-- Loading -->
+          <div x-show="adminDangerZonesLoading" class="text-center py-8 text-gray-400 text-sm">Cargando zonas...</div>
+
+          <!-- Lista -->
+          <div x-show="!adminDangerZonesLoading" class="flex flex-col gap-3">
+            <template x-for="z in adminDangerZones" :key="z.id">
+              <div class="border rounded-2xl overflow-hidden"
+                :style="z.is_active ? 'border-color:#e5e7eb' : 'border-color:#e5e7eb;opacity:.55'">
+                <!-- Header coloreado según nivel -->
+                <div class="px-4 py-3 flex items-center gap-3"
+                  :style="z.danger_level==='critical' ? 'background:#7f1d1d' : z.danger_level==='high' ? 'background:#ef4444' : z.danger_level==='medium' ? 'background:#f97316' : 'background:#fbbf24'">
+                  <span style="font-size:20px">⚠️</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-white font-bold text-sm truncate" x-text="z.name"></p>
+                    <p class="text-white text-xs opacity-80"
+                      x-text="z.danger_level==='critical'?'🚨 Evacuación inmediata':z.danger_level==='high'?'🔴 Peligro alto':z.danger_level==='medium'?'🟠 Peligro moderado':'⚠️ Precaución'"></p>
+                  </div>
+                  <!-- Badge activo/inactivo -->
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                    :style="z.is_active ? 'background:rgba(255,255,255,.25);color:white' : 'background:rgba(0,0,0,.2);color:rgba(255,255,255,.7)'"
+                    x-text="z.is_active ? 'Activa' : 'Inactiva'"></span>
+                </div>
+                <!-- Detalle -->
+                <div class="bg-white px-4 py-3">
+                  <p class="text-xs text-gray-600 mb-1 line-clamp-2" x-text="z.description"></p>
+                  <p class="text-xs text-gray-400 mb-3" x-show="z.address" x-text="'📍 ' + z.address"></p>
+                  <!-- Acciones -->
+                  <div class="flex gap-2">
+                    <button @click="openEditZone(z)"
+                      class="flex-1 text-xs font-semibold rounded-xl py-2 border-none cursor-pointer"
+                      style="background:#f3f4f6;color:#374151">✏️ Editar</button>
+                    <button @click="toggleZoneActive(z)"
+                      class="flex-1 text-xs font-semibold rounded-xl py-2 border-none cursor-pointer"
+                      :style="z.is_active ? 'background:#fee2e2;color:#991b1b' : 'background:#dcfce7;color:#166534'"
+                      x-text="z.is_active ? '🚫 Desactivar' : '✅ Activar'"></button>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div x-show="adminDangerZones.length===0 && !adminDangerZonesLoading"
+              class="text-center py-8 text-gray-400 text-sm">No hay zonas registradas</div>
+          </div>
+        </div>
+
       </div><!-- /card tabs -->
     </div>
   </div>
+
+  <!-- MODAL EDITAR ZONA -->
+  <template x-if="zoneEditModal">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8000;display:flex;align-items:center;justify-content:center;padding:20px"
+      @click.self="zoneEditModal=false">
+      <div style="background:white;border-radius:24px;width:100%;max-width:400px;overflow:hidden;max-height:90vh;overflow-y:auto">
+        <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:20px 24px">
+          <h2 style="color:white;font-size:17px;font-weight:800;margin:0 0 2px">⚠️ Editar zona de peligro</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0" x-text="editingZone?.name"></p>
+        </div>
+        <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px">
+          <!-- Nivel de peligro -->
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Nivel de peligro</label>
+            <select x-model="zoneEditForm.danger_level"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none">
+              <option value="low">⚠️ Precaución (bajo)</option>
+              <option value="medium">🟠 Peligro moderado</option>
+              <option value="high">🔴 Peligro alto</option>
+              <option value="critical">🚨 Evacuación inmediata (crítico)</option>
+            </select>
+          </div>
+          <!-- Descripción -->
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Descripción</label>
+            <textarea x-model="zoneEditForm.description" rows="3"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none"
+              placeholder="Describe la situación actual de la zona..."></textarea>
+          </div>
+          <!-- Radio -->
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Radio del área
+              <span class="font-normal normal-case" x-text="' — ' + zoneEditForm.radius_meters + ' metros'"></span>
+            </label>
+            <input type="range" x-model.number="zoneEditForm.radius_meters" min="50" max="2000" step="50"
+              class="w-full accent-orange-500"/>
+          </div>
+          <!-- Botones -->
+          <button @click="saveEditZone()" :disabled="zoneEditLoading"
+            class="w-full text-white font-bold rounded-2xl border-none cursor-pointer disabled:opacity-40"
+            style="min-height:50px;font-size:15px;background:linear-gradient(135deg,#f97316,#ea580c)">
+            <span x-show="!zoneEditLoading">💾 Guardar cambios</span>
+            <span x-show="zoneEditLoading">Guardando...</span>
+          </button>
+          <button @click="zoneEditModal=false"
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer"
+            style="min-height:44px;background:#f3f4f6;color:#6b7280">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </template>
 
   <!-- BOTTOM NAV -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;padding-bottom:env(safe-area-inset-bottom);z-index:2000">
@@ -3082,6 +3184,12 @@ function app() {
     adminStats: null,
     smsBalance: null,
     sysTab: 'users',
+    adminDangerZones: [],
+    adminDangerZonesLoading: false,
+    zoneEditModal: false,
+    zoneEditLoading: false,
+    editingZone: null,
+    zoneEditForm: { danger_level: 'medium', description: '', radius_meters: 100 },
     adminSms: { phones:'', message:'', loading:false, result:'', error:false },
     adminBroadcast: { target:'all', message:'', loading:false, result:'', error:false },
     adminTemplates: [
@@ -3868,6 +3976,63 @@ function app() {
           const updated = await res.json()
           const idx = this.reports.findIndex(r => r.id === reportId)
           if (idx !== -1) this.reports[idx] = updated
+        }
+      } catch {}
+    },
+
+    async loadAdminDangerZones(force = false) {
+      if (this.adminDangerZones.length > 0 && !force) return
+      this.adminDangerZonesLoading = true
+      try {
+        const res = await fetch('/danger-zones/admin/all', { headers: this.authHeaders() })
+        if (res.ok) this.adminDangerZones = await res.json()
+      } catch {}
+      this.adminDangerZonesLoading = false
+    },
+
+    openEditZone(zone) {
+      this.editingZone = zone
+      this.zoneEditForm = {
+        danger_level: zone.danger_level,
+        description: zone.description,
+        radius_meters: zone.radius_meters,
+      }
+      this.zoneEditModal = true
+    },
+
+    async saveEditZone() {
+      this.zoneEditLoading = true
+      try {
+        const res = await fetch(`/danger-zones/${this.editingZone.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify(this.zoneEditForm),
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          const idx = this.adminDangerZones.findIndex(z => z.id === updated.id)
+          if (idx !== -1) this.adminDangerZones[idx] = updated
+          this.adminDangerZones = [...this.adminDangerZones]
+          this.zoneEditModal = false
+          await this.loadData() // refresca el mapa principal
+        }
+      } catch {}
+      this.zoneEditLoading = false
+    },
+
+    async toggleZoneActive(zone) {
+      try {
+        const res = await fetch(`/danger-zones/${zone.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+          body: JSON.stringify({ is_active: !zone.is_active }),
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          const idx = this.adminDangerZones.findIndex(z => z.id === updated.id)
+          if (idx !== -1) this.adminDangerZones[idx] = updated
+          this.adminDangerZones = [...this.adminDangerZones]
+          await this.loadData()
         }
       } catch {}
     },
