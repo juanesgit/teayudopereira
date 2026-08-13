@@ -20,6 +20,7 @@ class DangerZoneUpdate(BaseModel):
     description: Optional[str] = None
     danger_level: Optional[DangerLevel] = None
     radius_meters: Optional[int] = None
+    address: Optional[str] = None
     is_active: Optional[bool] = None
 
 
