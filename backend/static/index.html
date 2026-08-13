@@ -40,13 +40,7 @@
       display: flex;
       flex-direction: column;
     }
-    .chat-view {
-      height: calc(100vh  - 56px - var(--nav-h) - var(--keyboard-h));
-      height: calc(100dvh - 56px - var(--nav-h) - var(--keyboard-h));
-      display: flex;
-      flex-direction: column;
-      background: #f8fafc;
-    }
+    /* chat-view alias — mantenido por compatibilidad con map-wrapper */
     #map {
       width: 100%;
       flex-shrink: 0;
@@ -116,30 +110,23 @@
       font-size: 18px !important;
       font-weight: 700 !important;
     }
-    /* Panel voluntario — flex column de altura fija (igual que chat-view) */
+    /* Panel voluntario — solo necesita altura para pendientes/miscasos/zona/admin */
     .panel-view {
-      height: calc(100vh  - 56px - var(--nav-h) - var(--keyboard-h));
-      height: calc(100dvh - 56px - var(--nav-h) - var(--keyboard-h));
+      height: calc(100vh  - 56px - var(--nav-h));
+      height: calc(100dvh - 56px - var(--nav-h));
       display: flex;
       flex-direction: column;
     }
-    /* DM admin — conversación activa full-screen sobre el sysadmin */
-    .admin-dm-overlay {
+    /* Overlay compartido — chat grupal, DM voluntario, DM admin */
+    .chat-overlay {
       position: fixed;
       top: 56px;
       left: 0; right: 0;
-      bottom: calc(var(--nav-h) + var(--keyboard-h));
+      bottom: var(--nav-h);
       z-index: 200;
       display: flex;
       flex-direction: column;
       background: #f8fafc;
-    }
-    /* DM voluntario — flex column que llena el espacio restante del panel */
-    .dm-panel {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
     }
   </style>
 </head>
@@ -2023,73 +2010,78 @@
     </div>
     </div>
 
-    <!-- ── DM con admin — fuera del scroll, flex hermano ── -->
-    <div x-show="panelTab==='mensajes'" class="dm-panel">
+  </div><!-- /panel -->
 
-      <!-- Header -->
-      <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;">
-        <p class="font-bold" style="font-size:15px">💬 Mensaje al coordinador / admin</p>
+  <!-- ── DM voluntario — overlay full-screen (mismo patrón que admin DM) ── -->
+  <div x-show="page==='panel' && panelTab==='mensajes'" class="chat-overlay">
+
+    <!-- Header azul con volver -->
+    <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
+      <button @click="panelTab='pendientes'" style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;">
+        ← Volver
+      </button>
+      <div>
+        <p class="font-bold" style="font-size:15px">💬 Coordinación / Admin</p>
         <p class="text-xs mt-0.5" style="opacity:.8">
           <span :style="dmConnected ? 'color:#86efac' : 'color:#fca5a5'">●</span>
           <span x-text="dmConnected ? 'Conectado' : 'Conectando...'"></span>
         </p>
       </div>
+    </div>
 
-      <!-- Mensajes -->
-      <div id="dm-messages"
-           style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc">
-        <template x-if="dmLoading">
-          <div class="text-center text-gray-400 text-sm mt-8">Conectando...</div>
-        </template>
-        <template x-if="!dmLoading && dmMessages.length===0">
-          <div class="text-center text-gray-400 text-sm mt-8">
-            <p style="font-size:28px;margin-bottom:8px">💬</p>
-            <p>Escribe tu mensaje al equipo de coordinación.</p>
-          </div>
-        </template>
-        <template x-for="(msg, idx) in dmMessages" :key="msg.id ?? ('dm-'+idx)">
-          <div>
-            <template x-if="!msg.is_system && user && msg.user_id == user.id">
-              <div class="flex flex-col items-end gap-0.5">
-                <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
-                <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
-              </div>
-            </template>
-            <template x-if="!msg.is_system && (!user || msg.user_id != user.id)">
-              <div class="flex flex-col items-start gap-0.5">
-                <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
-                <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
-                <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
-              </div>
-            </template>
-          </div>
-        </template>
-      </div>
-
-      <!-- Input -->
-      <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 16px 14px;flex-shrink:0;">
-        <div style="display:flex;align-items:flex-end;gap:8px">
-          <textarea x-model="dmInput"
-            @keydown.enter.prevent="if(!$event.shiftKey){ sendDmMessage() }"
-            @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
-            @focus="setTimeout(_applyKeyboardLayout, 350)"
-            placeholder="Escribe un mensaje..."
-            rows="1" maxlength="500"
-            class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
-            style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
-            :disabled="!dmConnected"></textarea>
-          <button @click="sendDmMessage()" :disabled="!dmInput.trim() || !dmConnected"
-            style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
-            :style="{background: dmInput.trim() && dmConnected ? '#0369a1' : '#d1d5db'}">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-              <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+    <!-- Mensajes -->
+    <div id="dm-messages"
+         style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+      <template x-if="dmLoading">
+        <div class="text-center text-gray-400 text-sm mt-8">Conectando...</div>
+      </template>
+      <template x-if="!dmLoading && dmMessages.length===0">
+        <div class="text-center text-gray-400 text-sm mt-8">
+          <p style="font-size:28px;margin-bottom:8px">💬</p>
+          <p>Escribe tu mensaje al equipo de coordinación.</p>
         </div>
-      </div>
-    </div><!-- /dm mensajes -->
+      </template>
+      <template x-for="(msg, idx) in dmMessages" :key="msg.id ?? ('dm-'+idx)">
+        <div>
+          <template x-if="!msg.is_system && user && msg.user_id == user.id">
+            <div class="flex flex-col items-end gap-0.5">
+              <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
+          </template>
+          <template x-if="!msg.is_system && (!user || msg.user_id != user.id)">
+            <div class="flex flex-col items-start gap-0.5">
+              <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
 
-  </div><!-- /panel -->
+    <!-- Input -->
+    <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 16px 14px;flex-shrink:0;">
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        <textarea x-model="dmInput"
+          @keydown.enter.prevent="if(!$event.shiftKey){ sendDmMessage() }"
+          @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
+          @focus="setTimeout(_applyKeyboardLayout, 350)"
+          placeholder="Escribe un mensaje..."
+          rows="1" maxlength="500"
+          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+          style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
+          :disabled="!dmConnected"></textarea>
+        <button @click="sendDmMessage()" :disabled="!dmInput.trim() || !dmConnected"
+          style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
+          :style="{background: dmInput.trim() && dmConnected ? '#0369a1' : '#d1d5db'}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div><!-- /vol-dm-overlay -->
 
   <!-- REPORTAR ZONA DE PELIGRO -->
   <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
@@ -3066,7 +3058,7 @@
   </div>
 
   <!-- ══ Admin DM — conversación activa full-screen overlay ══ -->
-  <div x-show="page==='sysadmin' && adminActiveDm" class="admin-dm-overlay">
+  <div x-show="page==='sysadmin' && adminActiveDm" class="chat-overlay">
 
     <!-- Header -->
     <div style="background:white;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
@@ -3132,7 +3124,7 @@
   </div><!-- /admin-dm-overlay -->
 
   <!-- ════════════════════════════════════════════ CHAT ════════════ -->
-  <div x-show="page==='chat'" class="chat-view">
+  <div x-show="page==='chat'" class="chat-overlay">
 
     <!-- Header chat -->
     <div style="background:white;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
@@ -3609,34 +3601,27 @@ function app() {
       // ── Teclado virtual: ajuste directo de altura (iOS Safari + Android) ──
       const _applyKeyboardLayout = () => {
         const vvh = window.visualViewport ? window.visualViewport.height : window.innerHeight
+        const kbH = Math.max(0, window.innerHeight - vvh)
         const navEl = document.getElementById('bottom-nav')
         const navH = navEl ? navEl.offsetHeight : 60
-        const headerH = 56
-        const available = vvh - headerH - navH
-
-        // Ajustar contenedores de altura fija directamente en px
-        document.querySelectorAll('.panel-view, .chat-view').forEach(el => {
-          el.style.height = available + 'px'
-        })
-        // Admin DM overlay: bottom sube con el teclado
-        const kbH = Math.max(0, window.innerHeight - vvh)
-        document.querySelectorAll('.admin-dm-overlay').forEach(el => {
-          el.style.bottom = (navH + kbH) + 'px'
-          el.style.top = headerH + 'px'
+        // Todos los overlays de chat suben cuando aparece el teclado
+        document.querySelectorAll('.chat-overlay').forEach(el => {
+          el.style.bottom = (kbH > 50 ? kbH : navH) + 'px'
         })
         // Scroll al final de mensajes activos
-        requestAnimationFrame(() => {
-          for (const id of ['chat-messages','dm-messages','admin-dm-messages']) {
-            const el = document.getElementById(id)
-            if (el) el.scrollTop = el.scrollHeight
-          }
-        })
+        if (kbH > 50) {
+          requestAnimationFrame(() => {
+            for (const id of ['chat-messages','dm-messages','admin-dm-messages']) {
+              const el = document.getElementById(id)
+              if (el) el.scrollTop = el.scrollHeight
+            }
+          })
+        }
       }
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', _applyKeyboardLayout)
         window.visualViewport.addEventListener('scroll', _applyKeyboardLayout)
       }
-      // Fallback: resize del window (Android Chrome)
       window.addEventListener('resize', _applyKeyboardLayout)
 
       // Monitorear conectividad
