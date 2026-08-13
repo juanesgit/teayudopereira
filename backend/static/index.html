@@ -30,6 +30,8 @@
   <style>
     [x-cloak] { display: none !important; }
     html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+    /* --keyboard-h: altura del teclado virtual (actualizada por JS via visualViewport API) */
+    :root { --keyboard-h: 0px; }
     /* dvh = dynamic viewport height: excluye la barra URL del browser en móvil.
        vh como fallback para browsers sin soporte dvh */
     .map-wrapper {
@@ -39,8 +41,8 @@
       flex-direction: column;
     }
     .chat-view {
-      height: calc(100vh  - 56px - var(--nav-h));
-      height: calc(100dvh - 56px - var(--nav-h));
+      height: calc(100vh  - 56px - var(--nav-h) - var(--keyboard-h));
+      height: calc(100dvh - 56px - var(--nav-h) - var(--keyboard-h));
       display: flex;
       flex-direction: column;
       background: #f8fafc;
@@ -116,15 +118,17 @@
     }
     /* Panel voluntario — flex column de altura fija (igual que chat-view) */
     .panel-view {
-      height: calc(100vh  - 56px - var(--nav-h));
-      height: calc(100dvh - 56px - var(--nav-h));
+      height: calc(100vh  - 56px - var(--nav-h) - var(--keyboard-h));
+      height: calc(100dvh - 56px - var(--nav-h) - var(--keyboard-h));
       display: flex;
       flex-direction: column;
     }
     /* DM admin — conversación activa full-screen sobre el sysadmin */
     .admin-dm-overlay {
       position: fixed;
-      inset: 56px 0 var(--nav-h) 0;   /* debajo del header global, encima del nav */
+      top: 56px;
+      left: 0; right: 0;
+      bottom: calc(var(--nav-h) + var(--keyboard-h));
       z-index: 200;
       display: flex;
       flex-direction: column;
@@ -3599,6 +3603,26 @@ function app() {
           if (e.data?.type === 'SYNC_REPORTS') this.syncOfflineQueue()
         })
       }
+      // ── visualViewport: ajustar layout cuando aparece teclado virtual (iOS/Android) ──
+      if (window.visualViewport) {
+        const root = document.documentElement
+        const updateKeyboard = () => {
+          const kbH = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
+          root.style.setProperty('--keyboard-h', kbH + 'px')
+          // Scroll al final de cualquier chat activo
+          if (kbH > 50) {
+            this.$nextTick(() => {
+              for (const id of ['chat-messages','dm-messages','admin-dm-messages']) {
+                const el = document.getElementById(id)
+                if (el) el.scrollTop = el.scrollHeight
+              }
+            })
+          }
+        }
+        window.visualViewport.addEventListener('resize', updateKeyboard)
+        window.visualViewport.addEventListener('scroll', updateKeyboard)
+      }
+
       // Monitorear conectividad
       this.setupConnectivity()
 
