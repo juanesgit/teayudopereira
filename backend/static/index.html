@@ -182,13 +182,13 @@
 
   <!-- FAB PÁNICO — visible solo en el mapa, flota sobre el área Leaflet -->
   <div x-show="page==='map'"
-    style="position:fixed; right:16px; bottom:calc(var(--nav-h) + 140px); z-index:1500; pointer-events:auto">
+    style="position:fixed; right:14px; bottom:calc(var(--nav-h) + 136px); z-index:1500; pointer-events:auto">
     <button @click="panicModal=true"
-      style="width:60px;height:60px;border-radius:50%;background:#dc2626;color:white;border:3px solid white;cursor:pointer;font-size:26px;animation:panic-pulse 1.8s infinite;display:flex;align-items:center;justify-content:center"
+      style="width:64px;height:64px;border-radius:50%;background:#dc2626;color:white;border:none;cursor:pointer;animation:panic-pulse 1.8s infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 4px 16px rgba(220,38,38,.5)"
       title="Botón de pánico — emergencia inmediata">
-      🆘
+      <span style="font-size:22px;line-height:1">🚨</span>
+      <span style="font-size:9px;font-weight:800;letter-spacing:.8px;line-height:1">SOS</span>
     </button>
-    <p style="font-size:9px;font-weight:700;color:#dc2626;text-align:center;margin-top:4px;letter-spacing:.3px">PÁNICO</p>
   </div>
 
   <!-- MODAL PÁNICO -->
