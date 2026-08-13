@@ -3,7 +3,10 @@ Endpoints de administración — solo rol admin.
 """
 from __future__ import annotations
 
+import csv
+import io
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -95,6 +98,36 @@ async def sms_broadcast(
 
     background_tasks.add_task(sms.send_sms, phones, data.message.strip())
     return SmsSendResponse(ok=True, recipients=len(phones), message=f"Broadcast a {len(phones)} número(s) en envío")
+
+
+@router.get("/sms/consent-export")
+async def export_sms_consents(current_user: User = Depends(_require_admin)):
+    """Exporta CSV con todos los usuarios que dieron consentimiento SMS."""
+    from app.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(User).where(User.sms_consent_at != None).order_by(User.sms_consent_at)  # noqa: E711
+        )
+        users = result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Nombre", "Apellido", "Teléfono", "Rol", "Barrio", "Fecha consentimiento"])
+    for u in users:
+        writer.writerow([
+            u.full_name,
+            u.last_name or "",
+            u.phone,
+            u.role.value,
+            u.neighborhood or "",
+            u.sms_consent_at.strftime("%Y-%m-%d %H:%M:%S") if u.sms_consent_at else "",
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=consentimientos_sms.csv"},
+    )
 
 
 @router.get("/sms/balance")

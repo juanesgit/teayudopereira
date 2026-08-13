@@ -34,4 +34,7 @@ class User(Base):
     action_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     action_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     action_radius_km: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sms_consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reset_otp: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)
+    reset_otp_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

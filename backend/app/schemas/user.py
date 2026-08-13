@@ -30,6 +30,7 @@ class UserOut(BaseModel):
     action_lat: Optional[float]
     action_lng: Optional[float]
     action_radius_km: Optional[float]
+    sms_consent_at: Optional[datetime]
     created_at: datetime
 
     model_config = {"from_attributes": True}

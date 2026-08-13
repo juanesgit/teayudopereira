@@ -31,6 +31,9 @@ async def init_db():
             "ALTER TABLE users ADD COLUMN id_number VARCHAR(30)",
             "ALTER TABLE danger_zones ADD COLUMN photo_url VARCHAR(512)",
             "ALTER TABLE danger_zones ADD COLUMN address VARCHAR(300)",
+            "ALTER TABLE users ADD COLUMN sms_consent_at DATETIME",
+            "ALTER TABLE users ADD COLUMN reset_otp VARCHAR(6)",
+            "ALTER TABLE users ADD COLUMN reset_otp_expires DATETIME",
         ]
         for sql in migrations:
             try:
@@ -89,12 +92,13 @@ async def _migrate_role_column():
                     action_lat FLOAT,
                     action_lng FLOAT,
                     action_radius_km FLOAT,
+                    sms_consent_at DATETIME,
                     created_at DATETIME NOT NULL
                 );
                 INSERT INTO users_new SELECT
                     id, full_name, last_name, id_number, phone, email,
                     hashed_password, role, skills, neighborhood, is_active,
-                    action_lat, action_lng, action_radius_km, created_at
+                    action_lat, action_lng, action_radius_km, NULL, created_at
                 FROM users;
                 DROP TABLE users;
                 ALTER TABLE users_new RENAME TO users;

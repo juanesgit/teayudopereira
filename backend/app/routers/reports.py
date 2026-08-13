@@ -23,6 +23,7 @@ async def _notify_volunteers_new_report(report: Report, db: AsyncSession) -> Non
                 User.role.in_([UserRole.volunteer, UserRole.coordinator]),
                 User.is_active == True,  # noqa: E712
                 User.phone != None,  # noqa: E711
+                User.sms_consent_at != None,  # noqa: E711  solo con consentimiento
             )
         )
         volunteers = result.scalars().all()
