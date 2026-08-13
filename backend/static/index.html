@@ -1355,33 +1355,49 @@
           <div class="text-4xl mb-2">✅</div>
           <p class="text-gray-500 font-medium text-sm">Sin reportes pendientes</p>
         </div>
-        <div class="flex flex-col gap-3 pb-4">
+        <div class="flex flex-col gap-2 pb-4">
           <template x-for="r in sortedPendingReports().slice(0,20)" :key="r.id">
-            <div class="bg-white border border-gray-200 rounded-2xl p-4">
-              <div class="flex items-start gap-3">
-                <span class="text-2xl flex-shrink-0" x-text="needEmoji[r.need_type]?.emoji||'📌'"></span>
+            <div class="rounded-xl border-2 overflow-hidden" style="border-color:#fca5a5">
+
+              <!-- Cabecera -->
+              <div class="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                style="background:#fef2f2"
+                @click="panelReportExpanded = panelReportExpanded===r.id ? null : r.id">
+                <span class="text-xl flex-shrink-0" x-text="needEmoji[r.need_type]?.emoji||'📌'"></span>
                 <div class="flex-1 min-w-0">
-                  <p class="font-semibold text-gray-900 text-sm" x-text="needOptions.find(o=>o.value===r.need_type)?.label||r.need_type"></p>
-                  <p class="text-xs text-gray-500 mt-0.5 truncate" x-text="r.address"></p>
-                  <p class="text-xs text-gray-400 mt-0.5" x-text="r.description?.slice(0,80)+'...'"></p>
+                  <p class="font-bold text-gray-900 text-sm leading-tight"
+                    x-text="'#'+r.id+' · '+(needOptions.find(o=>o.value===r.need_type)?.label||r.need_type)"></p>
+                  <p class="text-xs text-gray-500 truncate" x-text="r.address"></p>
                 </div>
-                <div class="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span class="text-xs text-gray-400" x-text="'👥 '+r.people_count"></span>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
                   <span x-show="user?.action_lat" class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                    :style="distKm(r) <= (user?.action_radius_km||5) ? 'background:#dcfce7;color:#166534' : 'background:#f1f5f9;color:#64748b'"
+                    :style="distKm(r)<=(user?.action_radius_km||5)?'background:#dcfce7;color:#166534':'background:#f1f5f9;color:#64748b'"
                     x-text="distKm(r).toFixed(1)+' km'"></span>
+                  <span class="text-xs bg-red-600 text-white font-bold px-2 py-0.5 rounded-full">🆘 Pendiente</span>
+                  <span class="text-gray-400 text-xs" x-text="panelReportExpanded===r.id?'▲':'▼'"></span>
                 </div>
               </div>
-              <div class="flex gap-2 mt-3">
-                <a :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
-                  class="flex-1 text-center text-xs font-semibold bg-gray-100 text-gray-700 rounded-xl py-2.5 no-underline">
-                  🗺️ Mapa
-                </a>
-                <button @click="openAttendModal(r)"
-                  class="flex-1 text-xs font-semibold bg-red-600 text-white rounded-xl py-2.5 border-none cursor-pointer">
-                  🙋 Atender
-                </button>
+
+              <!-- Detalle expandible -->
+              <div x-show="panelReportExpanded===r.id" class="px-3 py-3 bg-white border-t border-red-100">
+                <div class="bg-gray-50 rounded-xl p-3 mb-3 flex flex-col gap-1.5 text-xs">
+                  <p><span class="text-gray-400">Reportado por:</span> <span class="font-semibold" x-text="r.reporter_name||'Anónimo'"></span></p>
+                  <p><span class="text-gray-400">Personas:</span> <span class="font-semibold" x-text="'👥 '+r.people_count"></span></p>
+                  <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
+                  <p><span class="text-gray-400">Fecha:</span> <span x-text="new Date(r.created_at).toLocaleString('es-CO')"></span></p>
+                </div>
+                <div class="flex gap-2">
+                  <a :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
+                    class="flex-1 text-center text-xs font-semibold bg-gray-100 text-gray-700 rounded-xl py-2.5 no-underline">
+                    🗺️ Ver en mapa
+                  </a>
+                  <button @click="openAttendModal(r)"
+                    class="flex-1 text-xs font-bold bg-red-600 text-white rounded-xl py-2.5 border-none cursor-pointer">
+                    🙋 Atender caso
+                  </button>
+                </div>
               </div>
+
             </div>
           </template>
         </div>
@@ -1395,40 +1411,54 @@
           <p class="text-gray-500 font-medium text-sm">No tienes casos activos</p>
           <p class="text-xs text-gray-400 mt-1">Ve a Pendientes para atender un reporte</p>
         </div>
-        <div class="flex flex-col gap-3 pb-4 mt-2">
+        <div class="flex flex-col gap-2 pb-4 mt-2">
           <template x-for="r in reports.filter(r=>r.status==='in_progress'&&r.assigned_to===user?.id)" :key="r.id">
-            <div class="bg-white border-2 border-blue-300 rounded-2xl p-4">
-              <div class="flex items-center gap-2 mb-3">
-                <span class="text-xl" x-text="needEmoji[r.need_type]?.emoji||'📌'"></span>
-                <div class="flex-1">
-                  <p class="font-bold text-gray-900 text-sm" x-text="needOptions.find(o=>o.value===r.need_type)?.label||r.need_type"></p>
-                  <p class="text-xs text-gray-400" x-text="r.address"></p>
+            <div class="rounded-xl border-2 overflow-hidden" style="border-color:#93c5fd">
+
+              <!-- Cabecera -->
+              <div class="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                style="background:#eff6ff"
+                @click="panelReportExpanded = panelReportExpanded===r.id ? null : r.id">
+                <span class="text-xl flex-shrink-0" x-text="needEmoji[r.need_type]?.emoji||'📌'"></span>
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold text-gray-900 text-sm leading-tight"
+                    x-text="'#'+r.id+' · '+(needOptions.find(o=>o.value===r.need_type)?.label||r.need_type)"></p>
+                  <p class="text-xs text-gray-500 truncate" x-text="r.address"></p>
                 </div>
-                <span class="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-1 rounded-full">En atención</span>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <span class="text-xs bg-blue-600 text-white font-bold px-2 py-0.5 rounded-full">🔵 En atención</span>
+                  <span class="text-gray-400 text-xs" x-text="panelReportExpanded===r.id?'▲':'▼'"></span>
+                </div>
               </div>
-              <!-- Contacto -->
-              <div class="bg-gray-50 rounded-xl p-3 mb-3">
-                <p class="text-xs text-gray-400 mb-1">Quien pide ayuda</p>
-                <p class="text-sm font-semibold text-gray-800" x-text="r.reporter_name"></p>
-                <p x-show="r.reporter_phone" class="text-sm text-blue-600 mt-0.5" x-text="r.reporter_phone"></p>
-                <p class="text-xs text-gray-500 mt-1.5" x-text="r.description"></p>
-                <p class="text-xs text-gray-400 mt-1">👥 <span x-text="r.people_count+' persona(s)'"></span></p>
+
+              <!-- Detalle expandible -->
+              <div x-show="panelReportExpanded===r.id" class="px-3 py-3 bg-white border-t border-blue-100">
+                <div class="bg-gray-50 rounded-xl p-3 mb-3 flex flex-col gap-1.5 text-xs">
+                  <p><span class="text-gray-400">Quien pide ayuda:</span> <span class="font-semibold" x-text="r.reporter_name||'Anónimo'"></span></p>
+                  <template x-if="r.reporter_phone">
+                    <p><span class="text-gray-400">Teléfono:</span>
+                      <a :href="'tel:'+r.reporter_phone" class="font-semibold text-blue-600" x-text="r.reporter_phone"></a>
+                    </p>
+                  </template>
+                  <p><span class="text-gray-400">Personas:</span> <span class="font-semibold" x-text="'👥 '+r.people_count"></span></p>
+                  <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
+                </div>
+                <div class="flex gap-2">
+                  <a :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
+                    class="flex-1 text-center text-xs font-semibold bg-gray-100 text-gray-700 rounded-xl py-2.5 no-underline">
+                    🗺️ Mapa
+                  </a>
+                  <a x-show="r.reporter_phone" :href="'tel:'+r.reporter_phone"
+                    class="flex-1 text-center text-xs font-bold bg-blue-600 text-white rounded-xl py-2.5 no-underline">
+                    📞 Llamar
+                  </a>
+                  <button @click="resolveReport(r.id)"
+                    class="flex-1 text-xs font-bold bg-green-600 text-white rounded-xl py-2.5 border-none cursor-pointer">
+                    ✅ Resuelto
+                  </button>
+                </div>
               </div>
-              <!-- Acciones -->
-              <div class="flex gap-2">
-                <a :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
-                  class="flex-1 text-center text-xs font-semibold bg-gray-100 text-gray-700 rounded-xl py-2.5 no-underline">
-                  🗺️ Mapa
-                </a>
-                <a x-show="r.reporter_phone" :href="'tel:'+r.reporter_phone"
-                  class="flex-1 text-center text-xs font-semibold bg-blue-600 text-white rounded-xl py-2.5 no-underline">
-                  📞 Llamar
-                </a>
-                <button @click="resolveReport(r.id)"
-                  class="flex-1 text-xs font-semibold bg-green-600 text-white rounded-xl py-2.5 border-none cursor-pointer">
-                  ✅ Resuelto
-                </button>
-              </div>
+
             </div>
           </template>
         </div>
@@ -2559,6 +2589,7 @@ function app() {
     adminAidPoints: [],
     adminReportFilter: 'all',
     adminReportExpanded: null,
+    panelReportExpanded: null,
 
     dangerForm: { name:'', description:'', danger_level:'', lat:4.8133, lng:-75.6961, radius_meters:100, address:'', photoPreview:null, photoFile:null },
     dangerStep: 'type',
