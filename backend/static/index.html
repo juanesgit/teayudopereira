@@ -1892,8 +1892,11 @@
             <span class="text-xs bg-violet-100 text-violet-700 font-bold rounded-full px-2 py-0.5"
               x-text="adminVolunteers.length+' total'"></span>
           </div>
-          <div x-show="adminVolunteers.length===0" class="text-center py-6 text-gray-400 text-sm">
-            Cargando...
+          <div x-show="adminVolunteersLoading" class="text-center py-6 text-gray-400 text-sm">
+            Cargando usuarios...
+          </div>
+          <div x-show="!adminVolunteersLoading && adminVolunteers.length===0" class="text-center py-6 text-gray-400 text-sm">
+            No hay voluntarios registrados aún.
           </div>
           <div class="flex flex-col gap-2">
             <template x-for="v in adminVolunteers" :key="v.id">
@@ -3025,6 +3028,7 @@ function app() {
     actionZoneMsg: '',
     panelTab: 'pendientes',
     adminVolunteers: [],
+    adminVolunteersLoading: false,
     adminStats: null,
     smsBalance: null,
     sysTab: 'users',
@@ -4266,6 +4270,8 @@ function app() {
         const res = await fetch('/admin/stats', { headers: this.authHeaders() })
         if (res.ok) this.adminStats = await res.json()
       } catch(e) { console.warn(e) }
+      // Precarga el tab activo por defecto (usuarios) sin esperar clic
+      this.loadAdminVolunteers()
     },
 
     async loadSmsBalance() {
@@ -4277,10 +4283,12 @@ function app() {
 
     async loadAdminVolunteers(force = false) {
       if (this.adminVolunteers.length > 0 && !force) return
+      this.adminVolunteersLoading = true
       try {
         const res = await fetch('/admin/volunteers', { headers: this.authHeaders() })
         if (res.ok) this.adminVolunteers = await res.json()
       } catch(e) { console.warn('Error cargando voluntarios', e) }
+      this.adminVolunteersLoading = false
     },
 
     async changeUserRole(userId, newRole) {
