@@ -1148,15 +1148,15 @@
           x-text="volunteers.length"></div>
       </div>
 
-      <!-- Chips de habilidad — grid visible completo -->
-      <div class="flex flex-wrap gap-2">
+      <!-- Chips de habilidad — scroll horizontal -->
+      <div class="hide-scroll flex gap-2" style="overflow-x:auto; padding-bottom:2px">
         <template x-for="s in skillTags" :key="s.v">
           <button @click="skillFilter=s.v; loadVolunteers()"
-            class="flex items-center gap-1.5 rounded-2xl px-3 text-sm font-semibold border-2 transition-all"
-            style="min-height:40px"
+            class="flex-shrink-0 flex items-center gap-1.5 px-3 rounded-full border text-xs font-semibold transition-all"
+            style="min-height:34px"
             :style="skillFilter===s.v
-              ? 'background:#dc2626;color:white;border-color:#dc2626'
-              : 'background:#f9fafb;color:#374151;border-color:#e5e7eb'">
+              ? 'background:#dc2626;color:white;border-color:#dc2626;box-shadow:0 2px 8px rgba(220,38,38,.3)'
+              : 'background:white;color:#374151;border-color:#e5e7eb'">
             <span x-text="s.e"></span>
             <span x-text="s.v||'Todos'"></span>
           </button>
