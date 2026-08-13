@@ -124,3 +124,37 @@ self.addEventListener('sync', event => {
     )
   }
 })
+
+// ── Web Push: mostrar notificación ─────────────────────────────
+self.addEventListener('push', event => {
+  let data = { title: 'Te Ayudo Pereira', body: 'Tienes un mensaje nuevo', url: '/' }
+  try {
+    if (event.data) data = { ...data, ...JSON.parse(event.data.text()) }
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/static/icons/icon-192.png',
+      badge: '/static/icons/icon-192.png',
+      data: { url: data.url },
+      vibrate: [200, 100, 200],
+      requireInteraction: false,
+    })
+  )
+})
+
+// ── Click en notificación: abrir/enfocar la app ────────────────
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  const url = event.notification.data?.url || '/'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
+      // Si ya hay una ventana abierta, enfocarla
+      const existing = cls.find(c => c.url.includes(self.location.origin))
+      if (existing) return existing.focus()
+      // Si no, abrir una nueva
+      return clients.openWindow(url)
+    })
+  )
+})

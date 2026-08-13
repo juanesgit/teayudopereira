@@ -28,6 +28,7 @@ from app.database import AsyncSessionLocal, get_db
 from app.models.chat import ChatMessage
 from app.models.guest_session import GuestSession
 from app.routers.dm import dm_manager, _msg_payload, _persist, _get_history
+from app.routers.push import send_push_to_admins, send_push_to_guest
 
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["GuestChat"])
@@ -147,6 +148,16 @@ async def guest_ws(
                     text=text, is_system=False, is_read=False,
                     created_at=datetime.utcnow(),
                 )
+                # Push a admins si ninguno está en la sala
+                room_conns = dm_manager._rooms.get(room, {})
+                admin_in_room = any(
+                    info["role"] in ("admin", "coordinator")
+                    for info in room_conns.values()
+                )
+                if not admin_in_room:
+                    await send_push_to_admins(
+                        db, f"🆘 Ciudadano: {name}", text[:80], "/"
+                    )
             await dm_manager.broadcast(room, {"type": "message", "data": _msg_payload(msg)})
 
     except WebSocketDisconnect:

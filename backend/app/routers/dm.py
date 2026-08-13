@@ -28,6 +28,7 @@ from app.models.chat import ChatMessage
 from app.models.guest_session import GuestSession
 from app.models.user import User, UserRole
 from app.services.auth import get_current_user
+from app.routers.push import send_push_to_user, send_push_to_admins, send_push_to_guest
 
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["DMs"])
@@ -173,6 +174,32 @@ async def dm_ws(ws: WebSocket, room: str, token: str = Query(...)):
                     text=text, is_system=False, is_read=False,
                     created_at=datetime.utcnow(),
                 )
+                # Push al otro participante si no está conectado al WS
+                room_conns = dm_manager._rooms.get(room, {})
+                if room.startswith("guest_"):
+                    # Admin respondiendo a ciudadano → push al guest
+                    guest_in_room = any(
+                        info["role"] == "victim" for info in room_conns.values()
+                    )
+                    if not guest_in_room:
+                        gs = (await db.execute(
+                            select(GuestSession).where(GuestSession.room == room)
+                        )).scalar_one_or_none()
+                        if gs:
+                            await send_push_to_guest(
+                                db, gs.guest_token, f"💬 Coordinación", text[:80], "/"
+                            )
+                else:
+                    other_connected = any(
+                        info["user_id"] != user_id for info in room_conns.values()
+                    )
+                    if not other_connected:
+                        parts = room.replace("dm_", "").split("_")
+                        other_id = int(parts[0]) if int(parts[1]) == user_id else int(parts[1])
+                        if user_role in ("admin", "coordinator"):
+                            await send_push_to_user(db, other_id, f"💬 {name}", text[:80], "/")
+                        else:
+                            await send_push_to_admins(db, f"💬 {name}", text[:80], "/")
             await dm_manager.broadcast(room, {"type": "message", "data": _msg_payload(msg)})
 
     except WebSocketDisconnect:

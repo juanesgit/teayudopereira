@@ -4126,6 +4126,48 @@ function app() {
       this.dmInput = ''
     },
 
+    // ── Web Push ──────────────────────────────────────────────────────────
+    async setupPush(guestToken = null) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      try {
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') return
+
+        const reg = await navigator.serviceWorker.ready
+        // Obtener clave pública VAPID
+        const res = await fetch('/push/vapid-public-key')
+        if (!res.ok) return
+        const { public_key } = await res.json()
+
+        // Convertir base64url a Uint8Array
+        const key = public_key.replace(/-/g,'+').replace(/_/g,'/')
+        const raw = Uint8Array.from(atob(key + '=='.slice((key.length+3)%4)), c => c.charCodeAt(0))
+
+        const subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: raw,
+        })
+
+        const subJson = subscription.toJSON()
+        if (guestToken) {
+          // Guest anónimo — endpoint sin auth
+          await fetch('/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription: subJson, guest_token: guestToken }),
+          })
+        } else if (this.token) {
+          // Usuario autenticado
+          await fetch('/push/subscribe/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
+            body: JSON.stringify({ subscription: subJson }),
+          })
+        }
+      } catch (e) { console.warn('Push setup error:', e) }
+    },
+    // ─────────────────────────────────────────────────────────────────────
+
     // ── Guest chat (ciudadano anónimo) ────────────────────────────────────
     async openGuestChat(reportId = null) {
       // Si ya hay sesión guardada, restaurar
@@ -4166,6 +4208,7 @@ function app() {
         this.guestNameInput = ''
         this._connectGuestWs()
         this.guestChatOpen = true
+        setTimeout(() => this.setupPush(this.guestSession.guest_token), 1000)
       } catch {}
     },
 
@@ -4673,6 +4716,7 @@ function app() {
         if (['volunteer','coordinator','victim'].includes(this.user.role)) {
           setTimeout(() => this.openDm(true), 1500)
         }
+        setTimeout(() => this.setupPush(), 2000)
       } catch { this.loginMsg = 'Error de conexión'; this.loginError = true }
       finally { this.loginLoading = false }
     },
@@ -4743,6 +4787,7 @@ function app() {
           this.$nextTick(() => this.initActionMap())
           this.connectChat()
           setTimeout(() => this.openDm(true), 1500)
+          setTimeout(() => this.setupPush(), 2000)
         }
       } catch { this.registerMsg='Error de conexión'; this.registerError=true }
     },
@@ -5286,6 +5331,7 @@ function app() {
           if (['volunteer','coordinator','victim'].includes(this.user.role)) {
             setTimeout(() => this.openDm(true), 2000)
           }
+          setTimeout(() => this.setupPush(), 3000)
         } else {
           this.token=null; localStorage.removeItem('pa_token')
         }

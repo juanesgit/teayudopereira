@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     ADMIN_PHONE: str = ""
     ADMIN_PASSWORD: str = ""
     ADMIN_NAME: str = "Administrador"
+    # Web Push VAPID (generadas con cryptography)
+    VAPID_PUBLIC_KEY: str = "BCPzvN3YgffxPj81-msoINbKefqCYaTKsVTZ1LZv7zL6reIVtlao6P1g2G28OvGK6kAYzuBv-TkKHphNBVN5zTU"
+    VAPID_PRIVATE_KEY: str = "qiSlt8r-QBY295iq3SOdJY61KPhgDjNl5NMRccW6oYM"
+    VAPID_CLAIMS_EMAIL: str = "admin@teayudopereira.co"
 
     class Config:
         env_file = ".env"
