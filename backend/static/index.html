@@ -2443,11 +2443,12 @@
 
       <!-- Tabs internos -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
-        <div class="flex border-b border-gray-100">
-          <template x-for="t in [{id:'users',l:'👥 Usuarios'},{id:'reports',l:'🆘 Reportes'},{id:'centers',l:'🤝 Centros'},{id:'zones',l:'⚠️ Zonas'},{id:'avisos',l:'📢 Avisos'},{id:'sms',l:'📱 SMS'}]" :key="t.id">
+        <div class="hide-scroll border-b border-gray-100" style="display:flex;overflow-x:auto;">
+          <template x-for="t in [{id:'users',e:'👥',l:'Usuarios'},{id:'reports',e:'🆘',l:'Reportes'},{id:'centers',e:'🤝',l:'Centros'},{id:'zones',e:'⚠️',l:'Zonas'},{id:'avisos',e:'📢',l:'Avisos'},{id:'sms',e:'📱',l:'SMS'}]" :key="t.id">
             <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones();"
-              class="flex-1 py-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent"
+              class="py-3 px-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex-shrink-0 flex flex-col items-center gap-0.5"
               :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
+              <span x-text="t.e" style="font-size:16px;line-height:1"></span>
               <span x-text="t.l"></span>
             </button>
           </template>
