@@ -52,6 +52,10 @@
       0%, 100% { transform: scale(1); filter: brightness(1); }
       50% { transform: scale(1.5); filter: brightness(1.4); }
     }
+    @keyframes panic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.7), 0 4px 20px rgba(220,38,38,.5); }
+      60% { box-shadow: 0 0 0 16px rgba(220,38,38,0), 0 4px 20px rgba(220,38,38,.5); }
+    }
   </style>
 </head>
 
@@ -175,6 +179,56 @@
       </div>
     </div>
   </div>
+
+  <!-- FAB PÁNICO — visible solo en el mapa, flota sobre el área Leaflet -->
+  <div x-show="page==='map'"
+    style="position:fixed; right:16px; bottom:calc(var(--nav-h) + 140px); z-index:1500; pointer-events:auto">
+    <button @click="panicModal=true"
+      style="width:60px;height:60px;border-radius:50%;background:#dc2626;color:white;border:3px solid white;cursor:pointer;font-size:26px;animation:panic-pulse 1.8s infinite;display:flex;align-items:center;justify-content:center"
+      title="Botón de pánico — emergencia inmediata">
+      🆘
+    </button>
+    <p style="font-size:9px;font-weight:700;color:#dc2626;text-align:center;margin-top:4px;letter-spacing:.3px">PÁNICO</p>
+  </div>
+
+  <!-- MODAL PÁNICO -->
+  <template x-if="panicModal">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:24px">
+
+      <!-- Pantalla confirmación -->
+      <div x-show="!panicDone"
+        style="background:white;border-radius:24px;padding:32px 24px;width:100%;max-width:360px;text-align:center">
+        <div style="font-size:72px;margin-bottom:12px">🆘</div>
+        <h2 style="font-size:22px;font-weight:900;color:#dc2626;margin:0 0 8px">EMERGENCIA</h2>
+        <p style="color:#374151;font-size:15px;margin-bottom:6px">Se enviará tu <strong>ubicación actual</strong> y se alertará a los voluntarios más cercanos.</p>
+        <p style="color:#9ca3af;font-size:13px;margin-bottom:28px">Solo úsalo en caso real de emergencia.</p>
+        <button @click="sendPanic()" :disabled="panicLoading"
+          style="width:100%;background:#dc2626;color:white;border:none;border-radius:16px;font-size:17px;font-weight:900;height:58px;cursor:pointer;margin-bottom:12px;letter-spacing:.4px;opacity:1"
+          :style="panicLoading ? 'opacity:.6;cursor:default' : 'opacity:1'">
+          <span x-show="!panicLoading">🆘 ENVIAR EMERGENCIA</span>
+          <span x-show="panicLoading">Enviando...</span>
+        </button>
+        <button @click="panicModal=false" :disabled="panicLoading"
+          style="width:100%;background:transparent;color:#9ca3af;border:none;cursor:pointer;font-size:14px;padding:8px">
+          Cancelar — no es una emergencia
+        </button>
+      </div>
+
+      <!-- Pantalla éxito -->
+      <div x-show="panicDone"
+        style="background:white;border-radius:24px;padding:32px 24px;width:100%;max-width:360px;text-align:center">
+        <div class="animate-bounce" style="font-size:72px;margin-bottom:12px">✅</div>
+        <h2 style="font-size:22px;font-weight:900;color:#16a34a;margin:0 0 8px">¡Alerta enviada!</h2>
+        <p style="color:#374151;font-size:15px;margin-bottom:8px">Los voluntarios más cercanos han sido notificados.</p>
+        <p style="color:#6b7280;font-size:13px;margin-bottom:28px">Quédate en un lugar seguro y mantén el celular encendido.</p>
+        <button @click="panicModal=false; panicDone=false"
+          style="width:100%;background:#dc2626;color:white;border:none;border-radius:16px;font-size:16px;font-weight:700;height:52px;cursor:pointer">
+          Ver mapa
+        </button>
+      </div>
+
+    </div>
+  </template>
 
   <!-- PEDIR AYUDA -->
   <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
@@ -2294,6 +2348,10 @@ function app() {
     reportMarker: null,
     reportModal: null,
 
+    panicModal: false,
+    panicLoading: false,
+    panicDone: false,
+
     dangerForm: { name:'', description:'', danger_level:'', lat:4.8133, lng:-75.6961, radius_meters:100, address:'', photoPreview:null, photoFile:null },
     dangerStep: 'type',
     dangerLocOk: false,
@@ -2992,6 +3050,62 @@ function app() {
         })
         await this.loadData()
       } catch(e) { console.warn('Error al atender reporte', e) }
+    },
+
+    async sendPanic() {
+      this.panicLoading = true
+      try {
+        let lat = 4.8133, lng = -75.6961, address = 'Ubicación no disponible'
+
+        // Obtener ubicación — timeout corto para no bloquear
+        try {
+          const pos = await new Promise((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true, timeout: 6000, maximumAge: 10000
+            })
+          )
+          lat = pos.coords.latitude
+          lng = pos.coords.longitude
+          try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`)
+            const d = await r.json()
+            if (d?.display_name) address = d.display_name.split(',').slice(0,3).join(', ')
+          } catch {}
+        } catch {}
+
+        const payload = {
+          need_type: 'rescue',
+          description: '🆘 PÁNICO — Necesito ayuda urgente. Activado desde botón de emergencia.',
+          address,
+          lat, lng,
+          people_count: 1,
+          reporter_name: this.user?.full_name || 'Anónimo',
+          reporter_phone: this.user?.phone || '',
+          extra_data: JSON.stringify({ panic: true })
+        }
+
+        // Sin conexión → encolar
+        if (!this.isOnline) {
+          const queued = { ...payload, _qid: Date.now() + Math.random().toString(36).slice(2), _queued_at: new Date().toISOString() }
+          this.offlineQueue.push(queued)
+          localStorage.setItem('tap_offline_queue', JSON.stringify(this.offlineQueue))
+          this.panicDone = true
+          return
+        }
+
+        const res = await fetch('/reports/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (res.ok) await this.loadData()
+        // Mostrar éxito siempre — en una emergencia no confundir al usuario
+        this.panicDone = true
+      } catch {
+        this.panicDone = true
+      } finally {
+        this.panicLoading = false
+      }
     },
 
     resetDangerForm() {

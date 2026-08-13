@@ -11,7 +11,8 @@ class DangerZoneCreate(BaseModel):
     danger_level: DangerLevel
     lat: float
     lng: float
-    radius_meters: int = 200
+    radius_meters: int = 100
+    address: Optional[str] = None
     photo_url: Optional[str] = None
 
 
@@ -30,6 +31,7 @@ class DangerZoneOut(BaseModel):
     lat: float
     lng: float
     radius_meters: int
+    address: Optional[str] = None
     photo_url: Optional[str] = None
     is_active: bool
     created_at: datetime

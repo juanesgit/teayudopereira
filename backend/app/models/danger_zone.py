@@ -25,7 +25,8 @@ class DangerZone(Base):
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
     # Radio en metros para dibujar el círculo en el mapa
-    radius_meters: Mapped[int] = mapped_column(default=200)
+    radius_meters: Mapped[int] = mapped_column(default=100)
+    address: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     photo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
