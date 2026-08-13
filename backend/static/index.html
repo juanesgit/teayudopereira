@@ -129,8 +129,8 @@
 
   <!-- PÁGINAS -->
 
-  <!-- MAPA -->
-  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
+  <!-- MAPA — position:fixed para evitar desbordamiento por 100vh en móvil -->
+  <div x-show="page==='map'" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);display:flex;flex-direction:column;background:white;z-index:1;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <!-- Emergencias -->
@@ -185,8 +185,8 @@
       <span class="text-xs opacity-70">↑</span>
     </div>
 
-    <!-- Mapa Leaflet: total - chips(50) - botón(80) - leyenda(36) -->
-    <div id="map" style="height:calc(100vh - 56px - var(--nav-h) - 50px - 80px - 36px); flex-shrink:0;"></div>
+    <!-- Mapa Leaflet: flex:1 llena el espacio entre chips, botón y leyenda -->
+    <div id="map" style="flex:1; min-height:0;"></div>
 
     <!-- Botón SOS -->
     <div class="bg-white px-4 py-3 flex-shrink-0">
