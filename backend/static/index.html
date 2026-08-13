@@ -3599,7 +3599,7 @@ function app() {
         })
       }
       // ── Teclado virtual: ajuste directo de altura (iOS Safari + Android) ──
-      const _applyKeyboardLayout = () => {
+      window._applyKeyboardLayout = () => {
         const vvh = window.visualViewport ? window.visualViewport.height : window.innerHeight
         const kbH = Math.max(0, window.innerHeight - vvh)
         const navEl = document.getElementById('bottom-nav')
