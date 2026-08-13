@@ -101,7 +101,7 @@
 
   <!-- NAVBAR -->
   <header class="bg-red-600 text-white px-4 flex items-center justify-between h-14 shadow-md sticky top-0 z-40">
-    <button @click="page='map'" class="font-bold text-lg flex items-center gap-2 bg-transparent border-none text-white cursor-pointer">
+    <button @click="navigateTo('map')" class="font-bold text-lg flex items-center gap-2 bg-transparent border-none text-white cursor-pointer">
       🚨 Te Ayudo Pereira
     </button>
     <div class="flex items-center gap-2">
@@ -129,8 +129,8 @@
 
   <!-- PÁGINAS -->
 
-  <!-- MAPA -->
-  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
+  <!-- MAPA — siempre en el DOM para que Leaflet nunca pierda dimensiones -->
+  <div style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <!-- Emergencias -->
@@ -426,7 +426,7 @@
   </template>
 
   <!-- PEDIR AYUDA -->
-  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+  <div x-show="page==='report'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER 4 pasos -->
@@ -1102,7 +1102,7 @@
 
         <p class="text-xs text-gray-400 mb-6">Número de reporte: <span class="font-mono font-semibold" x-text="reportId || '—'"></span></p>
 
-        <button type="button" @click="page='map'; reportStep='location'"
+        <button type="button" @click="navigateTo('map'); reportStep='location'"
           class="w-full bg-red-600 text-white rounded-xl font-bold text-base"
           style="min-height:52px">
           Ver mapa en tiempo real
@@ -1118,7 +1118,7 @@
   </div>
 
   <!-- VOLUNTARIOS -->
-  <div x-show="page==='volunteers'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column">
+  <div x-show="page==='volunteers'" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white;display:flex;flex-direction:column">
 
     <!-- Header fijo con contador y búsqueda -->
     <div class="bg-white border-b border-gray-100 px-4 pt-4 pb-3 flex-shrink-0">
@@ -1204,7 +1204,7 @@
   </div>
 
   <!-- ACCESO VOLUNTARIO (login + registro en una sola página) -->
-  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+  <div x-show="page==='login'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
     <div class="max-w-sm mx-auto px-4 py-6">
 
       <!-- Hero -->
@@ -1588,7 +1588,7 @@
   </div>
 
   <!-- DASHBOARD VOLUNTARIO -->
-  <div x-show="page==='panel'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
+  <div x-show="page==='panel'" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white;display:flex;flex-direction:column;">
 
     <!-- Header fijo -->
     <div class="bg-red-600 text-white px-4 pt-4 pb-4 flex-shrink-0">
@@ -1962,7 +1962,7 @@
   </div>
 
   <!-- REPORTAR ZONA DE PELIGRO -->
-  <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+  <div x-show="page==='danger'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER -->
@@ -2007,7 +2007,7 @@
         <button @click="dangerStep='location'" :disabled="!dangerForm.name"
           class="w-full bg-orange-600 text-white rounded-2xl font-bold text-base disabled:opacity-40 border-none cursor-pointer"
           style="min-height:52px">Continuar → Marcar ubicación</button>
-        <button @click="page='map'" class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">✕ Cancelar</button>
+        <button @click="navigateTo('map')" class="w-full mt-2 text-sm text-gray-400 bg-transparent border-none cursor-pointer py-2">✕ Cancelar</button>
       </div>
 
       <!-- PASO 2: UBICACIÓN -->
@@ -2221,7 +2221,7 @@
           </ul>
         </div>
 
-        <button @click="page='map'; resetDangerForm()"
+        <button @click="navigateTo('map'); resetDangerForm()"
           class="w-full bg-orange-600 text-white rounded-2xl font-bold text-base border-none cursor-pointer mb-3"
           style="min-height:52px">Ver mapa en tiempo real</button>
         <button @click="resetDangerForm()"
@@ -2382,7 +2382,7 @@
   <!-- ══════════════════════════════════════════════
        PANEL ADMIN DEL SISTEMA (solo rol admin)
   ══════════════════════════════════════════════ -->
-  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="height:calc(100vh - var(--nav-h))">
+  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
     <div class="max-w-2xl mx-auto px-4 py-5">
 
       <!-- Header -->
@@ -3403,7 +3403,15 @@ function app() {
     navigateTo(id) {
       this.page = id
       if (id === 'map') {
-        this.$nextTick(() => { if (this.map) this.map.invalidateSize(); else this.initMap() })
+        // El mapa siempre está en el DOM (nunca display:none), así que
+        // solo necesitamos renderMarkers para refrescar los puntos.
+        this.$nextTick(() => {
+          if (this.map) {
+            this.renderMarkers()
+          } else {
+            this.initMap()
+          }
+        })
       }
       if (id === 'volunteers') this.loadVolunteers()
       if (id === 'report') this.reportStep = 'location'
