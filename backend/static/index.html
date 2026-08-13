@@ -60,6 +60,40 @@
       50%  { box-shadow: 0 0 0 14px rgba(220,38,38,0), 0 4px 20px rgba(220,38,38,.5); transform: scale(1.06); }
       100% { box-shadow: 0 0 0 0px rgba(220,38,38,.8), 0 4px 20px rgba(220,38,38,.5); transform: scale(1); }
     }
+
+    /* ── Tooltips de marcadores ── */
+    .tap-tooltip {
+      background: rgba(17,24,39,.92) !important;
+      border: none !important;
+      border-radius: 10px !important;
+      color: white !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      padding: 5px 10px !important;
+      white-space: nowrap !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,.25) !important;
+      pointer-events: none !important;
+    }
+    .tap-tooltip::before { display: none !important; }
+
+    /* ── Popups de marcadores ── */
+    .tap-popup .leaflet-popup-content-wrapper {
+      border-radius: 14px !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18) !important;
+      border: none !important;
+      min-width: 200px !important;
+    }
+    .tap-popup .leaflet-popup-content { margin: 0 !important; }
+    .tap-popup .leaflet-popup-tip-container { display: none !important; }
+    .tap-popup .leaflet-popup-close-button {
+      color: white !important;
+      top: 8px !important;
+      right: 10px !important;
+      font-size: 18px !important;
+      font-weight: 700 !important;
+    }
   </style>
 </head>
 
@@ -3221,61 +3255,149 @@ function app() {
 
     renderMarkers() {
       if (!this.map) return
-      // Limpiar
       this.markers.forEach(m => this.map.removeLayer(m))
       this.markers = []
 
       const icon = (emoji, color) => L.divIcon({
-        html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3)">${emoji}</div>`,
-        className: '', iconSize:[32,32], iconAnchor:[16,16]
+        html: `<div style="background:${color};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.35);cursor:pointer">${emoji}</div>`,
+        className: '', iconSize:[36,36], iconAnchor:[18,18]
       })
 
+      const tooltip = (text) => ({ className:'tap-tooltip', direction:'top', offset:[0,-20] })
+      const popupOpts = { className:'tap-popup', maxWidth:260, offset:[0,-4] }
+
+      // ── EMERGENCIAS ──────────────────────────────────────────────
       if (this.filters.reports) {
         this.reports.filter(r => r.status !== 'resolved').forEach(r => {
           const inProgress = r.status === 'in_progress'
           const { emoji } = this.needEmoji[r.need_type] || { emoji:'📌' }
           const color = inProgress ? '#94a3b8' : (this.needEmoji[r.need_type]?.color || '#ef4444')
           const label = this.needOptions.find(o => o.value === r.need_type)?.label || r.need_type
-          const badge = inProgress ? '<br><small style="color:#64748b">🔵 En atención</small>' : ''
+          const statusBadge = inProgress
+            ? `<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">🔵 En atención</span>`
+            : `<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">🔴 Pendiente</span>`
+          const ago = r.created_at ? this._timeAgo(r.created_at) : ''
+
+          const popupHtml = `
+            <div>
+              <div style="background:${color};padding:10px 14px;display:flex;align-items:center;gap:8px">
+                <span style="font-size:22px">${emoji}</span>
+                <div>
+                  <div style="color:white;font-size:11px;font-weight:600;opacity:.8;text-transform:uppercase;letter-spacing:.5px">🆘 Emergencia</div>
+                  <div style="color:white;font-size:14px;font-weight:800;line-height:1.2">${label}</div>
+                </div>
+              </div>
+              <div style="padding:12px 14px">
+                <div style="margin-bottom:8px">${statusBadge}</div>
+                <p style="font-size:13px;color:#374151;margin:0 0 8px;line-height:1.4">${r.description}</p>
+                <p style="font-size:12px;color:#6b7280;margin:0 0 4px">📍 ${r.address}</p>
+                ${ago ? `<p style="font-size:11px;color:#9ca3af;margin:0">🕐 ${ago}</p>` : ''}
+              </div>
+            </div>`
+
           const m = L.marker([r.lat, r.lng], { icon: icon(emoji, color) })
-            .bindPopup(`<b>${emoji} ${label}</b><br>${r.description}<br><small>📍 ${r.address}</small>${badge}`)
+            .bindTooltip(`🆘 ${label}`, tooltip())
+            .bindPopup(popupHtml, popupOpts)
           m.addTo(this.map)
-          // Animar marcadores nuevos
+
           if (this._newMarkerIds?.has(r.id)) {
             const el = m.getElement()
-            if (el) {
-              el.style.animation = 'flash-marker 0.5s ease-in-out 5'
-              el.style.zIndex = '1000'
-            }
+            if (el) { el.style.animation = 'flash-marker 0.5s ease-in-out 5'; el.style.zIndex = '1000' }
           }
           this.markers.push(m)
         })
       }
 
+      // ── PUNTOS DE AYUDA ──────────────────────────────────────────
       if (this.filters.aidPoints) {
-        const colors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280', veterinary:'#ec4899' }
-        const emojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️', veterinary:'🐾' }
+        const aidColors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280', veterinary:'#ec4899' }
+        const aidEmojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️', veterinary:'🐾' }
+        const aidLabels = { shelter:'Albergue', food:'Alimentos', medical:'Médico', water:'Agua', supplies:'Suministros', information:'Información', veterinary:'Veterinario' }
+
         this.aidPoints.forEach(a => {
-          const m = L.marker([a.lat, a.lng], { icon: icon(emojis[a.aid_type]||'🤝', colors[a.aid_type]||'#3b82f6') })
-            .bindPopup(`<b>${a.name}</b><br>${a.description||''}<br><small>${a.address}</small>`)
+          const e = aidEmojis[a.aid_type] || '🤝'
+          const c = aidColors[a.aid_type] || '#3b82f6'
+          const lbl = aidLabels[a.aid_type] || a.aid_type
+
+          const popupHtml = `
+            <div>
+              <div style="background:${c};padding:10px 14px;display:flex;align-items:center;gap:8px">
+                <span style="font-size:22px">${e}</span>
+                <div>
+                  <div style="color:white;font-size:11px;font-weight:600;opacity:.8;text-transform:uppercase;letter-spacing:.5px">🤝 Punto de ayuda</div>
+                  <div style="color:white;font-size:14px;font-weight:800;line-height:1.2">${a.name}</div>
+                </div>
+              </div>
+              <div style="padding:12px 14px">
+                <span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${e} ${lbl}</span>
+                ${a.description ? `<p style="font-size:13px;color:#374151;margin:8px 0 6px;line-height:1.4">${a.description}</p>` : '<div style="margin-bottom:6px"></div>'}
+                <p style="font-size:12px;color:#6b7280;margin:0">📍 ${a.address}</p>
+                ${a.contact_phone ? `<p style="font-size:12px;color:#059669;margin:4px 0 0;font-weight:600">📞 ${a.contact_phone}</p>` : ''}
+              </div>
+            </div>`
+
+          const m = L.marker([a.lat, a.lng], { icon: icon(e, c) })
+            .bindTooltip(`${e} ${lbl} · ${a.name}`, tooltip())
+            .bindPopup(popupHtml, popupOpts)
           m.addTo(this.map)
           this.markers.push(m)
         })
       }
 
+      // ── ZONAS DE PELIGRO ─────────────────────────────────────────
       if (this.filters.dangerZones) {
-        const lvlColor = { low:'#fbbf24', medium:'#f97316', high:'#ef4444', critical:'#7f1d1d' }
+        const lvlColor  = { low:'#fbbf24', medium:'#f97316', high:'#ef4444', critical:'#7f1d1d' }
+        const lvlLabel  = { low:'⚠️ Precaución', medium:'🟠 Peligro moderado', high:'🔴 Peligro alto', critical:'🚨 Evacuación inmediata' }
+
         this.dangerZones.forEach(z => {
-          const c = L.circle([z.lat, z.lng], {
+          const c = lvlColor[z.danger_level] || '#ef4444'
+          const lbl = lvlLabel[z.danger_level] || '⚠️ Zona peligrosa'
+
+          const popupHtml = `
+            <div>
+              <div style="background:${c};padding:10px 14px;display:flex;align-items:center;gap:8px">
+                <span style="font-size:22px">⚠️</span>
+                <div>
+                  <div style="color:white;font-size:11px;font-weight:600;opacity:.85;text-transform:uppercase;letter-spacing:.5px">Zona de peligro</div>
+                  <div style="color:white;font-size:14px;font-weight:800;line-height:1.2">${z.name}</div>
+                </div>
+              </div>
+              <div style="padding:12px 14px">
+                <span style="background:#fff7ed;color:#9a3412;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${lbl}</span>
+                ${z.description ? `<p style="font-size:13px;color:#374151;margin:8px 0 6px;line-height:1.4">${z.description}</p>` : '<div style="margin-bottom:6px"></div>'}
+                ${z.address ? `<p style="font-size:12px;color:#6b7280;margin:0">📍 ${z.address}</p>` : ''}
+              </div>
+            </div>`
+
+          // Marcador central + círculo de área
+          const centerIcon = L.divIcon({
+            html: `<div style="background:${c};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.35);cursor:pointer">⚠️</div>`,
+            className:'', iconSize:[32,32], iconAnchor:[16,16]
+          })
+          const pin = L.marker([z.lat, z.lng], { icon: centerIcon })
+            .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tooltip())
+            .bindPopup(popupHtml, popupOpts)
+          pin.addTo(this.map)
+          this.markers.push(pin)
+
+          const circle = L.circle([z.lat, z.lng], {
             radius: z.radius_meters,
-            color: lvlColor[z.danger_level]||'#ef4444',
-            fillColor: lvlColor[z.danger_level]||'#ef4444',
-            fillOpacity: 0.2, weight: 2
-          }).bindPopup(`<b>⚠️ ${z.name}</b><br>${z.description}${z.address ? `<br><small>📍 ${z.address}</small>` : ''}`)
-          c.addTo(this.map)
-          this.markers.push(c)
+            color: c, fillColor: c,
+            fillOpacity: 0.15, weight: 2, dashArray: '6 4'
+          }).bindPopup(popupHtml, popupOpts)
+          circle.addTo(this.map)
+          this.markers.push(circle)
         })
       }
+    },
+
+    _timeAgo(isoStr) {
+      const diff = Math.floor((Date.now() - new Date(isoStr)) / 60000)
+      if (diff < 1) return 'Hace un momento'
+      if (diff < 60) return `Hace ${diff} min`
+      const h = Math.floor(diff / 60)
+      if (h < 24) return `Hace ${h}h`
+      return `Hace ${Math.floor(h/24)}d`
     },
 
     navigateTo(id) {
