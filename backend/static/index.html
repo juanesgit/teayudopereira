@@ -2533,8 +2533,8 @@
               class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:border-gray-400"
               rows="4" maxlength="160"></textarea>
           </div>
-          <div class="flex justify-between mb-4">
-            <span class="text-xs text-gray-400">Recomendado: máx 160 caracteres (1 SMS)</span>
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-xs text-gray-400">1 SMS · máx 160 caracteres</span>
             <span class="text-xs font-semibold"
               :style="(adminBroadcast.message||'').length>140 ? 'color:#dc2626' : 'color:#6b7280'"
               x-text="(adminBroadcast.message||'').length+'/160'"></span>
