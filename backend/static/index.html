@@ -2994,14 +2994,14 @@
           rows="1"
           maxlength="500"
           class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"
-          style="resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:auto"
+          style="resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden"
           :disabled="!chatConnected"
         ></textarea>
         <button
           @click="sendChatMessage()"
           :disabled="!chatInput.trim() || !chatConnected"
           class="flex-shrink-0 rounded-xl border-2 flex items-center justify-center transition-all"
-          style="width:44px;height:44px"
+          style="width:44px;align-self:stretch"
           :class="chatInput.trim() && chatConnected ? 'bg-red-600 border-red-600' : 'bg-gray-100 border-gray-200'"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
