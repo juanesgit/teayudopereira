@@ -1137,6 +1137,13 @@
 
         <p class="text-xs text-gray-400 mb-6">Número de reporte: <span class="font-mono font-semibold" x-text="reportId || '—'"></span></p>
 
+        <!-- Botón chat con coordinación -->
+        <button type="button" @click="openGuestChat(reportId)"
+          class="w-full text-white rounded-xl font-bold text-base mb-3 flex items-center justify-center gap-2"
+          style="min-height:52px;background:linear-gradient(135deg,#0369a1,#0284c7)">
+          💬 Chatear con coordinación
+        </button>
+
         <button type="button" @click="navigateTo('map'); reportStep='location'"
           class="w-full bg-red-600 text-white rounded-xl font-bold text-base"
           style="min-height:52px">
@@ -2082,6 +2089,103 @@
       </div>
     </div>
   </div><!-- /vol-dm-overlay -->
+
+  <!-- GUEST CHAT — ciudadano anónimo ↔ coordinación (overlay) -->
+  <div x-show="guestChatOpen" class="chat-overlay" style="z-index:300">
+
+    <!-- Header -->
+    <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
+      <button @click="guestChatOpen=false" style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;">
+        ← Volver
+      </button>
+      <div>
+        <p class="font-bold" style="font-size:15px">💬 Canal de Ayuda</p>
+        <p class="text-xs mt-0.5" style="opacity:.8">
+          <span :style="guestWsConnected ? 'color:#86efac' : 'color:#fca5a5'">●</span>
+          <span x-text="guestWsConnected ? 'Conectado con coordinación' : 'Conectando...'"></span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Mensajes -->
+    <div id="victim-dm-messages"
+         style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;">
+      <template x-if="guestMessages.length===0">
+        <div class="text-center text-gray-400 text-sm mt-8">
+          <p style="font-size:32px;margin-bottom:8px">💬</p>
+          <p class="font-semibold text-gray-600">¡Hola, <span x-text="guestSession?.guest_name || ''"></span>!</p>
+          <p class="text-xs text-gray-400 mt-1">Escribe aquí para comunicarte con el equipo de coordinación.</p>
+        </div>
+      </template>
+      <template x-for="(msg, idx) in guestMessages" :key="msg.id ?? ('gm-'+idx)">
+        <div>
+          <template x-if="msg.is_system">
+            <div class="text-center text-xs text-gray-400 py-1" x-text="msg.text"></div>
+          </template>
+          <template x-if="!msg.is_system && msg.sender_role==='victim'">
+            <div class="flex flex-col items-end gap-0.5">
+              <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
+          </template>
+          <template x-if="!msg.is_system && msg.sender_role!=='victim'">
+            <div class="flex flex-col items-start gap-0.5">
+              <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <!-- Input -->
+    <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 16px 14px;flex-shrink:0;">
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        <textarea x-model="guestInput"
+          @keydown.enter.prevent="if(!$event.shiftKey){ sendGuestMessage() }"
+          @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
+          @focus="setTimeout(_applyKeyboardLayout, 350)"
+          placeholder="Escribe un mensaje..."
+          rows="1" maxlength="500"
+          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+          style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
+          :disabled="!guestWsConnected"></textarea>
+        <button @click="sendGuestMessage()" :disabled="!guestInput.trim() || !guestWsConnected"
+          style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
+          :style="{background: guestInput.trim() && guestWsConnected ? '#0369a1' : '#d1d5db'}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div><!-- /guest-chat-overlay -->
+
+  <!-- MODAL: pedir nombre al ciudadano anónimo -->
+  <div x-show="guestNameModal" style="position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px">
+    <div style="background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:360px">
+      <p style="font-size:28px;text-align:center;margin-bottom:8px">💬</p>
+      <h3 class="text-lg font-bold text-gray-900 text-center mb-1">¿Cómo te llamas?</h3>
+      <p class="text-sm text-gray-500 text-center mb-5">Solo necesitamos tu nombre para identificar tu conversación.</p>
+      <input x-model="guestNameInput"
+        @keydown.enter="confirmGuestName()"
+        placeholder="Tu nombre"
+        maxlength="80"
+        class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 mb-4"
+        style="font-family:inherit">
+      <button @click="confirmGuestName()" :disabled="!guestNameInput.trim()"
+        class="w-full text-white font-bold rounded-xl border-none cursor-pointer disabled:opacity-40"
+        style="min-height:48px;font-size:15px;background:#0369a1">
+        Iniciar chat
+      </button>
+      <button @click="guestNameModal=false; guestNameInput=''"
+        class="w-full mt-2 font-medium text-gray-500 bg-transparent border-none cursor-pointer"
+        style="min-height:40px;font-size:14px">
+        Cancelar
+      </button>
+    </div>
+  </div>
 
   <!-- REPORTAR ZONA DE PELIGRO -->
   <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
@@ -3034,7 +3138,12 @@
                   :style="room.unread > 0 ? 'border-color:#0369a1;background:#f0f9ff' : ''">
                   <div class="flex items-center justify-between gap-2">
                     <div class="min-w-0">
-                      <p class="font-semibold text-gray-900 text-sm" x-text="room.other_name"></p>
+                      <div class="flex items-center gap-1.5">
+                        <p class="font-semibold text-gray-900 text-sm" x-text="room.other_name"></p>
+                        <span class="text-xs font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0"
+                          :style="room.other_role==='victim' ? 'background:#fee2e2;color:#dc2626' : room.other_role==='coordinator' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'"
+                          x-text="room.other_role==='victim' ? '🆘 Ciudadano' : room.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
+                      </div>
                       <p class="text-xs text-gray-400 truncate mt-0.5"
                          x-text="room.last_message ? room.last_message.text : 'Sin mensajes'"></p>
                     </div>
@@ -3067,7 +3176,12 @@
         ← Volver
       </button>
       <div>
-        <p class="font-bold text-gray-900" style="font-size:15px" x-text="adminActiveDm?.other_name"></p>
+        <div class="flex items-center gap-1.5">
+          <p class="font-bold text-gray-900" style="font-size:15px" x-text="adminActiveDm?.other_name"></p>
+          <span class="text-xs font-semibold rounded-full px-1.5 py-0.5"
+            :style="adminActiveDm?.other_role==='victim' ? 'background:#fee2e2;color:#dc2626' : adminActiveDm?.other_role==='coordinator' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'"
+            x-text="adminActiveDm?.other_role==='victim' ? '🆘 Ciudadano' : adminActiveDm?.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
+        </div>
         <p class="text-xs text-gray-400">
           <span :style="adminDmConnected ? 'color:#16a34a' : 'color:#9ca3af'">●</span>
           <span x-text="adminDmConnected ? 'En línea' : 'Conectando...'"></span>
@@ -3562,6 +3676,16 @@ function app() {
     dmConnected: false,
     dmLoading: false,
     dmUnread: 0,
+    // Guest chat (ciudadano anónimo)
+    guestSession: null,       // {guest_token, room, guest_name}
+    guestWs: null,
+    guestWsConnected: false,
+    guestMessages: [],
+    guestInput: '',
+    guestChatOpen: false,
+    guestNameModal: false,
+    guestNameInput: '',
+    _pendingGuestReportId: null,
     // Admin bandeja DMs
     adminDmRooms: [],
     adminDmLoading: false,
@@ -3611,7 +3735,7 @@ function app() {
         // Scroll al final de mensajes activos
         if (kbH > 50) {
           requestAnimationFrame(() => {
-            for (const id of ['chat-messages','dm-messages','admin-dm-messages']) {
+            for (const id of ['chat-messages','dm-messages','admin-dm-messages','victim-dm-messages']) {
               const el = document.getElementById(id)
               if (el) el.scrollTop = el.scrollHeight
             }
@@ -3632,6 +3756,20 @@ function app() {
       if (saved) {
         this.token = saved
         await this.loadMe()
+      }
+      // Restaurar sesión guest anónima si existe
+      const savedGuest = localStorage.getItem('pa_guest_session')
+      if (savedGuest && !this.user) {
+        try {
+          const gs = JSON.parse(savedGuest)
+          const res = await fetch(`/dm/guest-session/${gs.guest_token}`)
+          if (res.ok) {
+            this.guestSession = await res.json()
+            this._connectGuestWs()
+          } else {
+            localStorage.removeItem('pa_guest_session')
+          }
+        } catch {}
       }
       // Inicializar mapa
       this.$nextTick(() => this.initMap())
@@ -3980,6 +4118,87 @@ function app() {
       this.dmInput = ''
     },
 
+    // ── Guest chat (ciudadano anónimo) ────────────────────────────────────
+    async openGuestChat(reportId = null) {
+      // Si ya hay sesión guardada, restaurar
+      const saved = localStorage.getItem('pa_guest_session')
+      if (saved) {
+        try {
+          const gs = JSON.parse(saved)
+          // Verificar que sigue válida en el servidor
+          const res = await fetch(`/dm/guest-session/${gs.guest_token}`)
+          if (res.ok) {
+            this.guestSession = await res.json()
+            this._connectGuestWs()
+            this.guestChatOpen = true
+            return
+          }
+        } catch {}
+        localStorage.removeItem('pa_guest_session')
+      }
+      // Sin sesión → pedir nombre
+      this._pendingGuestReportId = reportId
+      this.guestNameInput = ''
+      this.guestNameModal = true
+    },
+
+    async confirmGuestName() {
+      const name = this.guestNameInput.trim()
+      if (!name) return
+      try {
+        const res = await fetch('/dm/guest-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, report_id: this._pendingGuestReportId })
+        })
+        if (!res.ok) return
+        this.guestSession = await res.json()
+        localStorage.setItem('pa_guest_session', JSON.stringify(this.guestSession))
+        this.guestNameModal = false
+        this.guestNameInput = ''
+        this._connectGuestWs()
+        this.guestChatOpen = true
+      } catch {}
+    },
+
+    _connectGuestWs() {
+      if (!this.guestSession) return
+      if (this.guestWs && (this.guestWs.readyState === WebSocket.OPEN || this.guestWs.readyState === WebSocket.CONNECTING)) return
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const { room, guest_token } = this.guestSession
+      this.guestWs = new WebSocket(`${proto}//${location.host}/ws/guest/${room}?guest_token=${guest_token}`)
+      this.guestWs.onopen = () => { this.guestWsConnected = true }
+      this.guestWs.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data)
+          if (msg.type === 'history') {
+            this.guestMessages = msg.data || []
+          } else if (msg.type === 'message') {
+            this.guestMessages.push(msg.data)
+          }
+          this.$nextTick(() => {
+            const el = document.getElementById('victim-dm-messages')
+            if (el) el.scrollTop = el.scrollHeight
+          })
+        } catch {}
+      }
+      this.guestWs.onclose = () => {
+        this.guestWsConnected = false
+        if (this.guestSession && this.guestChatOpen) {
+          setTimeout(() => this._connectGuestWs(), 4000)
+        }
+      }
+      this.guestWs.onerror = () => { this.guestWsConnected = false }
+    },
+
+    sendGuestMessage() {
+      const text = this.guestInput.trim()
+      if (!text || !this.guestWs || this.guestWs.readyState !== WebSocket.OPEN) return
+      this.guestWs.send(JSON.stringify({ text }))
+      this.guestInput = ''
+    },
+    // ─────────────────────────────────────────────────────────────────────
+
     async loadAdminDmRooms(silent = false) {
       if (!silent) this.adminDmLoading = true
       try {
@@ -4115,6 +4334,7 @@ function app() {
     // ─────────────────────────────────────────────────────────────────────
 
     navigateTo(id) {
+      if (id === 'victim-chat') { this.openGuestChat(); return }
       this.page = id
       if (id === 'map') {
         // Destruir y recrear el mapa para garantizar coordenadas perfectas.
@@ -4137,9 +4357,13 @@ function app() {
           if (el) el.scrollTop = el.scrollHeight
         })
       }
+      if (id === 'victim-chat') {
+        this.openGuestChat()
+        this.page = this.page === 'victim-chat' ? 'map' : this.page  // no cambia page, el overlay cubre todo
+      }
       // 5to tab: login/panel/admin
       if (id === 'login' && this.user) {
-        this.page = this.user.role === 'admin' ? 'sysadmin' : 'panel'
+        this.page = this.user.role === 'admin' ? 'sysadmin' : (this.user.role === 'victim' ? 'map' : 'panel')
       }
       if (this.page === 'panel') this.$nextTick(() => this.initActionMap())
       if (this.page === 'sysadmin') this.loadAdminStats()
@@ -4402,12 +4626,15 @@ function app() {
         }
         if (this.user.role === 'admin') {
           this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
-          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'sysadmin'
           this.loadAdminStats()
+        } else if (this.user.role === 'victim') {
+          this.navItems[4] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
+          this.page = 'map'
         } else {
           this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
           if (!this.user.sms_consent_at) {
@@ -4415,7 +4642,7 @@ function app() {
           }
         }
         this.connectChat()
-        if (['volunteer','coordinator'].includes(this.user.role)) {
+        if (['volunteer','coordinator','victim'].includes(this.user.role)) {
           setTimeout(() => this.openDm(true), 1500)
         }
       } catch { this.loginMsg = 'Error de conexión'; this.loginError = true }
@@ -5015,16 +5242,19 @@ function app() {
           this.user = await res.json()
           if (this.user.role === 'admin') {
             this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
+            this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          } else if (this.user.role === 'victim') {
+            this.navItems[4] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
           } else {
             this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
+            this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
             // Mostrar modal de consentimiento SMS si aún no lo ha dado
             if (!this.user.sms_consent_at) {
               setTimeout(() => { this.smsConsentModal = true }, 1200)
             }
           }
-          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.connectChat()
-          if (['volunteer','coordinator'].includes(this.user.role)) {
+          if (['volunteer','coordinator','victim'].includes(this.user.role)) {
             setTimeout(() => this.openDm(true), 2000)
           }
         } else {

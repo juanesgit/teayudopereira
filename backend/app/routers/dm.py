@@ -1,5 +1,5 @@
 """
-Mensajes directos (DM) — voluntario/coordinador ↔ admin.
+Mensajes directos (DM) — voluntario/coordinador/víctima ↔ admin.
 
 Sala: "dm_{min(uid_a, uid_admin)}_{max(uid_a, uid_admin)}"
 WS:  /ws/dm/{room}?token=<jwt>
@@ -25,6 +25,7 @@ from jose import JWTError, jwt
 from app.config import settings
 from app.database import AsyncSessionLocal, get_db
 from app.models.chat import ChatMessage
+from app.models.guest_session import GuestSession
 from app.models.user import User, UserRole
 from app.services.auth import get_current_user
 
@@ -32,7 +33,7 @@ log = logging.getLogger(__name__)
 router = APIRouter(tags=["DMs"])
 
 HISTORY_LIMIT = 60
-ALLOWED_ROLES = {"volunteer", "coordinator", "admin"}
+ALLOWED_ROLES = {"volunteer", "coordinator", "admin", "victim"}
 
 # ─── Connection manager por sala ─────────────────────────────────────────────
 
@@ -126,10 +127,16 @@ async def dm_ws(ws: WebSocket, room: str, token: str = Query(...)):
         return
 
     # Verificar que el usuario pertenece a esta sala
-    parts = room.replace("dm_", "").split("_")
-    if len(parts) != 2 or str(user_id) not in parts:
-        await ws.close(code=1008)
-        return
+    # Salas guest_* solo admins/coordinadores pueden unirse vía JWT
+    if room.startswith("guest_"):
+        if user_role not in ("admin", "coordinator"):
+            await ws.close(code=1008)
+            return
+    else:
+        parts = room.replace("dm_", "").split("_")
+        if len(parts) != 2 or str(user_id) not in parts:
+            await ws.close(code=1008)
+            return
 
     name = f"{user.full_name}" + (f" {user.last_name}" if user.last_name else "")
 
@@ -185,7 +192,7 @@ async def list_dm_rooms(
     if current_user.role not in (UserRole.admin, UserRole.coordinator):
         raise HTTPException(403, "Sin permisos")
 
-    # Obtener salas únicas que involucran al usuario actual
+    # ── Salas DM regulares (voluntarios/coordinadores) ────────────────────
     result = await db.execute(
         select(ChatMessage.channel)
         .where(ChatMessage.channel.like("dm_%"))
@@ -194,11 +201,20 @@ async def list_dm_rooms(
                ChatMessage.channel.like(f"%_{current_user.id}"))
         .distinct()
     )
-    rooms = [r[0] for r in result.fetchall()]
+    dm_rooms = [r[0] for r in result.fetchall()]
+
+    # ── Salas guest (ciudadanos anónimos) ─────────────────────────────────
+    guest_result = await db.execute(
+        select(ChatMessage.channel)
+        .where(ChatMessage.channel.like("guest_%"))
+        .distinct()
+    )
+    guest_rooms = [r[0] for r in guest_result.fetchall()]
 
     out = []
-    for room in rooms:
-        # Último mensaje
+
+    # Procesar salas DM normales
+    for room in dm_rooms:
         last = (await db.execute(
             select(ChatMessage)
             .where(ChatMessage.channel == room)
@@ -206,7 +222,6 @@ async def list_dm_rooms(
             .limit(1)
         )).scalar_one_or_none()
 
-        # No leídos para mí
         unread = (await db.execute(
             select(func.count()).where(
                 ChatMessage.channel == room,
@@ -215,7 +230,6 @@ async def list_dm_rooms(
             )
         )).scalar()
 
-        # Obtener el otro usuario de la sala
         parts = room.replace("dm_", "").split("_")
         other_id = int(parts[0]) if int(parts[1]) == current_user.id else int(parts[1])
         other = (await db.execute(select(User).where(User.id == other_id))).scalar_one_or_none()
@@ -227,6 +241,42 @@ async def list_dm_rooms(
             "other_role": other.role.value if other and hasattr(other.role, "value") else "unknown",
             "last_message": _msg_payload(last) if last else None,
             "unread": unread,
+            "is_guest": False,
+        })
+
+    # Procesar salas guest
+    for room in guest_rooms:
+        gs = (await db.execute(
+            select(GuestSession).where(GuestSession.room == room)
+        )).scalar_one_or_none()
+
+        last = (await db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.channel == room)
+            .order_by(ChatMessage.created_at.desc())
+            .limit(1)
+        )).scalar_one_or_none()
+
+        unread = (await db.execute(
+            select(func.count()).where(
+                ChatMessage.channel == room,
+                ChatMessage.sender_role == "victim",
+                ChatMessage.is_read == False  # noqa
+            )
+        )).scalar()
+
+        guest_name = gs.guest_name if gs else "Ciudadano"
+        report_id = gs.report_id if gs else None
+
+        out.append({
+            "room": room,
+            "other_id": None,
+            "other_name": guest_name,
+            "other_role": "victim",
+            "last_message": _msg_payload(last) if last else None,
+            "unread": unread,
+            "is_guest": True,
+            "report_id": report_id,
         })
 
     out.sort(key=lambda x: x["last_message"]["created_at"] if x["last_message"] else "", reverse=True)
@@ -239,10 +289,15 @@ async def get_dm_room(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Historial de una sala DM. Solo participantes."""
-    parts = room.replace("dm_", "").split("_")
-    if len(parts) != 2 or str(current_user.id) not in parts:
-        raise HTTPException(403, "Sin acceso")
+    """Historial de una sala DM. Solo participantes o admin para guest rooms."""
+    user_role = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if room.startswith("guest_"):
+        if user_role not in ("admin", "coordinator"):
+            raise HTTPException(403, "Sin acceso")
+    else:
+        parts = room.replace("dm_", "").split("_")
+        if len(parts) != 2 or str(current_user.id) not in parts:
+            raise HTTPException(403, "Sin acceso")
 
     # Marcar como leídos
     await db.execute(
