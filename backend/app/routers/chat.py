@@ -77,7 +77,7 @@ def _msg_payload(msg: ChatMessage) -> dict:
         "sender_role": msg.sender_role,
         "text": msg.text,
         "is_system": msg.is_system,
-        "created_at": msg.created_at.isoformat(),
+        "created_at": msg.created_at.isoformat() + "Z",  # UTC explícito para JS
     }
 
 
@@ -150,7 +150,7 @@ async def chat_ws(
     join_payload = {
         "id": None, "user_id": user_id, "sender_name": "Sistema", "sender_role": "system",
         "text": f"{name} se conectó.", "is_system": True,
-        "created_at": datetime.utcnow().isoformat(), "ephemeral": True,
+        "created_at": datetime.utcnow().isoformat() + "Z", "ephemeral": True,
     }
     await manager.broadcast({"type": "message", "data": join_payload, "online": manager.online_count()})
 
@@ -184,7 +184,7 @@ async def chat_ws(
             leave_payload = {
                 "id": None, "user_id": None, "sender_name": "Sistema", "sender_role": "system",
                 "text": f"{info['name']} se desconectó.", "is_system": True,
-                "created_at": datetime.utcnow().isoformat(), "ephemeral": True,
+                "created_at": datetime.utcnow().isoformat() + "Z", "ephemeral": True,
             }
             await manager.broadcast({"type": "message", "data": leave_payload, "online": manager.online_count()})
     except Exception as exc:
