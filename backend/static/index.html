@@ -30,7 +30,20 @@
   <style>
     [x-cloak] { display: none !important; }
     html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
-    #map { position:absolute; top:0; left:0; right:0; bottom:0; }
+    /* dvh = dynamic viewport height: excluye la barra URL del browser en móvil.
+       vh como fallback para browsers sin soporte dvh */
+    .map-wrapper {
+      height: calc(100vh  - 56px - var(--nav-h));
+      height: calc(100dvh - 56px - var(--nav-h));
+      display: flex;
+      flex-direction: column;
+    }
+    #map {
+      width: 100%;
+      flex-shrink: 0;
+      height: calc(100vh  - 56px - var(--nav-h) - 166px);
+      height: calc(100dvh - 56px - var(--nav-h) - 166px);
+    }
     input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
@@ -129,8 +142,8 @@
 
   <!-- PÁGINAS -->
 
-  <!-- MAPA — position:fixed para evitar desbordamiento por 100vh en móvil -->
-  <div x-show="page==='map'" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);display:flex;flex-direction:column;background:white;z-index:1;">
+  <!-- MAPA -->
+  <div x-show="page==='map'" class="map-wrapper">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <!-- Emergencias -->
@@ -185,10 +198,7 @@
       <span class="text-xs opacity-70">↑</span>
     </div>
 
-    <!-- Mapa Leaflet: el wrapper flex:1 define el espacio, #map llena con absolute -->
-    <div style="flex:1; min-height:0; position:relative;">
-      <div id="map"></div>
-    </div>
+    <div id="map"></div>
 
     <!-- Botón SOS -->
     <div class="bg-white px-4 py-3 flex-shrink-0">
