@@ -3894,15 +3894,15 @@ function app() {
     },
 
     // ── DMs ───────────────────────────────────────────────────────────────
-    async openDm() {
-      this.dmLoading = true
+    async openDm(silent = false) {
+      if (!silent) this.dmLoading = true
       try {
         const res = await fetch('/dm/my-room', { headers: this.authHeaders() })
         if (!res.ok) return
         const { room } = await res.json()
         this.dmRoom = room
         this._connectDmWs(room)
-      } catch {} finally { this.dmLoading = false }
+      } catch {} finally { if (!silent) this.dmLoading = false }
     },
 
     _connectDmWs(room) {
@@ -4377,6 +4377,9 @@ function app() {
           }
         }
         this.connectChat()
+        if (['volunteer','coordinator'].includes(this.user.role)) {
+          setTimeout(() => this.openDm(true), 1500)
+        }
       } catch { this.loginMsg = 'Error de conexión'; this.loginError = true }
       finally { this.loginLoading = false }
     },
@@ -4446,6 +4449,7 @@ function app() {
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
           this.connectChat()
+          setTimeout(() => this.openDm(true), 1500)
         }
       } catch { this.registerMsg='Error de conexión'; this.registerError=true }
     },
@@ -4982,6 +4986,9 @@ function app() {
           }
           if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.connectChat()
+          if (['volunteer','coordinator'].includes(this.user.role)) {
+            setTimeout(() => this.openDm(true), 2000)
+          }
         } else {
           this.token=null; localStorage.removeItem('pa_token')
         }
