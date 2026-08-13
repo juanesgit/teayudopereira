@@ -2527,7 +2527,7 @@
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
         <div class="hide-scroll border-b border-gray-100" style="display:flex;overflow-x:auto;">
           <template x-for="t in [{id:'users',e:'👥',l:'Usuarios'},{id:'reports',e:'🆘',l:'Reportes'},{id:'centers',e:'🤝',l:'Centros'},{id:'zones',e:'⚠️',l:'Zonas'},{id:'avisos',e:'📢',l:'Avisos'},{id:'sms',e:'📱',l:'SMS'},{id:'mensajes',e:'💬',l:'Mensajes'}]" :key="t.id">
-            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones(); if(t.id==='mensajes')loadAdminDmRooms();"
+            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones(); if(t.id==='mensajes'){loadAdminDmRooms();startAdminDmPolling();} else {stopAdminDmPolling();};"
               class="py-3 px-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex-shrink-0 flex flex-col items-center gap-0.5"
               :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
               <span x-text="t.e" style="font-size:16px;line-height:1"></span>
@@ -3029,7 +3029,7 @@
           <div x-show="adminActiveDm" style="display:flex;flex-direction:column;height:calc(100dvh - 56px - var(--nav-h) - 160px)">
             <!-- Header -->
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-              <button @click="adminActiveDm=null; adminDmMessages=[]; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms()"
+              <button @click="adminActiveDm=null; adminDmMessages=[]; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms(); startAdminDmPolling()"
                 class="border-none bg-gray-100 rounded-xl cursor-pointer font-bold text-gray-600"
                 style="padding:6px 12px;font-size:13px">← Volver</button>
               <div>
@@ -3922,15 +3922,32 @@ function app() {
       this.dmInput = ''
     },
 
-    async loadAdminDmRooms() {
-      this.adminDmLoading = true
+    async loadAdminDmRooms(silent = false) {
+      if (!silent) this.adminDmLoading = true
       try {
         const res = await fetch('/dm/rooms', { headers: this.authHeaders() })
         if (res.ok) this.adminDmRooms = await res.json()
-      } catch {} finally { this.adminDmLoading = false }
+      } catch {} finally { if (!silent) this.adminDmLoading = false }
+    },
+
+    startAdminDmPolling() {
+      this.stopAdminDmPolling()
+      this._adminDmPollInterval = setInterval(() => {
+        if (this.sysTab === 'mensajes' && !this.adminActiveDm) {
+          this.loadAdminDmRooms(true)
+        }
+      }, 5000)
+    },
+
+    stopAdminDmPolling() {
+      if (this._adminDmPollInterval) {
+        clearInterval(this._adminDmPollInterval)
+        this._adminDmPollInterval = null
+      }
     },
 
     async openAdminDm(roomInfo) {
+      this.stopAdminDmPolling()
       this.adminActiveDm = roomInfo
       this.adminDmMessages = []
       // Cerrar WS anterior
@@ -3945,6 +3962,10 @@ function app() {
             this.adminDmMessages = msg.data || []
           } else if (msg.type === 'message') {
             this.adminDmMessages.push(msg.data)
+            // Si el mensaje es del otro, refrescar la lista en background
+            if (msg.data.user_id !== this.user?.id) {
+              this.loadAdminDmRooms(true)
+            }
           }
           this.$nextTick(() => {
             const el = document.getElementById('admin-dm-messages')
@@ -3953,8 +3974,9 @@ function app() {
         } catch {}
       }
       this.adminDmWs.onclose = () => { this.adminDmConnected = false }
-      // Actualizar unread en la lista
-      roomInfo.unread = 0
+      // Limpiar unread en la sala activa
+      const r = this.adminDmRooms.find(r => r.room === roomInfo.room)
+      if (r) r.unread = 0
     },
 
     sendAdminDmMessage() {
