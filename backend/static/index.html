@@ -10,7 +10,7 @@
   <link rel="manifest" href="/manifest.json"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
   <meta name="apple-mobile-web-app-title" content="TeAyuda"/>
   <link rel="apple-touch-icon" href="/static/icons/icon-192.png"/>
   <link rel="icon" type="image/png" href="/static/icons/icon-192.png"/>
@@ -52,8 +52,8 @@
     textarea { text-transform: uppercase; }
     :root {
       --nav-h: calc(60px + env(safe-area-inset-bottom, 0px));
-      --safe-top: env(safe-area-inset-top, 0px);
-      --header-h: calc(56px + env(safe-area-inset-top, 0px));
+      --safe-top: 0px;
+      --header-h: 56px;
     }
     .bottom-nav-item { min-height: 44px; }
     .hide-scroll { overflow-x: auto; scrollbar-width: none; }
@@ -138,8 +138,7 @@
 <body x-data="app()" x-init="init()" x-cloak>
 
   <!-- NAVBAR -->
-  <header class="bg-red-600 text-white px-4 flex items-end justify-between shadow-md sticky top-0 z-40"
-    style="height:var(--header-h);padding-top:var(--safe-top);padding-bottom:8px">
+  <header class="bg-red-600 text-white px-4 flex items-center justify-between h-14 shadow-md sticky top-0 z-40">
     <button @click="navigateTo('map')" class="font-bold text-lg flex items-center gap-2 bg-transparent border-none text-white cursor-pointer">
       🚨 Te Ayudo Pereira
     </button>
