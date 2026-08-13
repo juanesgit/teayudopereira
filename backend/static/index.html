@@ -1666,6 +1666,15 @@
           ⚙️ Admin
         </button>
       </template>
+      <button @click="panelTab='mensajes'; dmUnread=0; if(!dmRoom) openDm(); $nextTick(()=>{const el=document.getElementById('dm-messages'); if(el)el.scrollTop=el.scrollHeight})"
+        class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent relative"
+        :style="panelTab==='mensajes' ? 'border-bottom:3px solid #0369a1;color:#0369a1' : 'border-bottom:3px solid transparent;color:#6b7280'">
+        💬 Mensajes
+        <template x-if="dmUnread > 0">
+          <span class="absolute top-2 right-1 bg-red-600 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center"
+            style="font-size:10px" x-text="dmUnread"></span>
+        </template>
+      </button>
     </div>
 
     <!-- Contenido scrollable -->
@@ -1977,6 +1986,72 @@
         </div>
 
       </div><!-- /admin tab -->
+
+      <!-- ── DM con admin ── -->
+      <div x-show="panelTab==='mensajes'"
+           style="display:flex;flex-direction:column;height:100%;min-height:0">
+
+        <!-- Header -->
+        <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;border-radius:0">
+          <p class="font-bold" style="font-size:15px">💬 Mensaje al coordinador / admin</p>
+          <p class="text-xs mt-0.5" style="opacity:.8">
+            <span :style="dmConnected ? 'color:#86efac' : 'color:#fca5a5'">●</span>
+            <span x-text="dmConnected ? 'Conectado' : 'Conectando...'"></span>
+          </p>
+        </div>
+
+        <!-- Mensajes -->
+        <div id="dm-messages"
+             style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc">
+          <template x-if="dmLoading">
+            <div class="text-center text-gray-400 text-sm mt-8">Conectando...</div>
+          </template>
+          <template x-if="!dmLoading && dmMessages.length===0">
+            <div class="text-center text-gray-400 text-sm mt-8">
+              <p style="font-size:28px;margin-bottom:8px">💬</p>
+              <p>Escribe tu mensaje al equipo de coordinación.</p>
+            </div>
+          </template>
+          <template x-for="(msg, idx) in dmMessages" :key="msg.id ?? ('dm-'+idx)">
+            <div>
+              <template x-if="!msg.is_system && user && msg.user_id == user.id">
+                <div class="flex flex-col items-end gap-0.5">
+                  <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+                  <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+                </div>
+              </template>
+              <template x-if="!msg.is_system && (!user || msg.user_id != user.id)">
+                <div class="flex flex-col items-start gap-0.5">
+                  <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
+                  <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+                  <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <!-- Input -->
+        <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 16px 14px;flex-shrink:0">
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <textarea x-model="dmInput"
+              @keydown.enter.prevent="if(!$event.shiftKey){ sendDmMessage() }"
+              @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
+              placeholder="Escribe un mensaje..."
+              rows="1" maxlength="500"
+              class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+              style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
+              :disabled="!dmConnected"></textarea>
+            <button @click="sendDmMessage()" :disabled="!dmInput.trim() || !dmConnected"
+              style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
+              :style="{background: dmInput.trim() && dmConnected ? '#0369a1' : '#d1d5db'}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div><!-- /mensajes tab -->
 
     </div>
     </div>
@@ -2451,8 +2526,8 @@
       <!-- Tabs internos -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
         <div class="hide-scroll border-b border-gray-100" style="display:flex;overflow-x:auto;">
-          <template x-for="t in [{id:'users',e:'👥',l:'Usuarios'},{id:'reports',e:'🆘',l:'Reportes'},{id:'centers',e:'🤝',l:'Centros'},{id:'zones',e:'⚠️',l:'Zonas'},{id:'avisos',e:'📢',l:'Avisos'},{id:'sms',e:'📱',l:'SMS'}]" :key="t.id">
-            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones();"
+          <template x-for="t in [{id:'users',e:'👥',l:'Usuarios'},{id:'reports',e:'🆘',l:'Reportes'},{id:'centers',e:'🤝',l:'Centros'},{id:'zones',e:'⚠️',l:'Zonas'},{id:'avisos',e:'📢',l:'Avisos'},{id:'sms',e:'📱',l:'SMS'},{id:'mensajes',e:'💬',l:'Mensajes'}]" :key="t.id">
+            <button @click="sysTab=t.id; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones(); if(t.id==='mensajes')loadAdminDmRooms();"
               class="py-3 px-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex-shrink-0 flex flex-col items-center gap-0.5"
               :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
               <span x-text="t.e" style="font-size:16px;line-height:1"></span>
@@ -2915,6 +2990,104 @@
           </div>
         </div>
 
+        <!-- ── Tab Mensajes (admin bandeja DMs) ── -->
+        <div x-show="sysTab==='mensajes'" class="p-4">
+
+          <!-- Lista de conversaciones -->
+          <div x-show="!adminActiveDm">
+            <h3 class="font-bold text-gray-900 mb-3">📩 Conversaciones directas</h3>
+            <div x-show="adminDmLoading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
+            <div x-show="!adminDmLoading && adminDmRooms.length===0" class="text-center py-8 text-gray-400 text-sm">
+              <p style="font-size:28px;margin-bottom:8px">💬</p>
+              <p>Sin conversaciones aún.</p>
+            </div>
+            <div class="flex flex-col gap-2">
+              <template x-for="room in adminDmRooms" :key="room.room">
+                <button @click="openAdminDm(room)"
+                  class="w-full text-left bg-white border border-gray-200 rounded-2xl px-4 py-3 cursor-pointer transition-all"
+                  :style="room.unread > 0 ? 'border-color:#0369a1;background:#f0f9ff' : ''">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="font-semibold text-gray-900 text-sm" x-text="room.other_name"></p>
+                      <p class="text-xs text-gray-400 truncate mt-0.5"
+                         x-text="room.last_message ? room.last_message.text : 'Sin mensajes'"></p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span x-show="room.unread > 0"
+                        class="bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5"
+                        x-text="room.unread"></span>
+                      <span class="text-xs text-gray-400"
+                        x-text="room.last_message ? chatTimeLabel(room.last_message.created_at) : ''"></span>
+                    </div>
+                  </div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Conversación activa -->
+          <div x-show="adminActiveDm" style="display:flex;flex-direction:column;height:calc(100dvh - 56px - var(--nav-h) - 160px)">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <button @click="adminActiveDm=null; adminDmMessages=[]; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms()"
+                class="border-none bg-gray-100 rounded-xl cursor-pointer font-bold text-gray-600"
+                style="padding:6px 12px;font-size:13px">← Volver</button>
+              <div>
+                <p class="font-bold text-gray-900 text-sm" x-text="adminActiveDm?.other_name"></p>
+                <p class="text-xs text-gray-400">
+                  <span :style="adminDmConnected ? 'color:#16a34a' : 'color:#9ca3af'">●</span>
+                  <span x-text="adminDmConnected ? 'En línea' : 'Conectando...'"></span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Mensajes -->
+            <div id="admin-dm-messages"
+                 style="flex:1;min-height:0;overflow-y:auto;background:#f8fafc;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+              <template x-if="adminDmMessages.length === 0">
+                <div class="text-center text-gray-400 text-sm mt-6">Sin mensajes aún</div>
+              </template>
+              <template x-for="(msg, idx) in adminDmMessages" :key="msg.id ?? ('adm-'+idx)">
+                <div>
+                  <template x-if="user && msg.user_id == user.id">
+                    <div class="flex flex-col items-end gap-0.5">
+                      <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+                      <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+                    </div>
+                  </template>
+                  <template x-if="!user || msg.user_id != user.id">
+                    <div class="flex flex-col items-start gap-0.5">
+                      <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
+                      <div style="max-width:78%;background:white;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+                      <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+
+            <!-- Input -->
+            <div style="padding-top:8px;display:flex;align-items:flex-end;gap:8px">
+              <textarea x-model="adminDmInput"
+                @keydown.enter.prevent="if(!$event.shiftKey){ sendAdminDmMessage() }"
+                @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,80)+'px'"
+                placeholder="Escribe una respuesta..."
+                rows="1" maxlength="500"
+                class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+                style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:80px;overflow-y:hidden;padding:10px 14px"
+                :disabled="!adminDmConnected"></textarea>
+              <button @click="sendAdminDmMessage()" :disabled="!adminDmInput.trim() || !adminDmConnected"
+                style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
+                :style="{background: adminDmInput.trim() && adminDmConnected ? '#0369a1' : '#d1d5db'}">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+        </div><!-- /mensajes tab -->
+
       </div><!-- /card tabs -->
     </div>
   </div>
@@ -3342,13 +3515,29 @@ function app() {
     ],
     newReportsCount: 0,
     pendingNewReports: [],
-    // ── Chat ──────────────────────────────────────────────────────────────
+    // ── Chat grupal ───────────────────────────────────────────────────────
     chatMessages: [],
     chatInput: '',
     chatWs: null,
     chatConnected: false,
     chatUnread: 0,
     chatOnline: 0,
+    // ── DMs ───────────────────────────────────────────────────────────────
+    dmRoom: null,
+    dmMessages: [],
+    dmInput: '',
+    dmWs: null,
+    dmConnected: false,
+    dmLoading: false,
+    dmUnread: 0,
+    // Admin bandeja DMs
+    adminDmRooms: [],
+    adminDmLoading: false,
+    adminActiveDm: null,   // {room, other_name, other_role}
+    adminDmMessages: [],
+    adminDmWs: null,
+    adminDmInput: '',
+    adminDmConnected: false,
     // ─────────────────────────────────────────────────────────────────────
     isOnline: navigator.onLine,
     offlineQueue: JSON.parse(localStorage.getItem('tap_offline_queue') || '[]'),
@@ -3683,6 +3872,98 @@ function app() {
       if (h < 24) return `Hace ${h}h`
       return `Hace ${Math.floor(h/24)}d`
     },
+
+    // ── DMs ───────────────────────────────────────────────────────────────
+    async openDm() {
+      this.dmLoading = true
+      try {
+        const res = await fetch('/dm/my-room', { headers: this.authHeaders() })
+        if (!res.ok) return
+        const { room } = await res.json()
+        this.dmRoom = room
+        this._connectDmWs(room)
+      } catch {} finally { this.dmLoading = false }
+    },
+
+    _connectDmWs(room) {
+      if (this.dmWs && this.dmWs.readyState <= 1) return
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+      this.dmWs = new WebSocket(`${proto}//${location.host}/ws/dm/${room}?token=${this.token}`)
+      this.dmWs.onopen = () => { this.dmConnected = true }
+      this.dmWs.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data)
+          if (msg.type === 'history') {
+            this.dmMessages = msg.data || []
+          } else if (msg.type === 'message') {
+            this.dmMessages.push(msg.data)
+            if (this.panelTab !== 'mensajes') this.dmUnread++
+            this.$nextTick(() => {
+              const el = document.getElementById('dm-messages')
+              if (el) el.scrollTop = el.scrollHeight
+            })
+          }
+        } catch {}
+      }
+      this.dmWs.onclose = () => {
+        this.dmConnected = false
+        if (this.token && this.dmRoom) setTimeout(() => this._connectDmWs(this.dmRoom), 4000)
+      }
+      this.$nextTick(() => {
+        const el = document.getElementById('dm-messages')
+        if (el) el.scrollTop = el.scrollHeight
+      })
+    },
+
+    sendDmMessage() {
+      const text = this.dmInput.trim()
+      if (!text || !this.dmWs || this.dmWs.readyState !== WebSocket.OPEN) return
+      this.dmWs.send(JSON.stringify({ text }))
+      this.dmInput = ''
+    },
+
+    async loadAdminDmRooms() {
+      this.adminDmLoading = true
+      try {
+        const res = await fetch('/dm/rooms', { headers: this.authHeaders() })
+        if (res.ok) this.adminDmRooms = await res.json()
+      } catch {} finally { this.adminDmLoading = false }
+    },
+
+    async openAdminDm(roomInfo) {
+      this.adminActiveDm = roomInfo
+      this.adminDmMessages = []
+      // Cerrar WS anterior
+      if (this.adminDmWs) { this.adminDmWs.close(); this.adminDmWs = null }
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+      this.adminDmWs = new WebSocket(`${proto}//${location.host}/ws/dm/${roomInfo.room}?token=${this.token}`)
+      this.adminDmWs.onopen = () => { this.adminDmConnected = true }
+      this.adminDmWs.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data)
+          if (msg.type === 'history') {
+            this.adminDmMessages = msg.data || []
+          } else if (msg.type === 'message') {
+            this.adminDmMessages.push(msg.data)
+          }
+          this.$nextTick(() => {
+            const el = document.getElementById('admin-dm-messages')
+            if (el) el.scrollTop = el.scrollHeight
+          })
+        } catch {}
+      }
+      this.adminDmWs.onclose = () => { this.adminDmConnected = false }
+      // Actualizar unread en la lista
+      roomInfo.unread = 0
+    },
+
+    sendAdminDmMessage() {
+      const text = this.adminDmInput.trim()
+      if (!text || !this.adminDmWs || this.adminDmWs.readyState !== WebSocket.OPEN) return
+      this.adminDmWs.send(JSON.stringify({ text }))
+      this.adminDmInput = ''
+    },
+    // ─────────────────────────────────────────────────────────────────────
 
     // ── Chat WebSocket ────────────────────────────────────────────────────
     connectChat() {
@@ -4041,12 +4322,12 @@ function app() {
         }
         if (this.user.role === 'admin') {
           this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
-          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'sysadmin'
           this.loadAdminStats()
         } else {
           this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
           if (!this.user.sms_consent_at) {
@@ -4109,7 +4390,7 @@ function app() {
             }
           }
           this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           // Si aceptó consentimiento SMS, registrarlo en el backend
           if (this.registerForm.smsConsent) {
             try {
@@ -4657,7 +4938,7 @@ function app() {
               setTimeout(() => { this.smsConsentModal = true }, 1200)
             }
           }
-          this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+          if (['volunteer','coordinator','admin'].includes(this.user.role)) this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
           this.connectChat()
         } else {
           this.token=null; localStorage.removeItem('pa_token')

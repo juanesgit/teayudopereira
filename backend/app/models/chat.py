@@ -10,9 +10,11 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    channel: Mapped[str] = mapped_column(String(60), nullable=False, default="group", index=True)
     user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     sender_name: Mapped[str] = mapped_column(String(150), nullable=False, default="Sistema")
     sender_role: Mapped[str] = mapped_column(String(30), nullable=False, default="system")
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

@@ -34,6 +34,8 @@ async def init_db():
             "ALTER TABLE users ADD COLUMN sms_consent_at DATETIME",
             "ALTER TABLE users ADD COLUMN reset_otp VARCHAR(6)",
             "ALTER TABLE users ADD COLUMN reset_otp_expires DATETIME",
+            "ALTER TABLE chat_messages ADD COLUMN channel VARCHAR(60) NOT NULL DEFAULT 'group'",
+            "ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0",
         ]
         for sql in migrations:
             try:

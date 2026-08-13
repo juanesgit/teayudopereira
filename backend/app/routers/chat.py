@@ -136,6 +136,13 @@ async def chat_ws(
         await ws.close(code=1008)
         return
 
+    # Solo voluntarios, coordinadores y admins
+    allowed = ("volunteer", "coordinator", "admin")
+    user_role = user.role.value if hasattr(user.role, "value") else str(user.role)
+    if user_role not in allowed:
+        await ws.close(code=1008)
+        return
+
     name = f"{user.full_name}" + (f" {user.last_name}" if user.last_name else "")
     role = user.role.value if hasattr(user.role, "value") else str(user.role)
 
