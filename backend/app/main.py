@@ -98,3 +98,12 @@ async def manifest():
         media_type="application/manifest+json",
         headers={"Cache-Control": "public, max-age=86400"},
     )
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    icon = STATIC_DIR / "icons" / "icon-192.png"
+    if icon.exists():
+        return FileResponse(icon, media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=604800"})
+    return Response(status_code=204)

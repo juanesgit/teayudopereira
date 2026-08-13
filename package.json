@@ -1,0 +1,11 @@
+{
+  "name": "pereira-alerta",
+  "version": "1.0.0",
+  "scripts": {
+    "tw:build": "tailwindcss -i input.css -o backend/static/tailwind.min.css --minify",
+    "tw:watch": "tailwindcss -i input.css -o backend/static/tailwind.min.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

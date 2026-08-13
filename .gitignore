@@ -37,3 +37,4 @@ Thumbs.db
 *.swp
 
 frontend/node_modules/
+node_modules/
