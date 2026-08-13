@@ -84,6 +84,7 @@ def _msg_payload(msg: ChatMessage) -> dict:
 async def _get_history(db: AsyncSession) -> list[dict]:
     result = await db.execute(
         select(ChatMessage)
+        .where(ChatMessage.channel == "group")
         .order_by(ChatMessage.created_at.desc())
         .limit(HISTORY_LIMIT)
     )
@@ -176,6 +177,7 @@ async def chat_ws(
             async with AsyncSessionLocal() as db:
                 msg = await _persist(
                     db,
+                    channel="group",
                     user_id=user_id,
                     sender_name=name,
                     sender_role=role,

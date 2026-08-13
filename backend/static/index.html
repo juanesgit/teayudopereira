@@ -1989,7 +1989,7 @@
 
       <!-- ── DM con admin ── -->
       <div x-show="panelTab==='mensajes'"
-           style="display:flex;flex-direction:column;height:100%;min-height:0">
+           style="display:flex;flex-direction:column;gap:0">
 
         <!-- Header -->
         <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;border-radius:0">
@@ -2002,7 +2002,7 @@
 
         <!-- Mensajes -->
         <div id="dm-messages"
-             style="flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc">
+             style="height:52vh;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#f8fafc">
           <template x-if="dmLoading">
             <div class="text-center text-gray-400 text-sm mt-8">Conectando...</div>
           </template>
@@ -3026,7 +3026,7 @@
           </div>
 
           <!-- Conversación activa -->
-          <div x-show="adminActiveDm" style="display:flex;flex-direction:column;height:calc(100dvh - 56px - var(--nav-h) - 160px)">
+          <div x-show="adminActiveDm" style="display:flex;flex-direction:column;gap:0">
             <!-- Header -->
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
               <button @click="adminActiveDm=null; adminDmMessages=[]; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms(); startAdminDmPolling()"
@@ -3043,7 +3043,7 @@
 
             <!-- Mensajes -->
             <div id="admin-dm-messages"
-                 style="flex:1;min-height:0;overflow-y:auto;background:#f8fafc;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px">
+                 style="height:52vh;overflow-y:auto;background:#f8fafc;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
               <template x-if="adminDmMessages.length === 0">
                 <div class="text-center text-gray-400 text-sm mt-6">Sin mensajes aún</div>
               </template>
