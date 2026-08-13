@@ -2162,6 +2162,45 @@
     </div>
   </div><!-- /guest-chat-overlay -->
 
+  <!-- MODAL: instrucciones para agregar al home en iOS -->
+  <div x-show="iosInstallModal" style="position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;padding:16px">
+    <div style="background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:400px">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900">Activa las notificaciones 🔔</h3>
+        <button @click="iosInstallModal=false" style="border:none;background:#f3f4f6;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+      <p class="text-sm text-gray-600 mb-5">En iPhone, las notificaciones push solo funcionan cuando la app está en tu pantalla de inicio. Sigue estos pasos:</p>
+      <div class="flex flex-col gap-4 mb-6">
+        <div class="flex items-start gap-3">
+          <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">1️⃣</div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">Toca el botón de compartir</p>
+            <p class="text-xs text-gray-500">El ícono <span style="font-size:16px">⬆️</span> en la barra inferior de Safari</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">2️⃣</div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">Selecciona "Añadir a pantalla de inicio"</p>
+            <p class="text-xs text-gray-500">Desplázate hacia abajo en el menú</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">3️⃣</div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">Abre la app desde tu home</p>
+            <p class="text-xs text-gray-500">Las notificaciones se activarán automáticamente</p>
+          </div>
+        </div>
+      </div>
+      <button @click="iosInstallModal=false"
+        class="w-full font-bold rounded-2xl border-none cursor-pointer text-white"
+        style="min-height:48px;background:#0369a1;font-size:15px">
+        Entendido
+      </button>
+    </div>
+  </div>
+
   <!-- MODAL: pedir nombre al ciudadano anónimo -->
   <div x-show="guestNameModal" style="position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px">
     <div style="background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:360px">
@@ -3684,6 +3723,7 @@ function app() {
     guestMessages: [],
     guestInput: '',
     guestChatOpen: false,
+    iosInstallModal: false,
     guestNameModal: false,
     guestNameInput: '',
     _pendingGuestReportId: null,
@@ -4128,7 +4168,20 @@ function app() {
 
     // ── Web Push ──────────────────────────────────────────────────────────
     async setupPush(guestToken = null) {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        // iOS Safari sin standalone: mostrar instrucciones de instalación
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+        const isStandalone = window.navigator.standalone === true ||
+                             window.matchMedia('(display-mode: standalone)').matches
+        if (isIOS && !isStandalone) {
+          // Solo mostrar 1 vez por sesión
+          if (!sessionStorage.getItem('ios_install_shown')) {
+            sessionStorage.setItem('ios_install_shown', '1')
+            setTimeout(() => { this.iosInstallModal = true }, 1500)
+          }
+        }
+        return
+      }
       try {
         const permission = await Notification.requestPermission()
         if (permission !== 'granted') return
