@@ -2983,9 +2983,9 @@
     </div>
 
     <!-- Input enviar -->
-    <div style="background:white;border-top:1px solid #e5e7eb;flex-shrink:0;padding:10px 20px"
+    <div style="background:white;border-top:1px solid #e5e7eb;flex-shrink:0;padding:10px 16px"
          :style="'padding-bottom:max(14px,env(safe-area-inset-bottom))'">
-      <div style="display:flex;align-items:flex-end;gap:10px">
+      <div style="display:flex;align-items:flex-end;gap:8px">
         <textarea
           x-model="chatInput"
           @keydown.enter.prevent="if(!$event.shiftKey){ sendChatMessage() }"
@@ -2993,16 +2993,15 @@
           placeholder="Escribe un mensaje..."
           rows="1"
           maxlength="500"
-          class="border border-gray-300 rounded-xl focus:outline-none focus:border-red-400"
-          style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
+          style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 16px;border:1.5px solid #e5e7eb;border-radius:999px;outline:none;transition:border-color .15s"
+          :style="chatInput.trim() ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"
           :disabled="!chatConnected"
         ></textarea>
         <button
           @click="sendChatMessage()"
           :disabled="!chatInput.trim() || !chatConnected"
-          class="flex-shrink-0 rounded-xl border-2 flex items-center justify-center transition-all"
-          style="width:44px;align-self:stretch;min-height:44px"
-          :class="chatInput.trim() && chatConnected ? 'bg-red-600 border-red-600' : 'bg-gray-100 border-gray-200'"
+          style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;cursor:pointer"
+          :style="chatInput.trim() && chatConnected ? 'background:#dc2626;box-shadow:0 2px 8px rgba(220,38,38,.35)' : 'background:#e5e7eb;cursor:default'"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
