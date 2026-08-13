@@ -35,8 +35,8 @@
     /* dvh = dynamic viewport height: excluye la barra URL del browser en móvil.
        vh como fallback para browsers sin soporte dvh */
     .map-wrapper {
-      height: calc(100vh  - 56px - var(--nav-h));
-      height: calc(100dvh - 56px - var(--nav-h));
+      height: calc(100vh  - var(--header-h) - var(--nav-h));
+      height: calc(100dvh - var(--header-h) - var(--nav-h));
       display: flex;
       flex-direction: column;
     }
@@ -44,13 +44,17 @@
     #map {
       width: 100%;
       flex-shrink: 0;
-      height: calc(100vh  - 56px - var(--nav-h) - 166px);
-      height: calc(100dvh - 56px - var(--nav-h) - 166px);
+      height: calc(100vh  - var(--header-h) - var(--nav-h) - 166px);
+      height: calc(100dvh - var(--header-h) - var(--nav-h) - 166px);
     }
     input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
-    :root { --nav-h: calc(60px + env(safe-area-inset-bottom, 0px)); }
+    :root {
+      --nav-h: calc(60px + env(safe-area-inset-bottom, 0px));
+      --safe-top: env(safe-area-inset-top, 0px);
+      --header-h: calc(56px + env(safe-area-inset-top, 0px));
+    }
     .bottom-nav-item { min-height: 44px; }
     .hide-scroll { overflow-x: auto; scrollbar-width: none; }
     .hide-scroll::-webkit-scrollbar { display: none; }
@@ -112,15 +116,15 @@
     }
     /* Panel voluntario — solo necesita altura para pendientes/miscasos/zona/admin */
     .panel-view {
-      height: calc(100vh  - 56px - var(--nav-h));
-      height: calc(100dvh - 56px - var(--nav-h));
+      height: calc(100vh  - var(--header-h) - var(--nav-h));
+      height: calc(100dvh - var(--header-h) - var(--nav-h));
       display: flex;
       flex-direction: column;
     }
     /* Overlay compartido — chat grupal, DM voluntario, DM admin */
     .chat-overlay {
       position: fixed;
-      top: 56px;
+      top: var(--header-h);
       left: 0; right: 0;
       bottom: var(--nav-h);
       z-index: 200;
@@ -134,7 +138,8 @@
 <body x-data="app()" x-init="init()" x-cloak>
 
   <!-- NAVBAR -->
-  <header class="bg-red-600 text-white px-4 flex items-center justify-between h-14 shadow-md sticky top-0 z-40">
+  <header class="bg-red-600 text-white px-4 flex items-end justify-between shadow-md sticky top-0 z-40"
+    style="height:var(--header-h);padding-top:var(--safe-top);padding-bottom:8px">
     <button @click="navigateTo('map')" class="font-bold text-lg flex items-center gap-2 bg-transparent border-none text-white cursor-pointer">
       🚨 Te Ayudo Pereira
     </button>
@@ -459,7 +464,7 @@
   </template>
 
   <!-- PEDIR AYUDA -->
-  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - var(--header-h) - var(--nav-h))">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER 4 pasos -->
@@ -1160,7 +1165,7 @@
   </div>
 
   <!-- VOLUNTARIOS -->
-  <div x-show="page==='volunteers'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column">
+  <div x-show="page==='volunteers'" style="height:calc(100vh - var(--header-h) - var(--nav-h)); display:flex; flex-direction:column">
 
     <!-- Header fijo con contador y búsqueda -->
     <div class="bg-white border-b border-gray-100 px-4 pt-4 pb-3 flex-shrink-0">
@@ -1246,7 +1251,7 @@
   </div>
 
   <!-- ACCESO VOLUNTARIO (login + registro en una sola página) -->
-  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - var(--header-h) - var(--nav-h))">
     <div class="max-w-sm mx-auto px-4 py-6">
 
       <!-- Hero -->
@@ -2169,27 +2174,31 @@
         <h3 class="text-lg font-bold text-gray-900">Activa las notificaciones 🔔</h3>
         <button @click="iosInstallModal=false" style="border:none;background:#f3f4f6;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
       </div>
-      <p class="text-sm text-gray-600 mb-5">En iPhone, las notificaciones push solo funcionan cuando la app está en tu pantalla de inicio. Sigue estos pasos:</p>
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">🧭</span>
+        <p class="text-xs text-orange-800 font-semibold">Debes hacerlo desde <u>Safari</u>, no desde Chrome. Chrome en iPhone no permite instalar apps.</p>
+      </div>
+      <p class="text-sm text-gray-600 mb-5">Una vez instalada, abre la app desde el ícono del home y las notificaciones se activarán.</p>
       <div class="flex flex-col gap-4 mb-6">
         <div class="flex items-start gap-3">
           <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">1️⃣</div>
           <div>
-            <p class="text-sm font-semibold text-gray-800">Toca el botón de compartir</p>
-            <p class="text-xs text-gray-500">El ícono <span style="font-size:16px">⬆️</span> en la barra inferior de Safari</p>
+            <p class="text-sm font-semibold text-gray-800">Abre esta página en <span style="color:#0369a1">Safari</span></p>
+            <p class="text-xs text-gray-500">Copia el enlace y pégalo en Safari si estás en Chrome</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">2️⃣</div>
           <div>
-            <p class="text-sm font-semibold text-gray-800">Selecciona "Añadir a pantalla de inicio"</p>
-            <p class="text-xs text-gray-500">Desplázate hacia abajo en el menú</p>
+            <p class="text-sm font-semibold text-gray-800">Toca el botón compartir ⬆️</p>
+            <p class="text-xs text-gray-500">En la barra inferior de Safari</p>
           </div>
         </div>
         <div class="flex items-start gap-3">
           <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">3️⃣</div>
           <div>
-            <p class="text-sm font-semibold text-gray-800">Abre la app desde tu home</p>
-            <p class="text-xs text-gray-500">Las notificaciones se activarán automáticamente</p>
+            <p class="text-sm font-semibold text-gray-800">Selecciona "Añadir a pantalla de inicio"</p>
+            <p class="text-xs text-gray-500">Luego abre la app desde el ícono — ¡listo!</p>
           </div>
         </div>
       </div>
@@ -2227,7 +2236,7 @@
   </div>
 
   <!-- REPORTAR ZONA DE PELIGRO -->
-  <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
+  <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - var(--header-h) - var(--nav-h))">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER -->
@@ -2649,7 +2658,7 @@
   <!-- ══════════════════════════════════════════════
        PANEL ADMIN DEL SISTEMA (solo rol admin)
   ══════════════════════════════════════════════ -->
-  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="height:calc(100vh - var(--nav-h))">
+  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="height:calc(100vh - var(--header-h) - var(--nav-h))">
     <div class="max-w-2xl mx-auto px-4 py-5">
 
       <!-- Header -->
