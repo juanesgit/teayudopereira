@@ -4086,7 +4086,13 @@ function app() {
       if (this.dmWs && this.dmWs.readyState <= 1) return
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
       this.dmWs = new WebSocket(`${proto}//${location.host}/ws/dm/${room}?token=${this.token}`)
-      this.dmWs.onopen = () => { this.dmConnected = true }
+      this.dmWs.onopen = () => {
+        this.dmConnected = true
+        if (this._dmPing) clearInterval(this._dmPing)
+        this._dmPing = setInterval(() => {
+          if (this.dmWs && this.dmWs.readyState === WebSocket.OPEN) this.dmWs.send(JSON.stringify({ ping: true }))
+        }, 25000)
+      }
       this.dmWs.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data)
@@ -4104,7 +4110,8 @@ function app() {
       }
       this.dmWs.onclose = () => {
         this.dmConnected = false
-        if (this.token && this.dmRoom) setTimeout(() => this._connectDmWs(this.dmRoom), 4000)
+        if (this._dmPing) { clearInterval(this._dmPing); this._dmPing = null }
+        if (this.token && this.dmRoom) setTimeout(() => this._connectDmWs(this.dmRoom), 3000)
       }
       this.$nextTick(() => {
         const el = document.getElementById('dm-messages')
@@ -4168,7 +4175,16 @@ function app() {
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
       const { room, guest_token } = this.guestSession
       this.guestWs = new WebSocket(`${proto}//${location.host}/ws/guest/${room}?guest_token=${guest_token}`)
-      this.guestWs.onopen = () => { this.guestWsConnected = true }
+      this.guestWs.onopen = () => {
+        this.guestWsConnected = true
+        // Heartbeat cada 25s para mantener la conexión viva
+        if (this._guestPing) clearInterval(this._guestPing)
+        this._guestPing = setInterval(() => {
+          if (this.guestWs && this.guestWs.readyState === WebSocket.OPEN) {
+            this.guestWs.send(JSON.stringify({ ping: true }))
+          }
+        }, 25000)
+      }
       this.guestWs.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data)
@@ -4176,17 +4192,19 @@ function app() {
             this.guestMessages = msg.data || []
           } else if (msg.type === 'message') {
             this.guestMessages.push(msg.data)
+            this.$nextTick(() => {
+              const el = document.getElementById('victim-dm-messages')
+              if (el) el.scrollTop = el.scrollHeight
+            })
           }
-          this.$nextTick(() => {
-            const el = document.getElementById('victim-dm-messages')
-            if (el) el.scrollTop = el.scrollHeight
-          })
         } catch {}
       }
       this.guestWs.onclose = () => {
         this.guestWsConnected = false
-        if (this.guestSession && this.guestChatOpen) {
-          setTimeout(() => this._connectGuestWs(), 4000)
+        if (this._guestPing) { clearInterval(this._guestPing); this._guestPing = null }
+        // Reconectar siempre que haya sesión activa (sin importar si el overlay está abierto)
+        if (this.guestSession) {
+          setTimeout(() => this._connectGuestWs(), 3000)
         }
       }
       this.guestWs.onerror = () => { this.guestWsConnected = false }
@@ -4232,7 +4250,13 @@ function app() {
       if (this.adminDmWs) { this.adminDmWs.close(); this.adminDmWs = null }
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
       this.adminDmWs = new WebSocket(`${proto}//${location.host}/ws/dm/${roomInfo.room}?token=${this.token}`)
-      this.adminDmWs.onopen = () => { this.adminDmConnected = true }
+      this.adminDmWs.onopen = () => {
+        this.adminDmConnected = true
+        if (this._adminDmPing) clearInterval(this._adminDmPing)
+        this._adminDmPing = setInterval(() => {
+          if (this.adminDmWs && this.adminDmWs.readyState === WebSocket.OPEN) this.adminDmWs.send(JSON.stringify({ ping: true }))
+        }, 25000)
+      }
       this.adminDmWs.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data)
@@ -4241,7 +4265,7 @@ function app() {
           } else if (msg.type === 'message') {
             this.adminDmMessages.push(msg.data)
             // Si el mensaje es del otro, refrescar la lista en background
-            if (msg.data.user_id !== this.user?.id) {
+            if (msg.data.user_id !== this.user?.id && msg.data.sender_role !== 'system') {
               this.loadAdminDmRooms(true)
             }
           }
@@ -4251,7 +4275,10 @@ function app() {
           })
         } catch {}
       }
-      this.adminDmWs.onclose = () => { this.adminDmConnected = false }
+      this.adminDmWs.onclose = () => {
+        this.adminDmConnected = false
+        if (this._adminDmPing) { clearInterval(this._adminDmPing); this._adminDmPing = null }
+      }
       // Limpiar unread en la sala activa
       const r = this.adminDmRooms.find(r => r.room === roomInfo.room)
       if (r) r.unread = 0
