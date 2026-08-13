@@ -2983,29 +2983,31 @@
     </div>
 
     <!-- Input enviar -->
-    <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 12px;flex-shrink:0;padding-bottom:max(10px, env(safe-area-inset-bottom))">
-      <div style="display:flex;align-items:flex-end;gap:0;border:1.5px solid #e5e7eb;border-radius:24px;overflow:hidden;background:white;transition:border-color .15s"
-           :style="chatConnected ? 'border-color:#e5e7eb' : 'border-color:#f3f4f6'">
+    <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 14px;flex-shrink:0"
+         :style="'padding-bottom:max(10px,env(safe-area-inset-bottom))'">
+      <div class="flex items-end gap-2">
         <textarea
           x-model="chatInput"
           @keydown.enter.prevent="if(!$event.shiftKey){ sendChatMessage() }"
-          @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,100)+'px'"
-          @focus="$el.closest('div').style.borderColor='#dc2626'"
-          @blur="$el.closest('div').style.borderColor='#e5e7eb'"
+          @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,96)+'px'"
           placeholder="Escribe un mensaje..."
           rows="1"
           maxlength="500"
-          style="flex:1;resize:none;border:none;outline:none;padding:10px 14px;font-size:14px;line-height:1.4;font-family:inherit;max-height:100px;overflow-y:auto;background:transparent"
+          class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-red-400"
+          style="resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:auto"
           :disabled="!chatConnected"
         ></textarea>
         <button
           @click="sendChatMessage()"
           :disabled="!chatInput.trim() || !chatConnected"
-          style="width:44px;min-height:42px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;border-left:1.5px solid #f3f4f6"
-          :style="chatInput.trim() && chatConnected ? 'background:#dc2626' : 'background:#f9fafb'"
+          class="flex-shrink-0 rounded-xl border-2 flex items-center justify-center transition-all"
+          style="width:44px;height:44px"
+          :class="chatInput.trim() && chatConnected ? 'bg-red-600 border-red-600' : 'bg-gray-100 border-gray-200'"
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" :stroke="chatInput.trim() && chatConnected ? 'white' : '#9ca3af'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"
+              :stroke="chatInput.trim() && chatConnected ? 'white' : '#9ca3af'"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>
