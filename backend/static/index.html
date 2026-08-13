@@ -1638,14 +1638,14 @@
     </div>
 
     <!-- Tab bar — barra blanca separada del header rojo -->
-    <div class="bg-white border-b border-gray-200 flex flex-shrink-0 shadow-sm">
+    <div class="bg-white border-b border-gray-200 flex-shrink-0 shadow-sm" style="display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
       <button @click="panelTab='pendientes'"
-        class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent"
+        style="flex:0 0 auto;min-width:80px;padding:10px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;white-space:nowrap;transition:color .15s;"
         :style="panelTab==='pendientes' ? 'border-bottom:3px solid #dc2626;color:#dc2626' : 'border-bottom:3px solid transparent;color:#6b7280'">
         🆘 Pendientes
       </button>
       <button @click="panelTab='miscasos'"
-        class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent relative"
+        style="flex:0 0 auto;min-width:80px;padding:10px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;white-space:nowrap;transition:color .15s;position:relative;"
         :style="panelTab==='miscasos' ? 'border-bottom:3px solid #2563eb;color:#2563eb' : 'border-bottom:3px solid transparent;color:#6b7280'">
         🔵 Mis casos
         <template x-if="reports.filter(r=>r.status==='in_progress'&&r.assigned_to===user?.id).length > 0">
@@ -1655,19 +1655,19 @@
         </template>
       </button>
       <button @click="panelTab='zona'; $nextTick(()=>initActionMap())"
-        class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent"
+        style="flex:0 0 auto;min-width:80px;padding:10px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;white-space:nowrap;transition:color .15s;"
         :style="panelTab==='zona' ? 'border-bottom:3px solid #dc2626;color:#dc2626' : 'border-bottom:3px solid transparent;color:#6b7280'">
         📍 Mi zona
       </button>
       <template x-if="user?.role==='coordinator'">
         <button @click="panelTab='admin'; loadAdminVolunteers()"
-          class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent"
+          style="flex:0 0 auto;min-width:80px;padding:10px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;white-space:nowrap;transition:color .15s;"
           :style="panelTab==='admin' ? 'border-bottom:3px solid #7c3aed;color:#7c3aed' : 'border-bottom:3px solid transparent;color:#6b7280'">
           ⚙️ Admin
         </button>
       </template>
       <button @click="panelTab='mensajes'; dmUnread=0; if(!dmRoom) openDm(); $nextTick(()=>{const el=document.getElementById('dm-messages'); if(el)el.scrollTop=el.scrollHeight})"
-        class="flex-1 py-3 text-sm font-semibold border-none cursor-pointer transition-all bg-transparent relative"
+        style="flex:0 0 auto;min-width:80px;padding:10px 12px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;white-space:nowrap;transition:color .15s;position:relative;"
         :style="panelTab==='mensajes' ? 'border-bottom:3px solid #0369a1;color:#0369a1' : 'border-bottom:3px solid transparent;color:#6b7280'">
         💬 Mensajes
         <template x-if="dmUnread > 0">
