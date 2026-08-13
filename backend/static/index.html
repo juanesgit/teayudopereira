@@ -129,8 +129,8 @@
 
   <!-- PÁGINAS -->
 
-  <!-- MAPA — siempre en el DOM para que Leaflet nunca pierda dimensiones -->
-  <div style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
+  <!-- MAPA -->
+  <div x-show="page==='map'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
     <!-- Chips filtro -->
     <div class="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 hide-scroll flex-shrink-0">
       <!-- Emergencias -->
@@ -426,7 +426,7 @@
   </template>
 
   <!-- PEDIR AYUDA -->
-  <div x-show="page==='report'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
+  <div x-show="page==='report'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER 4 pasos -->
@@ -1118,7 +1118,7 @@
   </div>
 
   <!-- VOLUNTARIOS -->
-  <div x-show="page==='volunteers'" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white;display:flex;flex-direction:column">
+  <div x-show="page==='volunteers'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column">
 
     <!-- Header fijo con contador y búsqueda -->
     <div class="bg-white border-b border-gray-100 px-4 pt-4 pb-3 flex-shrink-0">
@@ -1204,7 +1204,7 @@
   </div>
 
   <!-- ACCESO VOLUNTARIO (login + registro en una sola página) -->
-  <div x-show="page==='login'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
+  <div x-show="page==='login'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
     <div class="max-w-sm mx-auto px-4 py-6">
 
       <!-- Hero -->
@@ -1588,7 +1588,7 @@
   </div>
 
   <!-- DASHBOARD VOLUNTARIO -->
-  <div x-show="page==='panel'" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white;display:flex;flex-direction:column;">
+  <div x-show="page==='panel'" style="height:calc(100vh - 56px - var(--nav-h)); display:flex; flex-direction:column;">
 
     <!-- Header fijo -->
     <div class="bg-red-600 text-white px-4 pt-4 pb-4 flex-shrink-0">
@@ -1962,7 +1962,7 @@
   </div>
 
   <!-- REPORTAR ZONA DE PELIGRO -->
-  <div x-show="page==='danger'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
+  <div x-show="page==='danger'" class="overflow-auto pb-20" style="height:calc(100vh - 56px - var(--nav-h))">
     <div class="max-w-lg mx-auto px-4 py-5">
 
       <!-- STEPPER -->
@@ -2382,7 +2382,7 @@
   <!-- ══════════════════════════════════════════════
        PANEL ADMIN DEL SISTEMA (solo rol admin)
   ══════════════════════════════════════════════ -->
-  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="position:fixed;top:56px;left:0;right:0;bottom:var(--nav-h);z-index:50;background:white">
+  <div x-show="page==='sysadmin'" class="overflow-auto pb-20" style="height:calc(100vh - var(--nav-h))">
     <div class="max-w-2xl mx-auto px-4 py-5">
 
       <!-- Header -->
@@ -3134,6 +3134,17 @@ function app() {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map)
       this.renderMarkers()
+      // Recalibrar cuando el contenedor cambia de tamaño
+      // (barra URL del móvil aparece/desaparece, rotación, etc.)
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+          if (this.map) this.map.invalidateSize({ animate: false, pan: false })
+        })
+        ro.observe(el)
+      }
+      window.addEventListener('resize', () => {
+        if (this.map) this.map.invalidateSize({ animate: false, pan: false })
+      })
     },
 
     async loadData() {
@@ -3403,14 +3414,14 @@ function app() {
     navigateTo(id) {
       this.page = id
       if (id === 'map') {
-        // El mapa siempre está en el DOM (nunca display:none), así que
-        // solo necesitamos renderMarkers para refrescar los puntos.
+        // Destruir y recrear el mapa para garantizar coordenadas perfectas.
+        // Es equivalente a un refresh pero sin recargar la página.
         this.$nextTick(() => {
           if (this.map) {
-            this.renderMarkers()
-          } else {
-            this.initMap()
+            this.map.remove()
+            this.map = null
           }
+          this.initMap()
         })
       }
       if (id === 'volunteers') this.loadVolunteers()
