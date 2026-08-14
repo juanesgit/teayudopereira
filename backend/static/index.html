@@ -438,7 +438,8 @@
   <template x-if="infoModal">
     <div x-data="{ slide: 0, slides: [
           { icon: '📋', label: 'Pedir Ayuda',  src: '/static/infografia_pedir_ayuda.html' },
-          { icon: '🆘', label: 'Alerta SOS',   src: '/static/infografia_alerta_sos.html'  }
+          { icon: '🆘', label: 'Alerta SOS',     src: '/static/infografia_alerta_sos.html'    },
+          { icon: '🤝', label: 'Quiero Ayudar', src: '/static/infografia_quiero_ayudar.html' }
         ] }"
       style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center"
       @click.self="infoModal=false">
