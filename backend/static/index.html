@@ -2250,6 +2250,10 @@
 
     <!-- Input -->
     <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 16px 14px;flex-shrink:0;">
+      <!-- Aviso sin conexión DM -->
+      <div x-show="!isOnline" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:6px">
+        <span>📵</span><span>Sin conexión — los mensajes se enviarán al reconectar</span>
+      </div>
       <div style="display:flex;align-items:flex-end;gap:8px">
         <textarea x-model="dmInput"
           @keydown.enter.prevent="if(!$event.shiftKey){ sendDmMessage() }"
@@ -3562,6 +3566,10 @@
 
     <!-- Input enviar -->
     <div style="background:white;border-top:1px solid #e5e7eb;flex-shrink:0;padding:10px 16px 14px">
+      <!-- Aviso sin conexión chat -->
+      <div x-show="!isOnline" style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:7px 12px;margin-bottom:8px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:6px">
+        <span>📵</span><span>Sin conexión — el chat no está disponible</span>
+      </div>
       <div style="display:flex;align-items:flex-end;gap:8px">
         <textarea
           x-model="chatInput"
@@ -4161,9 +4169,21 @@ function app() {
         this.isOnline = true
         this.syncOfflineQueue()
         this.loadData()   // refrescar datos al reconectar
+        // Reconectar WebSockets que se cerraron sin red
+        if (this.token) {
+          if (!this.chatWs || this.chatWs.readyState > 1) this.connectChat()
+          if (this.dmRoom && (!this.dmWs || this.dmWs.readyState > 1)) this._connectDmWs(this.dmRoom)
+        }
       })
       window.addEventListener('offline', () => {
         this.isOnline = false
+      })
+      // iOS no soporta BackgroundSync — reintentar al volver a la app (visibilitychange)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          this.isOnline = true
+          this.syncOfflineQueue()
+        }
       })
     },
 
@@ -4173,7 +4193,22 @@ function app() {
       let synced = 0
       for (const item of queue) {
         try {
-          const { _qid, _queued_at, ...payload } = item
+          const { _qid, _queued_at, _photoBase64, ...payload } = item
+
+          // Si hay foto guardada en base64, subirla primero
+          if (_photoBase64) {
+            try {
+              const blob = await fetch(_photoBase64).then(r => r.blob())
+              const fd = new FormData()
+              fd.append('file', blob, 'foto_offline.jpg')
+              const up = await fetch('/upload', { method: 'POST', body: fd })
+              if (up.ok) {
+                const upData = await up.json()
+                payload.photo_url = upData.url
+              }
+            } catch {}
+          }
+
           const res = await fetch('/reports/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -4380,7 +4415,8 @@ function app() {
       this.dmWs.onclose = () => {
         this.dmConnected = false
         if (this._dmPing) { clearInterval(this._dmPing); this._dmPing = null }
-        if (this.token && this.dmRoom) setTimeout(() => this._connectDmWs(this.dmRoom), 3000)
+        // Solo reconectar si hay red
+        if (this.token && this.dmRoom && navigator.onLine) setTimeout(() => this._connectDmWs(this.dmRoom), 3000)
       }
       this.$nextTick(() => {
         const el = document.getElementById('dm-messages')
@@ -4655,7 +4691,8 @@ function app() {
       }
       this.chatWs.onclose = () => {
         this.chatConnected = false
-        if (this.token) setTimeout(() => this.connectChat(), 4000)
+        // Solo reconectar si hay red
+        if (this.token && navigator.onLine) setTimeout(() => this.connectChat(), 4000)
       }
       this.chatWs.onerror = () => { this.chatWs && this.chatWs.close() }
     },
@@ -4889,9 +4926,17 @@ function app() {
           extra_data: JSON.stringify({ ...extra, reporter_id, reporter_last_name })
         }
 
-        // Sin conexión → encolar para sincronizar después
+        // Sin conexión → encolar (con foto en base64 si existe)
         if (!this.isOnline) {
-          const queued = { ...payload, _qid: Date.now() + Math.random().toString(36).slice(2), _queued_at: new Date().toISOString() }
+          let photoBase64 = null
+          if (photoFile) {
+            photoBase64 = await new Promise(resolve => {
+              const r = new FileReader()
+              r.onload = e => resolve(e.target.result)
+              r.readAsDataURL(photoFile)
+            })
+          }
+          const queued = { ...payload, _photoBase64: photoBase64, _qid: Date.now() + Math.random().toString(36).slice(2), _queued_at: new Date().toISOString() }
           this.offlineQueue.push(queued)
           localStorage.setItem('tap_offline_queue', JSON.stringify(this.offlineQueue))
           this.reportStep = 'done'

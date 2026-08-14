@@ -3,7 +3,7 @@
    Estrategias de caché para funcionamiento offline
    ================================================================ */
 
-const CACHE_APP   = 'tap-app-v6'
+const CACHE_APP   = 'tap-app-v7'
 const CACHE_API   = 'tap-api-v1'
 const CACHE_TILES = 'tap-tiles-v1'
 
@@ -100,7 +100,8 @@ self.addEventListener('fetch', event => {
   }
 
   // API datos del mapa → network-first con fallback a caché
-  if (url.pathname.match(/^\/(reports|aid-points|danger-zones)\//)) {
+  // Nota: barra final opcional para cubrir /reports y /reports/
+  if (url.pathname.match(/^\/(reports|aid-points|danger-zones)\/?(\?|$)/)) {
     event.respondWith(networkFirst(request, CACHE_API))
     return
   }
