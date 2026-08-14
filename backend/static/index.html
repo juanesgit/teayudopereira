@@ -457,16 +457,17 @@
             style="background:#f3f4f6;border:none;color:#6b7280;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:700">✕</button>
         </div>
 
-        <!-- Tabs — mismo patrón que panel de voluntarios -->
-        <div class="hide-scroll border-b border-gray-100" style="display:flex;overflow-x:auto;flex-shrink:0">
+        <!-- Tabs — mismo patrón que panel de voluntarios, distribuidos en ancho completo -->
+        <div class="hide-scroll" style="display:flex;flex-shrink:0;border-bottom:1px solid #f3f4f6;width:100%">
           <template x-for="(s, i) in slides" :key="i">
             <button @click="slide=i"
-              class="py-3 px-5 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex-shrink-0 flex flex-col items-center gap-0.5"
+              class="text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex flex-col items-center gap-0.5"
+              style="flex:1;padding:12px 8px 10px;outline:none"
               :style="slide===i
                 ? 'border-bottom:2px solid #dc2626;color:#dc2626'
                 : 'border-bottom:2px solid transparent;color:#9ca3af'">
-              <span x-text="s.icon" style="font-size:18px;line-height:1"></span>
-              <span x-text="s.label"></span>
+              <span x-text="s.icon" style="font-size:20px;line-height:1;margin-bottom:3px"></span>
+              <span x-text="s.label" style="font-size:11px;font-weight:700;letter-spacing:0.2px"></span>
             </button>
           </template>
         </div>
