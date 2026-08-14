@@ -3,7 +3,7 @@
    Estrategias de caché para funcionamiento offline
    ================================================================ */
 
-const CACHE_APP   = 'tap-app-v4'
+const CACHE_APP   = 'tap-app-v5'
 const CACHE_API   = 'tap-api-v1'
 const CACHE_TILES = 'tap-tiles-v1'
 
