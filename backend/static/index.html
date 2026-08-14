@@ -325,41 +325,45 @@
           <!-- PASO 2: OTP + nueva contraseña -->
           <div x-show="forgotStep==='otp'">
 
-            <!-- Info SMS enviado -->
-            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-              <span style="font-size:18px">📲</span>
-              <p style="font-size:12px;color:#166534;font-weight:600;margin:0">Código enviado por SMS a tu número registrado</p>
+            <!-- Banner: código enviado -->
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">📲</span>
+              <p style="font-size:12px;color:#166534;font-weight:600;margin:0;line-height:1.4">Código enviado por SMS a tu número registrado</p>
             </div>
 
-            <!-- Código OTP -->
-            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Código de 6 dígitos</label>
-            <input x-model="forgotForm.otp" type="tel" inputmode="numeric" placeholder="— — — — — —"
+            <!-- Código OTP — centrado, grande -->
+            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px;text-align:center">Código de 6 dígitos</label>
+            <input x-model="forgotForm.otp" type="tel" inputmode="numeric" placeholder="· · · · · ·"
               maxlength="6"
               @input="forgotForm.otp=forgotForm.otp.replace(/\D/g,'').slice(0,6)"
-              style="width:100%;border:2px solid #e5e7eb;border-radius:14px;padding:14px;font-size:24px;font-weight:800;letter-spacing:12px;text-align:center;outline:none;box-sizing:border-box;margin-bottom:16px;transition:border-color .2s;text-transform:none"
-              :style="forgotForm.otp.length===6 ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"/>
+              style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:16px 20px;font-size:28px;font-weight:900;letter-spacing:16px;text-align:center;outline:none;margin-bottom:20px;transition:border-color .2s;background:#f9fafb;text-transform:none;display:block"
+              :style="forgotForm.otp.length===6 ? 'border-color:#dc2626;background:white' : 'border-color:#e5e7eb'"/>
 
             <!-- Nueva contraseña -->
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Nueva contraseña</label>
-            <div style="display:flex;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:12px;transition:border-color .2s"
+            <div style="display:flex;align-items:center;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:12px;background:white;transition:border-color .2s"
               :style="forgotForm.newPass ? 'border-color:#dc2626' : 'border-color:#e5e7eb'">
               <input x-model="forgotForm.newPass" :type="forgotForm.showPass ? 'text' : 'password'"
                 placeholder="Mínimo 6 caracteres"
-                style="flex:1;padding:14px 12px;font-size:15px;border:none;outline:none;background:white"/>
+                style="flex:1;padding:14px 16px;font-size:15px;border:none;outline:none;background:transparent"/>
               <button type="button" @click="forgotForm.showPass=!forgotForm.showPass"
-                style="padding:0 14px;background:white;border:none;cursor:pointer;font-size:18px">
+                style="padding:0 16px;background:transparent;border:none;cursor:pointer;font-size:18px;flex-shrink:0">
                 <span x-text="forgotForm.showPass ? '🙈' : '👁️'"></span>
               </button>
             </div>
 
             <!-- Confirmar contraseña -->
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Confirmar contraseña</label>
-            <div style="display:flex;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:16px;transition:border-color .2s"
+            <div style="display:flex;align-items:center;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:20px;background:white;transition:border-color .2s"
               :style="forgotForm.confirmPass && forgotForm.confirmPass!==forgotForm.newPass ? 'border-color:#ef4444' : forgotForm.confirmPass && forgotForm.confirmPass===forgotForm.newPass ? 'border-color:#16a34a' : 'border-color:#e5e7eb'">
               <input x-model="forgotForm.confirmPass" :type="forgotForm.showPass ? 'text' : 'password'"
                 placeholder="Repite la contraseña"
                 @keyup.enter="resetPassword()"
-                style="flex:1;padding:14px 12px;font-size:15px;border:none;outline:none;background:white"/>
+                style="flex:1;padding:14px 16px;font-size:15px;border:none;outline:none;background:transparent"/>
+              <span x-show="forgotForm.confirmPass && forgotForm.confirmPass===forgotForm.newPass"
+                style="padding:0 14px;font-size:18px;flex-shrink:0">✅</span>
+              <span x-show="forgotForm.confirmPass && forgotForm.confirmPass!==forgotForm.newPass"
+                style="padding:0 14px;font-size:18px;flex-shrink:0">❌</span>
             </div>
 
             <!-- Botón principal -->
@@ -393,10 +397,14 @@
               </button>
             </div>
 
-            <!-- Mensaje feedback (solo en paso 2) -->
-            <div x-show="forgotMsg && forgotStep==='otp'" x-text="forgotMsg"
-              style="margin-top:12px;font-size:13px;text-align:center;padding:10px 14px;border-radius:12px"
-              :style="forgotError ? 'background:#fef2f2;color:#991b1b;border:1px solid #fecaca' : 'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0'"></div>
+            <!-- Banner feedback (mismo estilo que el de arriba) -->
+            <div x-show="forgotMsg && forgotStep==='otp'"
+              style="margin-top:12px;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px"
+              :style="forgotError ? 'background:#fef2f2;border:1px solid #fecaca' : 'background:#f0fdf4;border:1px solid #bbf7d0'">
+              <span x-text="forgotError ? '⚠️' : '✅'" style="font-size:18px;flex-shrink:0"></span>
+              <p x-text="forgotMsg" style="font-size:12px;font-weight:600;margin:0;line-height:1.4"
+                :style="forgotError ? 'color:#991b1b' : 'color:#166534'"></p>
+            </div>
 
           </div>
 
