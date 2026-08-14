@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from sqlalchemy import select, func, update
@@ -29,42 +29,13 @@ from app.models.guest_session import GuestSession
 from app.models.user import User, UserRole
 from app.services.auth import get_current_user
 from app.routers.push import send_push_to_user, send_push_to_admins, send_push_to_guest
+from app.services.broadcaster import room_broadcaster as dm_manager
 
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["DMs"])
 
 HISTORY_LIMIT = 60
 ALLOWED_ROLES = {"volunteer", "coordinator", "admin", "victim"}
-
-# ─── Connection manager por sala ─────────────────────────────────────────────
-
-class DmManager:
-    def __init__(self) -> None:
-        self._rooms: Dict[str, Dict[WebSocket, dict]] = {}
-
-    def _room(self, room: str) -> Dict[WebSocket, dict]:
-        return self._rooms.setdefault(room, {})
-
-    async def connect(self, ws: WebSocket, room: str, user_id: int, name: str, role: str) -> None:
-        await ws.accept()
-        self._room(room)[ws] = {"user_id": user_id, "name": name, "role": role}
-
-    def disconnect(self, ws: WebSocket, room: str) -> None:
-        self._room(room).pop(ws, None)
-        if not self._room(room):
-            self._rooms.pop(room, None)
-
-    async def broadcast(self, room: str, payload: dict) -> None:
-        dead: List[WebSocket] = []
-        for ws in list(self._room(room)):
-            try:
-                await ws.send_json(payload)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self._room(room).pop(ws, None)
-
-dm_manager = DmManager()
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -134,10 +105,12 @@ async def dm_ws(ws: WebSocket, room: str, token: str = Query(...)):
             await ws.close(code=1008)
             return
     else:
-        parts = room.replace("dm_", "").split("_")
-        if len(parts) != 2 or str(user_id) not in parts:
-            await ws.close(code=1008)
-            return
+        # Admins/coordinadores pueden unirse a cualquier sala dm_*
+        if user_role not in ("admin", "coordinator"):
+            parts = room.replace("dm_", "").split("_")
+            if len(parts) != 2 or str(user_id) not in parts:
+                await ws.close(code=1008)
+                return
 
     name = f"{user.full_name}" + (f" {user.last_name}" if user.last_name else "")
 
@@ -146,12 +119,23 @@ async def dm_ws(ws: WebSocket, room: str, token: str = Query(...)):
     # Historial + marcar leídos
     async with AsyncSessionLocal() as db:
         history = await _get_history(db, room)
-        # Marcar como leídos los mensajes del otro
-        await db.execute(
-            update(ChatMessage)
-            .where(ChatMessage.channel == room, ChatMessage.user_id != user_id, ChatMessage.is_read == False)  # noqa
-            .values(is_read=True)
-        )
+        # Admins marcan como leídos los mensajes de no-admin; el resto marca los del otro
+        if user_role in ("admin", "coordinator"):
+            await db.execute(
+                update(ChatMessage)
+                .where(
+                    ChatMessage.channel == room,
+                    ChatMessage.is_read == False,  # noqa
+                    ~ChatMessage.sender_role.in_(["admin", "coordinator"])
+                )
+                .values(is_read=True)
+            )
+        else:
+            await db.execute(
+                update(ChatMessage)
+                .where(ChatMessage.channel == room, ChatMessage.user_id != user_id, ChatMessage.is_read == False)  # noqa
+                .values(is_read=True)
+            )
         await db.commit()
 
     await ws.send_json({"type": "history", "data": history})
@@ -175,7 +159,7 @@ async def dm_ws(ws: WebSocket, room: str, token: str = Query(...)):
                     created_at=datetime.utcnow(),
                 )
                 # Push al otro participante si no está conectado al WS
-                room_conns = dm_manager._rooms.get(room, {})
+                room_conns = dm_manager.get_local_room(room)
                 if room.startswith("guest_"):
                     # Admin respondiendo a ciudadano → push al guest
                     guest_in_room = any(
@@ -220,12 +204,10 @@ async def list_dm_rooms(
         raise HTTPException(403, "Sin permisos")
 
     # ── Salas DM regulares (voluntarios/coordinadores) ────────────────────
+    # Admins ven TODAS las salas dm_*, no solo las propias
     result = await db.execute(
         select(ChatMessage.channel)
         .where(ChatMessage.channel.like("dm_%"))
-        .where(ChatMessage.channel.contains(f"_{current_user.id}_") |
-               ChatMessage.channel.like(f"dm_{current_user.id}_%") |
-               ChatMessage.channel.like(f"%_{current_user.id}"))
         .distinct()
     )
     dm_rooms = [r[0] for r in result.fetchall()]
@@ -249,17 +231,36 @@ async def list_dm_rooms(
             .limit(1)
         )).scalar_one_or_none()
 
+        parts = room.replace("dm_", "").split("_")
+        uid_a, uid_b = int(parts[0]), int(parts[1])
+        user_a = (await db.execute(select(User).where(User.id == uid_a))).scalar_one_or_none()
+        user_b = (await db.execute(select(User).where(User.id == uid_b))).scalar_one_or_none()
+
+        # El "otro" es el que no es admin/coordinador; si ambos lo son, el que no es el actual
+        def _is_admin(u: Optional[User]) -> bool:
+            if not u: return False
+            r = u.role.value if hasattr(u.role, "value") else str(u.role)
+            return r in ("admin", "coordinator")
+
+        if _is_admin(user_a) and not _is_admin(user_b):
+            other = user_b
+        elif _is_admin(user_b) and not _is_admin(user_a):
+            other = user_a
+        elif uid_a == current_user.id:
+            other = user_b
+        else:
+            other = user_a
+
+        other_id = other.id if other else None
+
+        # Mensajes no leídos: los que NO son de admin/coordinador y están sin leer
         unread = (await db.execute(
             select(func.count()).where(
                 ChatMessage.channel == room,
-                ChatMessage.user_id != current_user.id,
-                ChatMessage.is_read == False  # noqa
+                ChatMessage.is_read == False,  # noqa
+                ~ChatMessage.sender_role.in_(["admin", "coordinator"])
             )
         )).scalar()
-
-        parts = room.replace("dm_", "").split("_")
-        other_id = int(parts[0]) if int(parts[1]) == current_user.id else int(parts[1])
-        other = (await db.execute(select(User).where(User.id == other_id))).scalar_one_or_none()
 
         out.append({
             "room": room,
@@ -322,14 +323,20 @@ async def get_dm_room(
         if user_role not in ("admin", "coordinator"):
             raise HTTPException(403, "Sin acceso")
     else:
-        parts = room.replace("dm_", "").split("_")
-        if len(parts) != 2 or str(current_user.id) not in parts:
-            raise HTTPException(403, "Sin acceso")
+        # Admins/coordinadores pueden ver cualquier sala dm_*
+        if user_role not in ("admin", "coordinator"):
+            parts = room.replace("dm_", "").split("_")
+            if len(parts) != 2 or str(current_user.id) not in parts:
+                raise HTTPException(403, "Sin acceso")
 
-    # Marcar como leídos
+    # Marcar como leídos (todos los mensajes de no-admin en la sala)
     await db.execute(
         update(ChatMessage)
-        .where(ChatMessage.channel == room, ChatMessage.user_id != current_user.id, ChatMessage.is_read == False)  # noqa
+        .where(
+            ChatMessage.channel == room,
+            ChatMessage.is_read == False,  # noqa
+            ~ChatMessage.sender_role.in_(["admin", "coordinator"])
+        )
         .values(is_read=True)
     )
     await db.commit()

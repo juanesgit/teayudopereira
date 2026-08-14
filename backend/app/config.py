@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ADMIN_PHONE: str = ""
     ADMIN_PASSWORD: str = ""
     ADMIN_NAME: str = "Administrador"
+    # Redis — Pub/Sub para WebSocket multi-worker
+    REDIS_URL: str = "redis://localhost:6379/0"
     # Web Push VAPID (generadas con cryptography)
     VAPID_PUBLIC_KEY: str = "BCPzvN3YgffxPj81-msoINbKefqCYaTKsVTZ1LZv7zL6reIVtlao6P1g2G28OvGK6kAYzuBv-TkKHphNBVN5zTU"
     VAPID_PRIVATE_KEY: str = "qiSlt8r-QBY295iq3SOdJY61KPhgDjNl5NMRccW6oYM"

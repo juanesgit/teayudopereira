@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy import select
@@ -27,43 +27,10 @@ from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.chat import ChatMessage
 from app.models.user import User
+from app.services.broadcaster import group_broadcaster as manager
 
 log = logging.getLogger(__name__)
 router = APIRouter(tags=["Chat"])
-
-# ─── Connection manager ───────────────────────────────────────────────────────
-
-class ConnectionManager:
-    def __init__(self) -> None:
-        # websocket → {"user_id": int, "name": str, "role": str}
-        self._connections: Dict[WebSocket, dict] = {}
-
-    def online_count(self) -> int:
-        return len(self._connections)
-
-    async def connect(self, ws: WebSocket, user_id: int, name: str, role: str) -> None:
-        await ws.accept()
-        self._connections[ws] = {"user_id": user_id, "name": name, "role": role}
-        log.info("Chat connect: %s (%s) — %d online", name, role, self.online_count())
-
-    def disconnect(self, ws: WebSocket) -> Optional[dict]:
-        info = self._connections.pop(ws, None)
-        if info:
-            log.info("Chat disconnect: %s — %d online", info["name"], self.online_count())
-        return info
-
-    async def broadcast(self, payload: dict) -> None:
-        dead: list[WebSocket] = []
-        for ws in list(self._connections):
-            try:
-                await ws.send_json(payload)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self._connections.pop(ws, None)
-
-
-manager = ConnectionManager()
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,7 +44,7 @@ def _msg_payload(msg: ChatMessage) -> dict:
         "sender_role": msg.sender_role,
         "text": msg.text,
         "is_system": msg.is_system,
-        "created_at": msg.created_at.isoformat() + "Z",  # UTC explícito para JS
+        "created_at": msg.created_at.isoformat() + "Z",
     }
 
 
@@ -130,14 +97,16 @@ async def chat_ws(
     except (JWTError, Exception):
         await ws.close(code=1008)
         return
+
     async with AsyncSessionLocal() as db:
-        user: Optional[User] = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+        user: Optional[User] = (
+            await db.execute(select(User).where(User.id == user_id))
+        ).scalar_one_or_none()
 
     if not user or not user.is_active:
         await ws.close(code=1008)
         return
 
-    # Solo voluntarios, coordinadores y admins
     allowed = ("volunteer", "coordinator", "admin")
     user_role = user.role.value if hasattr(user.role, "value") else str(user.role)
     if user_role not in allowed:
@@ -148,19 +117,20 @@ async def chat_ws(
     role = user.role.value if hasattr(user.role, "value") else str(user.role)
 
     await manager.connect(ws, user_id, name, role)
+    online = await manager.online_count()
 
     # Enviar historial
     async with AsyncSessionLocal() as db:
         history = await _get_history(db)
-    await ws.send_json({"type": "history", "data": history, "online": manager.online_count()})
+    await ws.send_json({"type": "history", "data": history, "online": online})
 
-    # Notificar efímeramente que alguien entró (no se persiste en BD)
+    # Notificar entrada (efímero, no persiste en BD)
     join_payload = {
         "id": None, "user_id": user_id, "sender_name": "Sistema", "sender_role": "system",
         "text": f"{name} se conectó.", "is_system": True,
         "created_at": datetime.utcnow().isoformat() + "Z", "ephemeral": True,
     }
-    await manager.broadcast({"type": "message", "data": join_payload, "online": manager.online_count()})
+    await manager.broadcast({"type": "message", "data": join_payload, "online": await manager.online_count()})
 
     try:
         while True:
@@ -185,17 +155,25 @@ async def chat_ws(
                     is_system=False,
                     created_at=datetime.utcnow(),
                 )
-            await manager.broadcast({"type": "message", "data": _msg_payload(msg), "online": manager.online_count()})
+            await manager.broadcast({
+                "type": "message",
+                "data": _msg_payload(msg),
+                "online": await manager.online_count(),
+            })
 
     except WebSocketDisconnect:
-        info = manager.disconnect(ws)
+        info = await manager.disconnect(ws)
         if info:
             leave_payload = {
                 "id": None, "user_id": None, "sender_name": "Sistema", "sender_role": "system",
                 "text": f"{info['name']} se desconectó.", "is_system": True,
                 "created_at": datetime.utcnow().isoformat() + "Z", "ephemeral": True,
             }
-            await manager.broadcast({"type": "message", "data": leave_payload, "online": manager.online_count()})
+            await manager.broadcast({
+                "type": "message",
+                "data": leave_payload,
+                "online": await manager.online_count(),
+            })
     except Exception as exc:
         log.error("Chat WS error: %s", exc)
-        manager.disconnect(ws)
+        await manager.disconnect(ws)

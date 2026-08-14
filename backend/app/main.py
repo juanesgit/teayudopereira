@@ -1,13 +1,18 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, HTTPException
+
+logging.basicConfig(level=logging.INFO)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from pathlib import Path
 import uuid, shutil
 
+from app.config import settings
 from app.database import init_db
 from app.routers import auth, reports, aid_points, danger_zones, users, admin, chat, dm, guest_chat, push
+from app.services.broadcaster import group_broadcaster, room_broadcaster
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 UPLOAD_DIR = STATIC_DIR / "uploads"
@@ -17,7 +22,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await group_broadcaster.setup(settings.REDIS_URL)
+    await room_broadcaster.setup(settings.REDIS_URL)
     yield
+    await group_broadcaster.teardown()
+    await room_broadcaster.teardown()
 
 
 app = FastAPI(

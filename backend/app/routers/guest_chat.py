@@ -149,7 +149,7 @@ async def guest_ws(
                     created_at=datetime.utcnow(),
                 )
                 # Push a admins si ninguno está en la sala
-                room_conns = dm_manager._rooms.get(room, {})
+                room_conns = dm_manager.get_local_room(room)
                 admin_in_room = any(
                     info["role"] in ("admin", "coordinator")
                     for info in room_conns.values()
