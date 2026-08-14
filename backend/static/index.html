@@ -2165,44 +2165,54 @@
 
   <!-- MODAL: instrucciones para agregar al home en iOS -->
   <template x-if="iosInstallModal">
-    <div style="position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px">
-      <div style="background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:400px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <h3 class="text-lg font-bold text-gray-900">Activa las notificaciones 🔔</h3>
-          <button @click="iosInstallModal=false" style="border:none;background:#f3f4f6;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    <div style="position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:white;border-radius:24px;width:100%;max-width:400px;overflow:hidden">
+
+        <!-- Header gradiente -->
+        <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:24px;text-align:center">
+          <div style="font-size:40px;margin-bottom:8px">🔔</div>
+          <h2 style="color:white;font-size:18px;font-weight:800;margin:0 0 4px">Activa las notificaciones</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0">Instala la app en tu pantalla de inicio</p>
         </div>
-        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:20px">🧭</span>
-          <p class="text-xs text-orange-800 font-semibold">Debes hacerlo desde <u>Safari</u>, no desde Chrome. Chrome en iPhone no permite instalar apps.</p>
-        </div>
-        <p class="text-sm text-gray-600 mb-5">Una vez instalada, abre la app desde el ícono del home y las notificaciones se activarán.</p>
-        <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="background:#fff1f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">1️⃣</div>
-            <div>
-              <p class="text-sm font-semibold text-gray-800">Abre esta página en <span style="color:#dc2626">Safari</span></p>
-              <p class="text-xs text-gray-500">Copia el enlace y pégalo en Safari si estás en Chrome</p>
+
+        <!-- Cuerpo -->
+        <div style="padding:24px">
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">🧭</span>
+            <p style="font-size:12px;color:#92400e;font-weight:600;margin:0">Debes hacerlo desde <u>Safari</u>. Chrome en iPhone no permite instalar apps.</p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="background:#fef2f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">1️⃣</div>
+              <div>
+                <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px">Abre esta página en <span style="color:#dc2626">Safari</span></p>
+                <p style="font-size:12px;color:#6b7280;margin:0">Copia el enlace y pégalo en Safari si estás en Chrome</p>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="background:#fef2f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">2️⃣</div>
+              <div>
+                <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px">Toca el botón compartir ⬆️</p>
+                <p style="font-size:12px;color:#6b7280;margin:0">En la barra inferior de Safari</p>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="background:#fef2f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">3️⃣</div>
+              <div>
+                <p style="font-size:14px;font-weight:600;color:#111827;margin:0 0 2px">Selecciona "Añadir a pantalla de inicio"</p>
+                <p style="font-size:12px;color:#6b7280;margin:0">Luego abre la app desde el ícono — ¡listo!</p>
+              </div>
             </div>
           </div>
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="background:#fff1f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">2️⃣</div>
-            <div>
-              <p class="text-sm font-semibold text-gray-800">Toca el botón compartir ⬆️</p>
-              <p class="text-xs text-gray-500">En la barra inferior de Safari</p>
-            </div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:12px">
-            <div style="background:#fff1f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">3️⃣</div>
-            <div>
-              <p class="text-sm font-semibold text-gray-800">Selecciona "Añadir a pantalla de inicio"</p>
-              <p class="text-xs text-gray-500">Luego abre la app desde el ícono — ¡listo!</p>
-            </div>
-          </div>
+
+          <button @click="iosInstallModal=false"
+            class="w-full text-white font-bold rounded-2xl border-none cursor-pointer"
+            style="min-height:52px;font-size:15px;background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 3px 10px rgba(220,38,38,.35)">
+            Entendido ✓
+          </button>
         </div>
-        <button @click="iosInstallModal=false"
-          style="width:100%;background:#dc2626;color:white;border:none;border-radius:16px;font-size:16px;font-weight:700;height:52px;cursor:pointer;letter-spacing:.3px">
-          Entendido
-        </button>
+
       </div>
     </div>
   </template>
@@ -2210,26 +2220,39 @@
   <!-- MODAL: pedir nombre al ciudadano anónimo -->
   <template x-if="guestNameModal">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:3000;display:flex;align-items:center;justify-content:center;padding:24px">
-      <div style="background:white;border-radius:24px;padding:32px 24px;width:100%;max-width:360px;text-align:center">
-        <div style="font-size:52px;margin-bottom:12px">💬</div>
-        <h2 style="font-size:20px;font-weight:800;color:#111827;margin:0 0 8px">¿Cómo te llamas?</h2>
-        <p style="font-size:14px;color:#6b7280;margin:0 0 20px;line-height:1.5">Solo necesitamos tu nombre para identificar tu conversación con el equipo de coordinación.</p>
-        <input x-model="guestNameInput"
-          @keydown.enter="confirmGuestName()"
-          placeholder="Tu nombre"
-          maxlength="80"
-          style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 16px;font-size:16px;font-family:inherit;outline:none;margin-bottom:16px;text-align:left"
-          @focus="$el.style.borderColor='#dc2626'"
-          @blur="$el.style.borderColor='#e5e7eb'">
-        <button @click="confirmGuestName()" :disabled="!guestNameInput.trim()"
-          style="width:100%;background:#dc2626;color:white;border:none;border-radius:16px;font-size:16px;font-weight:700;height:52px;cursor:pointer;margin-bottom:10px;letter-spacing:.3px;opacity:1"
-          :style="!guestNameInput.trim() ? 'opacity:.4;cursor:not-allowed' : 'opacity:1'">
-          💬 Iniciar chat
-        </button>
-        <button @click="guestNameModal=false; guestNameInput=''"
-          style="width:100%;background:transparent;color:#9ca3af;border:none;cursor:pointer;font-size:13px;padding:8px">
-          Cancelar
-        </button>
+      <div style="background:white;border-radius:24px;width:100%;max-width:360px;overflow:hidden">
+
+        <!-- Header gradiente igual que forgotModal -->
+        <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:24px;text-align:center">
+          <div style="font-size:40px;margin-bottom:8px">💬</div>
+          <h2 style="color:white;font-size:18px;font-weight:800;margin:0 0 4px">Canal de ayuda</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0">Conecta con el equipo de coordinación</p>
+        </div>
+
+        <!-- Cuerpo -->
+        <div style="padding:24px">
+          <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Tu nombre</label>
+          <input x-model="guestNameInput"
+            @keydown.enter="confirmGuestName()"
+            placeholder="¿Cómo te llamas?"
+            maxlength="80"
+            style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:14px 16px;font-size:15px;font-family:inherit;outline:none;margin-bottom:16px;transition:border-color .2s"
+            @focus="$el.style.borderColor='#dc2626'"
+            @blur="$el.style.borderColor='#e5e7eb'">
+
+          <button @click="confirmGuestName()" :disabled="!guestNameInput.trim()"
+            class="w-full text-white font-bold rounded-2xl border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style="min-height:52px;font-size:15px;background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 3px 10px rgba(220,38,38,.35)">
+            Iniciar chat →
+          </button>
+
+          <button @click="guestNameModal=false; guestNameInput=''"
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer"
+            style="min-height:48px;font-size:15px;background:#f3f4f6;color:#6b7280;margin-top:10px">
+            Cancelar
+          </button>
+        </div>
+
       </div>
     </div>
   </template>
