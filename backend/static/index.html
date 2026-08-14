@@ -86,6 +86,11 @@
       100% { box-shadow: 0 0 0 0px rgba(255,255,255,.7); transform: scale(1); }
     }
 
+    /* ── OTP boxes ── */
+    .otp-box { border-color: #e5e7eb; transition: border-color .15s, box-shadow .15s; }
+    .otp-box:focus { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220,38,38,.15); outline: none; }
+    .otp-box.otp-filled { border-color: #dc2626 !important; }
+
     /* ── Tooltips de marcadores ── */
     .tap-tooltip {
       background: rgba(17,24,39,.92) !important;
@@ -331,32 +336,28 @@
               <p style="font-size:12px;color:#166534;font-weight:600;margin:0;line-height:1.4">Código enviado por SMS a tu número registrado</p>
             </div>
 
-            <!-- Código OTP — 6 casillas ovaladas -->
+            <!-- Código OTP — 6 casillas individuales -->
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:14px;text-align:center">Código de 6 dígitos</label>
-            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;cursor:text" @click="$refs.otpInput.focus()">
-              <div style="width:44px;height:54px;border:2px solid #e5e7eb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:white;transition:border-color .15s,box-shadow .15s"
-                :style="forgotForm.otp.length===0 ? 'border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)' : 'border-color:#dc2626'"
-                x-text="forgotForm.otp[0]||''"></div>
-              <div style="width:44px;height:54px;border:2px solid #e5e7eb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:white;transition:border-color .15s,box-shadow .15s"
-                :style="forgotForm.otp.length===1 ? 'border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)' : forgotForm.otp.length>1 ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"
-                x-text="forgotForm.otp[1]||''"></div>
-              <div style="width:44px;height:54px;border:2px solid #e5e7eb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:white;transition:border-color .15s,box-shadow .15s"
-                :style="forgotForm.otp.length===2 ? 'border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)' : forgotForm.otp.length>2 ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"
-                x-text="forgotForm.otp[2]||''"></div>
-              <div style="width:44px;height:54px;border:2px solid #e5e7eb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:white;transition:border-color .15s,box-shadow .15s"
-                :style="forgotForm.otp.length===3 ? 'border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)' : forgotForm.otp.length>3 ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"
-                x-text="forgotForm.otp[3]||''"></div>
-              <div style="width:44px;height:54px;border:2px solid #e5e7eb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:white;transition:border-color .15s,box-shadow .15s"
-                :style="forgotForm.otp.length===4 ? 'border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)' : forgotForm.otp.length>4 ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"
-                x-text="forgotForm.otp[4]||''"></div>
-              <div style="width:44px;height:54px;border:2px solid #e5e7eb;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:white;transition:border-color .15s,box-shadow .15s"
-                :style="forgotForm.otp.length===5 ? 'border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.15)' : forgotForm.otp.length===6 ? 'border-color:#dc2626' : 'border-color:#e5e7eb'"
-                x-text="forgotForm.otp[5]||''"></div>
+            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px">
+              <input id="otp-0" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" class="otp-box"
+                @input="otpInput($event,0)" @keydown.backspace="otpBack($event,0)" @paste.prevent="otpPaste($event)"
+                style="width:44px;height:54px;border:2px solid;border-radius:14px;text-align:center;font-size:22px;font-weight:900;outline:none;text-transform:none;color:#111827;background:white"/>
+              <input id="otp-1" type="tel" inputmode="numeric" maxlength="1" class="otp-box"
+                @input="otpInput($event,1)" @keydown.backspace="otpBack($event,1)" @paste.prevent="otpPaste($event)"
+                style="width:44px;height:54px;border:2px solid;border-radius:14px;text-align:center;font-size:22px;font-weight:900;outline:none;text-transform:none;color:#111827;background:white"/>
+              <input id="otp-2" type="tel" inputmode="numeric" maxlength="1" class="otp-box"
+                @input="otpInput($event,2)" @keydown.backspace="otpBack($event,2)" @paste.prevent="otpPaste($event)"
+                style="width:44px;height:54px;border:2px solid;border-radius:14px;text-align:center;font-size:22px;font-weight:900;outline:none;text-transform:none;color:#111827;background:white"/>
+              <input id="otp-3" type="tel" inputmode="numeric" maxlength="1" class="otp-box"
+                @input="otpInput($event,3)" @keydown.backspace="otpBack($event,3)" @paste.prevent="otpPaste($event)"
+                style="width:44px;height:54px;border:2px solid;border-radius:14px;text-align:center;font-size:22px;font-weight:900;outline:none;text-transform:none;color:#111827;background:white"/>
+              <input id="otp-4" type="tel" inputmode="numeric" maxlength="1" class="otp-box"
+                @input="otpInput($event,4)" @keydown.backspace="otpBack($event,4)" @paste.prevent="otpPaste($event)"
+                style="width:44px;height:54px;border:2px solid;border-radius:14px;text-align:center;font-size:22px;font-weight:900;outline:none;text-transform:none;color:#111827;background:white"/>
+              <input id="otp-5" type="tel" inputmode="numeric" maxlength="1" class="otp-box"
+                @input="otpInput($event,5)" @keydown.backspace="otpBack($event,5)" @paste.prevent="otpPaste($event)"
+                style="width:44px;height:54px;border:2px solid;border-radius:14px;text-align:center;font-size:22px;font-weight:900;outline:none;text-transform:none;color:#111827;background:white"/>
             </div>
-            <!-- Input oculto que captura el teclado -->
-            <input x-ref="otpInput" x-model="forgotForm.otp" type="tel" inputmode="numeric" maxlength="6"
-              @input="forgotForm.otp=forgotForm.otp.replace(/\D/g,'').slice(0,6)"
-              style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0"/>
 
             <!-- Nueva contraseña -->
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Nueva contraseña</label>
@@ -416,15 +417,15 @@
               </button>
             </div>
 
-            <!-- Banner feedback — mismo estilo que banner superior -->
-            <div style="margin-top:12px;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid"
-              :style="(forgotMsg && forgotStep==='otp')
-                ? (forgotError ? 'background:#fef2f2;border-color:#fecaca' : 'background:#f0fdf4;border-color:#bbf7d0')
-                : 'display:none'">
-              <span style="font-size:20px;flex-shrink:0" x-text="forgotError ? '🚫' : '📲'"></span>
-              <p x-text="forgotMsg" style="font-size:12px;font-weight:600;margin:0;line-height:1.4"
-                :style="forgotError ? 'color:#991b1b' : 'color:#166534'"></p>
-            </div>
+            <!-- Banner feedback — igual al banner superior (x-if evita conflicto display:flex) -->
+            <template x-if="forgotMsg && forgotStep==='otp'">
+              <div style="margin-top:12px;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid"
+                :style="forgotError ? 'background:#fef2f2;border-color:#fecaca' : 'background:#f0fdf4;border-color:#bbf7d0'">
+                <span style="font-size:20px;flex-shrink:0" x-text="forgotError ? '🚫' : '📲'"></span>
+                <p x-text="forgotMsg" style="font-size:12px;font-weight:600;margin:0;line-height:1.4"
+                  :style="forgotError ? 'color:#991b1b' : 'color:#166534'"></p>
+              </div>
+            </template>
 
           </div>
 
@@ -5333,6 +5334,31 @@ function app() {
       this.dangerLoading = false
     },
 
+    // ── OTP box helpers ─────────────────────────────────────────
+    otpInput(e, idx) {
+      const v = e.target.value.replace(/\D/g, '').slice(-1)
+      e.target.value = v
+      e.target.classList.toggle('otp-filled', !!v)
+      this.forgotForm.otp = [0,1,2,3,4,5].map(i => document.getElementById('otp-'+i)?.value||'').join('')
+      if (v && idx < 5) document.getElementById('otp-'+(idx+1))?.focus()
+    },
+    otpBack(e, idx) {
+      if (!e.target.value && idx > 0) {
+        const prev = document.getElementById('otp-'+(idx-1))
+        if (prev) { prev.value = ''; prev.classList.remove('otp-filled'); prev.focus() }
+        this.forgotForm.otp = [0,1,2,3,4,5].map(i => document.getElementById('otp-'+i)?.value||'').join('')
+      }
+    },
+    otpPaste(e) {
+      const text = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6)
+      for (let i = 0; i < 6; i++) {
+        const el = document.getElementById('otp-'+i)
+        if (el) { el.value = text[i]||''; el.classList.toggle('otp-filled', !!text[i]) }
+      }
+      this.forgotForm.otp = [0,1,2,3,4,5].map(i => document.getElementById('otp-'+i)?.value||'').join('')
+      document.getElementById('otp-'+Math.min(text.length,5))?.focus()
+    },
+
     async sendForgotOtp() {
       const digits = this.forgotForm.phone.replace(/\D/g, '')
       if (digits.length !== 10) return
@@ -5346,7 +5372,11 @@ function app() {
         const data = await res.json()
         this.forgotMsg = data.msg || 'Código enviado'
         this.forgotStep = 'otp'
-        this.$nextTick(() => this.$refs.otpInput?.focus())
+        this.forgotForm.otp = ''
+        this.$nextTick(() => {
+          for (let i = 0; i < 6; i++) { const el = document.getElementById('otp-'+i); if (el) { el.value = ''; el.classList.remove('otp-filled') } }
+          document.getElementById('otp-0')?.focus()
+        })
         // Cooldown de reenvío 60s
         this.forgotResendCooldown = 60
         const timer = setInterval(() => {
