@@ -153,11 +153,6 @@
       🚨 Te Ayudo Pereira
     </button>
     <div class="flex items-center gap-2">
-      <button @click="infoModal=true"
-        class="text-white text-xs font-semibold rounded-full h-9 border-none cursor-pointer"
-        style="background:rgba(255,255,255,.2);padding:0 14px;backdrop-filter:blur(4px)">
-        ❓ ¿Cómo funciona?
-      </button>
       <template x-if="!user">
         <button @click="page='login'; authTab='login'" class="bg-white text-red-600 text-xs font-semibold rounded-full px-4 h-9 border-none cursor-pointer"
           style="animation:volunteer-pulse 1.8s ease-in-out infinite">
@@ -439,25 +434,25 @@
     </div>
   </template>
 
-  <!-- MODAL ¿CÓMO FUNCIONA? — infografía embebida -->
+  <!-- MODAL ¿CÓMO FUNCIONA? — infografía pantalla completa -->
   <template x-if="infoModal">
-    <div style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px"
+    <div style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center"
       @click.self="infoModal=false">
-      <div style="background:white;border-radius:24px;width:100%;max-width:500px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-        <!-- Header del modal -->
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(135deg,#dc2626,#b91c1c);flex-shrink:0">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:20px">❓</span>
-            <span style="color:white;font-size:15px;font-weight:800">¿Cómo funciona?</span>
-          </div>
+      <div style="background:white;border-radius:24px 24px 0 0;width:100%;max-width:520px;height:95vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.35)">
+        <!-- Handle + cerrar -->
+        <div style="flex-shrink:0;padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;background:white">
+          <div style="width:40px;height:4px;background:#e5e7eb;border-radius:999px;margin:0 auto"></div>
+        </div>
+        <div style="flex-shrink:0;padding:8px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6">
+          <span style="font-size:15px;font-weight:800;color:#111827">❓ ¿Cómo funciona?</span>
           <button @click="infoModal=false"
-            style="background:rgba(255,255,255,.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;font-weight:700">
+            style="background:#f3f4f6;border:none;color:#6b7280;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:700">
             ✕
           </button>
         </div>
-        <!-- Iframe con la infografía -->
+        <!-- Iframe ocupa todo el espacio restante -->
         <iframe src="/static/infografia_pedir_ayuda.html"
-          style="flex:1;border:none;min-height:500px;width:100%"
+          style="flex:1;border:none;width:100%;display:block"
           loading="lazy">
         </iframe>
       </div>
@@ -1307,6 +1302,60 @@
           </div>
         </template>
       </div>
+    </div>
+  </div>
+
+  <!-- PÁGINA CONTÁCTANOS -->
+  <div x-show="page==='contact'" class="overflow-auto pb-24" style="height:calc(100vh - var(--header-h) - var(--nav-h))">
+    <div class="max-w-sm mx-auto px-4 py-6">
+
+      <!-- Hero -->
+      <div class="text-center mb-6">
+        <div class="text-5xl mb-3">💬</div>
+        <h1 class="text-2xl font-bold text-gray-900">Contáctanos</h1>
+        <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+          Conecta directamente con el equipo de coordinación de <span class="text-red-600 font-semibold">Te Ayudo Pereira</span>
+        </p>
+      </div>
+
+      <!-- Card ¿Cómo funciona? -->
+      <div @click="infoModal=true" style="background:linear-gradient(135deg,#fef2f2,#fff7ed);border:1.5px solid #fecaca;border-radius:20px;padding:20px;margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:16px">
+        <div style="width:52px;height:52px;background:linear-gradient(135deg,#dc2626,#b91c1c);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">
+          ❓
+        </div>
+        <div style="flex:1">
+          <p style="font-size:14px;font-weight:800;color:#111827;margin:0 0 3px">¿Cómo funciona la app?</p>
+          <p style="font-size:12px;color:#6b7280;margin:0;line-height:1.4">Conoce los flujos paso a paso antes de pedir ayuda</p>
+        </div>
+        <span style="color:#dc2626;font-size:18px;font-weight:700">→</span>
+      </div>
+
+      <!-- Card Chat directo -->
+      <div style="background:white;border:1.5px solid #e5e7eb;border-radius:20px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+          <div style="width:52px;height:52px;background:linear-gradient(135deg,#16a34a,#15803d);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">
+            💬
+          </div>
+          <div>
+            <p style="font-size:14px;font-weight:800;color:#111827;margin:0 0 2px">Chat con coordinadores</p>
+            <p style="font-size:12px;color:#6b7280;margin:0">Sin registro · Respuesta en minutos</p>
+          </div>
+        </div>
+        <button @click="openGuestChat()"
+          class="w-full text-white font-bold rounded-2xl border-none cursor-pointer"
+          style="min-height:50px;font-size:15px;background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 3px 10px rgba(22,163,74,.35)">
+          Iniciar chat →
+        </button>
+      </div>
+
+      <!-- Info adicional -->
+      <div style="background:#f8fafc;border-radius:16px;padding:16px;text-align:center">
+        <p style="font-size:12px;color:#6b7280;margin:0;line-height:1.6">
+          ¿Necesitas ayuda urgente?<br>
+          <span @click="page='report'" style="color:#dc2626;font-weight:700;cursor:pointer">🆘 Pide ayuda sin cuenta →</span>
+        </p>
+      </div>
+
     </div>
   </div>
 
@@ -4555,7 +4604,7 @@ function app() {
     // ─────────────────────────────────────────────────────────────────────
 
     navigateTo(id) {
-      if (id === 'victim-chat') { this.openGuestChat(); return }
+      if (id === 'victim-chat') { this.page = 'contact'; return }
       this.page = id
       if (id === 'map') {
         // Destruir y recrear el mapa para garantizar coordenadas perfectas.
