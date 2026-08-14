@@ -3,7 +3,7 @@
    Estrategias de caché para funcionamiento offline
    ================================================================ */
 
-const CACHE_APP   = 'tap-app-v3'
+const CACHE_APP   = 'tap-app-v4'
 const CACHE_API   = 'tap-api-v1'
 const CACHE_TILES = 'tap-tiles-v1'
 
@@ -89,10 +89,10 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  // CDN (Leaflet, Alpine, Tailwind) → stale-while-revalidate
+  // CDN (Leaflet, Alpine) → stale-while-revalidate
+  // Nota: cdn.tailwindcss.com excluido — bloquea CORS en fetch cross-origin
   if (
     url.hostname === 'cdnjs.cloudflare.com' ||
-    url.hostname === 'cdn.tailwindcss.com' ||
     url.hostname === 'cdn.jsdelivr.net'
   ) {
     event.respondWith(staleWhileRevalidate(request, CACHE_APP))
