@@ -5180,9 +5180,21 @@ function app() {
       if (this.zoneAddressSearch.length < 3) { this.zoneAddressResults = []; return }
       this.zoneAddressLoading = true
       try {
-        const q = encodeURIComponent(this.zoneAddressSearch + ' Pereira Dosquebradas Risaralda Colombia')
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&accept-language=es&countrycodes=co&viewbox=-75.80,4.57,-75.45,4.95&bounded=0`)
-        this.zoneAddressResults = await r.json()
+        const base = 'https://nominatim.openstreetmap.org/search?format=json&limit=4&accept-language=es&countrycodes=co'
+        const vbox = '&viewbox=-75.80,4.57,-75.45,4.95&bounded=1'
+        const s = encodeURIComponent(this.zoneAddressSearch)
+        const [r1, r2, r3] = await Promise.all([
+          fetch(`${base}${vbox}&q=${s}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.zoneAddressSearch + ', Pereira, Risaralda')}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.zoneAddressSearch + ', Dosquebradas, Risaralda')}`).then(r => r.json()).catch(() => []),
+        ])
+        const seen = new Set()
+        const combined = [...r1, ...r2, ...r3].filter(x => {
+          if (seen.has(x.place_id)) return false
+          seen.add(x.place_id)
+          return true
+        })
+        this.zoneAddressResults = combined.slice(0, 6)
       } catch {} finally { this.zoneAddressLoading = false }
     },
 
@@ -5196,9 +5208,24 @@ function app() {
       if (this.aidCenterSearch.length < 3) { this.aidCenterSearchResults = []; return }
       this.aidCenterSearchLoading = true
       try {
-        const q = encodeURIComponent(this.aidCenterSearch + ' Pereira Dosquebradas Risaralda Colombia')
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&accept-language=es&countrycodes=co&viewbox=-75.80,4.57,-75.45,4.95&bounded=0`)
-        this.aidCenterSearchResults = await r.json()
+        const base = 'https://nominatim.openstreetmap.org/search?format=json&limit=4&accept-language=es&countrycodes=co'
+        const vbox = '&viewbox=-75.80,4.57,-75.45,4.95&bounded=1'
+        const s = encodeURIComponent(this.aidCenterSearch)
+        // Búsqueda 1: texto libre en el viewbox de Pereira/Dosquebradas
+        // Búsqueda 2: forzando ciudad Pereira, Búsqueda 3: forzando Dosquebradas
+        const [r1, r2, r3] = await Promise.all([
+          fetch(`${base}${vbox}&q=${s}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.aidCenterSearch + ', Pereira, Risaralda')}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.aidCenterSearch + ', Dosquebradas, Risaralda')}`).then(r => r.json()).catch(() => []),
+        ])
+        // Combinar y deduplicar por place_id
+        const seen = new Set()
+        const combined = [...r1, ...r2, ...r3].filter(x => {
+          if (seen.has(x.place_id)) return false
+          seen.add(x.place_id)
+          return true
+        })
+        this.aidCenterSearchResults = combined.slice(0, 6)
       } catch {} finally { this.aidCenterSearchLoading = false }
     },
 
