@@ -153,6 +153,11 @@
       🚨 Te Ayudo Pereira
     </button>
     <div class="flex items-center gap-2">
+      <button @click="infoModal=true"
+        class="text-white text-xs font-semibold rounded-full h-9 border-none cursor-pointer"
+        style="background:rgba(255,255,255,.2);padding:0 14px;backdrop-filter:blur(4px)">
+        ❓ ¿Cómo funciona?
+      </button>
       <template x-if="!user">
         <button @click="page='login'; authTab='login'" class="bg-white text-red-600 text-xs font-semibold rounded-full px-4 h-9 border-none cursor-pointer"
           style="animation:volunteer-pulse 1.8s ease-in-out infinite">
@@ -430,6 +435,31 @@
           </div>
 
         </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- MODAL ¿CÓMO FUNCIONA? — infografía embebida -->
+  <template x-if="infoModal">
+    <div style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:16px"
+      @click.self="infoModal=false">
+      <div style="background:white;border-radius:24px;width:100%;max-width:500px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+        <!-- Header del modal -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(135deg,#dc2626,#b91c1c);flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">❓</span>
+            <span style="color:white;font-size:15px;font-weight:800">¿Cómo funciona?</span>
+          </div>
+          <button @click="infoModal=false"
+            style="background:rgba(255,255,255,.2);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;font-weight:700">
+            ✕
+          </button>
+        </div>
+        <!-- Iframe con la infografía -->
+        <iframe src="/static/infografia_pedir_ayuda.html"
+          style="flex:1;border:none;min-height:500px;width:100%"
+          loading="lazy">
+        </iframe>
       </div>
     </div>
   </template>
@@ -3602,6 +3632,8 @@ function app() {
 
     smsConsentModal: false,
     smsConsentLoading: false,
+
+    infoModal: false,
 
     forgotModal: false,
     forgotStep: 'phone',   // 'phone' | 'otp'
