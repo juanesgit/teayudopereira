@@ -472,20 +472,13 @@
           <div class="flex items-center" :class="i < reportSteps.length-1 ? 'flex-1' : ''">
             <div class="flex flex-col items-center gap-1">
               <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-                :style="stepIndex() > i
-                  ? 'background:#16a34a;color:white'
-                  : stepIndex() === i
-                    ? 'background:#dc2626;color:white'
-                    : 'background:#e5e7eb;color:#9ca3af'">
-                <span x-show="stepIndex() > i">✓</span>
-                <span x-show="stepIndex() <= i" x-text="i+1"></span>
-              </div>
-              <span class="text-xs whitespace-nowrap"
-                :class="stepIndex() === i ? 'text-gray-900 font-semibold' : stepIndex() > i ? 'text-green-700' : 'text-gray-400'"
-                x-text="s.label"></span>
+                :style="stepIndex() > i ? 'background:#16a34a;color:white' :
+                        stepIndex() === i ? 'background:#dc2626;color:white' :
+                        'background:#f1f5f9;color:#94a3b8'"
+                x-text="stepIndex() > i ? '✓' : (i+1)"></div>
+              <span class="text-xs" :style="stepIndex() === i ? 'color:#dc2626;font-weight:600' : stepIndex() > i ? 'color:#16a34a;font-weight:600' : 'color:#94a3b8'" x-text="s.label"></span>
             </div>
-            <div x-show="i < reportSteps.length-1"
-              class="flex-1 h-px mb-4 mx-1 transition-all"
+            <div x-show="i < reportSteps.length-1" class="flex-1 h-0.5 mx-2 mb-4"
               :style="stepIndex() > i ? 'background:#16a34a' : 'background:#e5e7eb'"></div>
           </div>
         </template>
