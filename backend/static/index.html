@@ -149,8 +149,12 @@
 
   <!-- NAVBAR -->
   <header class="bg-red-600 text-white px-4 flex items-center justify-between h-14 shadow-md sticky top-0 z-40">
-    <button @click="navigateTo('map')" class="font-bold text-lg flex items-center gap-2 bg-transparent border-none text-white cursor-pointer">
-      🚨 Te Ayudo Pereira
+    <button @click="navigateTo('map')" class="flex items-center gap-2 bg-transparent border-none cursor-pointer" style="padding:0">
+      <span style="font-size:26px;line-height:1">🚨</span>
+      <div style="display:flex;flex-direction:column;line-height:1;gap:1px">
+        <span style="font-size:10px;font-weight:900;color:#FCD116;letter-spacing:2.5px;text-transform:uppercase">Te Ayudo</span>
+        <span style="font-size:19px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1">PEREIRA</span>
+      </div>
     </button>
     <div class="flex items-center gap-2">
       <template x-if="!user">
