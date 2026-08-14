@@ -1177,10 +1177,13 @@
             class="flex-shrink-0 flex items-center gap-1.5 px-3 rounded-full border text-xs font-semibold transition-all"
             style="min-height:34px"
             :style="skillFilter===s.v
-              ? 'background:#dc2626;color:white;border-color:#dc2626;box-shadow:0 2px 8px rgba(220,38,38,.3)'
-              : 'background:white;color:#374151;border-color:#e5e7eb'">
+              ? 'background:#fef2f2;color:#991b1b;border-color:#fca5a5'
+              : 'background:white;color:#9ca3af;border-color:#e5e7eb'">
             <span x-text="s.e"></span>
             <span x-text="s.v||'Todos'"></span>
+            <span x-show="s.v===skillFilter && skillFilter!==''" class="rounded-full px-1.5 py-0.5 text-xs font-bold"
+              style="background:#dc2626;color:white"
+              x-text="volunteers.length"></span>
           </button>
         </template>
       </div>
