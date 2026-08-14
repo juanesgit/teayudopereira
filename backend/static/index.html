@@ -437,12 +437,12 @@
   <!-- MODAL ¿CÓMO FUNCIONA? — carrusel de infografías -->
   <template x-if="infoModal">
     <div x-data="{ slide: 0, slides: [
-          { icon: '📋', label: 'Pedir Ayuda',  src: '/static/infografia_pedir_ayuda.html' },
-          { icon: '🆘', label: 'Alerta SOS',     src: '/static/infografia_alerta_sos.html'    },
-          { icon: '🤝', label: 'Quiero Ayudar',  src: '/static/infografia_quiero_ayudar.html'     },
-          { icon: '💬', label: 'Canal de Ayuda', src: '/static/infografia_canal_ayuda.html'      },
-          { icon: '🗺️', label: 'Mapa',           src: '/static/infografia_mapa.html'             },
-          { icon: '⚠️', label: 'Reportar Peligro',src: '/static/infografia_reportar_peligro.html'}
+          { icon: '🆘', label: 'Alerta SOS',      src: '/static/infografia_alerta_sos.html'        },
+          { icon: '⚠️', label: 'Reportar Peligro',src: '/static/infografia_reportar_peligro.html' },
+          { icon: '📋', label: 'Pedir Ayuda',     src: '/static/infografia_pedir_ayuda.html'       },
+          { icon: '💬', label: 'Canal de Ayuda',  src: '/static/infografia_canal_ayuda.html'       },
+          { icon: '🤝', label: 'Quiero Ayudar',   src: '/static/infografia_quiero_ayudar.html'     },
+          { icon: '🗺️', label: 'Mapa',            src: '/static/infografia_mapa.html'              }
         ] }"
       style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center"
       @click.self="infoModal=false">
