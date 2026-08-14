@@ -4814,7 +4814,7 @@ function app() {
       this.locationAddressLoading = true
       try {
         const res = await fetch(
-          `/geocode/reverse?lat=${lat}&lng=${lng}`,
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`,
           { headers: { 'Accept-Language': 'es' } }
         )
         const data = await res.json()
@@ -5273,9 +5273,22 @@ function app() {
       if (this.zoneAddressSearch.length < 3) { this.zoneAddressResults = []; return }
       this.zoneAddressLoading = true
       try {
-        const r = await fetch(`/geocode/search?q=${encodeURIComponent(this.zoneAddressSearch)}&limit=6`)
-        this.zoneAddressResults = r.ok ? await r.json() : []
-      } catch { this.zoneAddressResults = [] } finally { this.zoneAddressLoading = false }
+        const base = 'https://nominatim.openstreetmap.org/search?format=json&limit=4&accept-language=es&countrycodes=co'
+        const vbox = '&viewbox=-75.80,4.57,-75.45,4.95&bounded=1'
+        const s = encodeURIComponent(this.zoneAddressSearch)
+        const [r1, r2, r3] = await Promise.all([
+          fetch(`${base}${vbox}&q=${s}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.zoneAddressSearch + ', Pereira, Risaralda')}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.zoneAddressSearch + ', Dosquebradas, Risaralda')}`).then(r => r.json()).catch(() => []),
+        ])
+        const seen = new Set()
+        const combined = [...r1, ...r2, ...r3].filter(x => {
+          if (seen.has(x.place_id)) return false
+          seen.add(x.place_id)
+          return true
+        })
+        this.zoneAddressResults = combined.slice(0, 6)
+      } catch {} finally { this.zoneAddressLoading = false }
     },
 
     selectZoneAddress(r) {
@@ -5288,9 +5301,25 @@ function app() {
       if (this.aidCenterSearch.length < 3) { this.aidCenterSearchResults = []; return }
       this.aidCenterSearchLoading = true
       try {
-        const r = await fetch(`/geocode/search?q=${encodeURIComponent(this.aidCenterSearch)}&limit=6`)
-        this.aidCenterSearchResults = r.ok ? await r.json() : []
-      } catch { this.aidCenterSearchResults = [] } finally { this.aidCenterSearchLoading = false }
+        const base = 'https://nominatim.openstreetmap.org/search?format=json&limit=4&accept-language=es&countrycodes=co'
+        const vbox = '&viewbox=-75.80,4.57,-75.45,4.95&bounded=1'
+        const s = encodeURIComponent(this.aidCenterSearch)
+        // Búsqueda 1: texto libre en el viewbox de Pereira/Dosquebradas
+        // Búsqueda 2: forzando ciudad Pereira, Búsqueda 3: forzando Dosquebradas
+        const [r1, r2, r3] = await Promise.all([
+          fetch(`${base}${vbox}&q=${s}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.aidCenterSearch + ', Pereira, Risaralda')}`).then(r => r.json()).catch(() => []),
+          fetch(`${base}&q=${encodeURIComponent(this.aidCenterSearch + ', Dosquebradas, Risaralda')}`).then(r => r.json()).catch(() => []),
+        ])
+        // Combinar y deduplicar por place_id
+        const seen = new Set()
+        const combined = [...r1, ...r2, ...r3].filter(x => {
+          if (seen.has(x.place_id)) return false
+          seen.add(x.place_id)
+          return true
+        })
+        this.aidCenterSearchResults = combined.slice(0, 6)
+      } catch {} finally { this.aidCenterSearchLoading = false }
     },
 
     selectAidCenterResult(r) {
@@ -5311,7 +5340,7 @@ function app() {
         this.aidCenterForm.lat = pos.coords.latitude
         this.aidCenterForm.lng = pos.coords.longitude
         try {
-          const r = await fetch(`/geocode/reverse?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`)
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=es`)
           const d = await r.json()
           if (d?.display_name) {
             this.aidCenterForm.address = d.display_name.split(',').slice(0,3).join(', ')
@@ -5379,7 +5408,7 @@ function app() {
           lat = pos.coords.latitude
           lng = pos.coords.longitude
           try {
-            const r = await fetch(`/geocode/reverse?lat=${lat}&lng=${lng}`)
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`)
             const d = await r.json()
             if (d?.display_name) address = d.display_name.split(',').slice(0,3).join(', ')
           } catch {}
@@ -5442,7 +5471,7 @@ function app() {
         this.dangerLocOk = true
         // Dirección por geocodificación inversa
         try {
-          const r = await fetch(`/geocode/reverse?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`)
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&accept-language=es`)
           const d = await r.json()
           if (d?.display_name) this.dangerForm.address = d.display_name.split(',').slice(0,3).join(', ')
         } catch {}
@@ -5480,7 +5509,7 @@ function app() {
         this.dangerLocOk = true
         this.updateDangerCircle()
         try {
-          const r = await fetch(`/geocode/reverse?lat=${ll.lat}&lng=${ll.lng}`)
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ll.lat}&lon=${ll.lng}&format=json&accept-language=es`)
           const d = await r.json()
           if (d?.display_name) this.dangerForm.address = d.display_name.split(',').slice(0,3).join(', ')
         } catch {}
@@ -5492,7 +5521,7 @@ function app() {
         this.dangerLocOk = true
         this.updateDangerCircle()
         try {
-          const r = await fetch(`/geocode/reverse?lat=${ll.lat}&lng=${ll.lng}`)
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ll.lat}&lon=${ll.lng}&format=json&accept-language=es`)
           const d = await r.json()
           if (d?.display_name) this.dangerForm.address = d.display_name.split(',').slice(0,3).join(', ')
         } catch {}
@@ -5791,7 +5820,7 @@ function app() {
       try {
         const query = encodeURIComponent(q + ' Pereira Colombia')
         const res = await fetch(
-          `/geocode/search?q=${encodeURIComponent(query)}&limit=6`,
+          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&countrycodes=co&limit=6&accept-language=es`,
           { headers: { 'Accept-Language': 'es' } }
         )
         this.zoneSearchResults = await res.json()
@@ -5806,7 +5835,7 @@ function app() {
       try {
         const query = encodeURIComponent(q + ' Pereira Colombia')
         const res = await fetch(
-          `/geocode/search?q=${encodeURIComponent(query)}&limit=6`,
+          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&countrycodes=co&limit=6&accept-language=es`,
           { headers: { 'Accept-Language': 'es' } }
         )
         this.dangerSearchResults = await res.json()

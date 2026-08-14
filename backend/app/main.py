@@ -11,7 +11,7 @@ import uuid, shutil
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, reports, aid_points, danger_zones, users, admin, chat, dm, guest_chat, push
+from app.routers import auth, reports, aid_points, danger_zones, users, admin, chat, dm, guest_chat, push, geocode
 from app.services.broadcaster import group_broadcaster, room_broadcaster
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -54,6 +54,7 @@ app.include_router(chat.router)
 app.include_router(dm.router)
 app.include_router(guest_chat.router)
 app.include_router(push.router)
+app.include_router(geocode.router)
 
 
 @app.get("/health")
