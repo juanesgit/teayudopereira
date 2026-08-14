@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <style>
+  @page { size: 512px auto; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Segoe UI', system-ui, sans-serif;
@@ -53,6 +54,17 @@
   .footer-left span { font-size: 11px; color: #9ca3af; }
   .footer-right { background: #dc2626; color: white; border-radius: 999px; padding: 8px 20px; font-size: 12px; font-weight: 800; }
 </style>
+<script>
+  // Ajusta @page al alto real del contenido antes de imprimir
+  (function() {
+    var s = document.createElement('style');
+    document.head.appendChild(s);
+    window.addEventListener('load', function() {
+      var h = Math.ceil(document.documentElement.scrollHeight) + 10;
+      s.textContent = '@page { size: 512px ' + h + 'px; margin: 0; }';
+    });
+  })();
+</script>
 </head>
 <body>
 <div class="card">
