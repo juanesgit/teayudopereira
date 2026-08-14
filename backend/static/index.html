@@ -5273,12 +5273,35 @@ function app() {
       } catch {}
     },
 
+    // Detecta "lat, lng" o "lat lng" — acepta coma, punto y coma, espacio como separador
+    _parseCoords(q) {
+      const m = q.trim().match(/^(-?\d{1,3}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)$/)
+      if (!m) return null
+      const lat = parseFloat(m[1]), lng = parseFloat(m[2])
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+      return { lat, lng }
+    },
+
+    // Reverse geocoding → formato compatible con resultados de search
+    async _reverseToResult(lat, lng) {
+      const r = await fetch(`/geocode/reverse?lat=${lat}&lng=${lng}`)
+      if (!r.ok) return null
+      const d = await r.json()
+      if (!d?.display_name) return null
+      return [{ place_id: 'coords', lat: String(lat), lon: String(lng), display_name: d.display_name }]
+    },
+
     async searchZoneAddress() {
       if (this.zoneAddressSearch.length < 3) { this.zoneAddressResults = []; return }
       this.zoneAddressLoading = true
       try {
-        const r = await fetch(`/geocode/search?q=${encodeURIComponent(this.zoneAddressSearch)}&limit=6`)
-        this.zoneAddressResults = r.ok ? await r.json() : []
+        const coords = this._parseCoords(this.zoneAddressSearch)
+        if (coords) {
+          this.zoneAddressResults = await this._reverseToResult(coords.lat, coords.lng) || []
+        } else {
+          const r = await fetch(`/geocode/search?q=${encodeURIComponent(this.zoneAddressSearch)}&limit=6`)
+          this.zoneAddressResults = r.ok ? await r.json() : []
+        }
       } catch { this.zoneAddressResults = [] } finally { this.zoneAddressLoading = false }
     },
 
@@ -5292,8 +5315,13 @@ function app() {
       if (this.aidCenterSearch.length < 3) { this.aidCenterSearchResults = []; return }
       this.aidCenterSearchLoading = true
       try {
-        const r = await fetch(`/geocode/search?q=${encodeURIComponent(this.aidCenterSearch)}&limit=6`)
-        this.aidCenterSearchResults = r.ok ? await r.json() : []
+        const coords = this._parseCoords(this.aidCenterSearch)
+        if (coords) {
+          this.aidCenterSearchResults = await this._reverseToResult(coords.lat, coords.lng) || []
+        } else {
+          const r = await fetch(`/geocode/search?q=${encodeURIComponent(this.aidCenterSearch)}&limit=6`)
+          this.aidCenterSearchResults = r.ok ? await r.json() : []
+        }
       } catch { this.aidCenterSearchResults = [] } finally { this.aidCenterSearchLoading = false }
     },
 
@@ -5798,12 +5826,13 @@ function app() {
       if (q.length < 3) { this.zoneSearchResults = []; return }
       this.zoneSearchLoading = true
       try {
-        const query = encodeURIComponent(q + ' Pereira Colombia')
-        const res = await fetch(
-          `/geocode/search?q=${encodeURIComponent(query)}&limit=6`,
-          { headers: { 'Accept-Language': 'es' } }
-        )
-        this.zoneSearchResults = await res.json()
+        const coords = this._parseCoords(q)
+        if (coords) {
+          this.zoneSearchResults = await this._reverseToResult(coords.lat, coords.lng) || []
+        } else {
+          const res = await fetch(`/geocode/search?q=${encodeURIComponent(q + ' Pereira Colombia')}&limit=6`)
+          this.zoneSearchResults = res.ok ? await res.json() : []
+        }
       } catch(e) { console.warn('Error buscando:', e) }
       finally { this.zoneSearchLoading = false }
     },
@@ -5813,12 +5842,13 @@ function app() {
       if (q.length < 3) { this.dangerSearchResults = []; return }
       this.dangerSearchLoading = true
       try {
-        const query = encodeURIComponent(q + ' Pereira Colombia')
-        const res = await fetch(
-          `/geocode/search?q=${encodeURIComponent(query)}&limit=6`,
-          { headers: { 'Accept-Language': 'es' } }
-        )
-        this.dangerSearchResults = await res.json()
+        const coords = this._parseCoords(q)
+        if (coords) {
+          this.dangerSearchResults = await this._reverseToResult(coords.lat, coords.lng) || []
+        } else {
+          const res = await fetch(`/geocode/search?q=${encodeURIComponent(q + ' Pereira Colombia')}&limit=6`)
+          this.dangerSearchResults = res.ok ? await res.json() : []
+        }
       } catch(e) { console.warn('Error buscando:', e) }
       finally { this.dangerSearchLoading = false }
     },
