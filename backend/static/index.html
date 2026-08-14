@@ -333,22 +333,19 @@
 
             <!-- Código OTP — 6 cajas individuales -->
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:12px;text-align:center">Código de 6 dígitos</label>
-            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px">
+            <!-- Input oculto que captura el teclado -->
+            <input x-model="forgotForm.otp" type="tel" inputmode="numeric"
+              maxlength="6" id="otp-hidden-input"
+              @input="forgotForm.otp=forgotForm.otp.replace(/\D/g,'').slice(0,6)"
+              style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+            <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;cursor:text"
+              @click="document.getElementById('otp-hidden-input').focus()">
               <template x-for="(_, idx) in [0,1,2,3,4,5]" :key="idx">
                 <div style="width:44px;height:52px;border:2px solid #e5e7eb;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#111827;background:#f9fafb;transition:all .2s"
                   :style="forgotForm.otp.length > idx ? 'border-color:#dc2626;background:white;box-shadow:0 2px 8px rgba(220,38,38,.15)' : forgotForm.otp.length === idx ? 'border-color:#dc2626;background:white' : 'border-color:#e5e7eb;background:#f9fafb'"
                   x-text="forgotForm.otp[idx] || ''"></div>
               </template>
             </div>
-            <!-- Input oculto que captura el teclado -->
-            <input x-model="forgotForm.otp" type="tel" inputmode="numeric"
-              maxlength="6" id="otp-hidden-input"
-              @input="forgotForm.otp=forgotForm.otp.replace(/\D/g,'').slice(0,6)"
-              style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-            <button type="button" @click="document.getElementById('otp-hidden-input').focus()"
-              style="display:block;width:100%;background:#f3f4f6;border:none;border-radius:10px;padding:8px;font-size:13px;color:#6b7280;cursor:pointer;margin-bottom:16px;font-weight:600">
-              📱 Toca aquí para ingresar el código
-            </button>
 
             <!-- Nueva contraseña -->
             <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:8px">Nueva contraseña</label>
@@ -408,11 +405,11 @@
               </button>
             </div>
 
-            <!-- Banner feedback (mismo estilo que el de arriba) -->
+            <!-- Banner feedback — mismo estilo que "Código enviado por SMS" -->
             <div x-show="forgotMsg && forgotStep==='otp'"
               style="margin-top:12px;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px"
               :style="forgotError ? 'background:#fef2f2;border:1px solid #fecaca' : 'background:#f0fdf4;border:1px solid #bbf7d0'">
-              <span x-text="forgotError ? '⚠️' : '✅'" style="font-size:18px;flex-shrink:0"></span>
+              <span style="font-size:20px;flex-shrink:0" x-text="forgotError ? '⚠️' : '📋'"></span>
               <p x-text="forgotMsg" style="font-size:12px;font-weight:600;margin:0;line-height:1.4"
                 :style="forgotError ? 'color:#991b1b' : 'color:#166534'"></p>
             </div>
