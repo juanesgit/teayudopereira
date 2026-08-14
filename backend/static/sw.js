@@ -3,13 +3,11 @@
    Estrategias de caché para funcionamiento offline
    ================================================================ */
 
-const CACHE_APP   = 'tap-app-v2'
+const CACHE_APP   = 'tap-app-v3'
 const CACHE_API   = 'tap-api-v1'
 const CACHE_TILES = 'tap-tiles-v1'
 
 const APP_SHELL = [
-  '/',
-  'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.1/cdn.min.js',
@@ -107,8 +105,14 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  // App shell y estáticos → stale-while-revalidate
-  if (url.pathname === '/' || url.pathname.startsWith('/static/')) {
+  // HTML principal → siempre network-first (garantiza HTML actualizado)
+  if (url.pathname === '/') {
+    event.respondWith(networkFirst(request, CACHE_APP))
+    return
+  }
+
+  // Estáticos → stale-while-revalidate
+  if (url.pathname.startsWith('/static/')) {
     event.respondWith(staleWhileRevalidate(request, CACHE_APP))
     return
   }
