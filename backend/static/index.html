@@ -434,27 +434,52 @@
     </div>
   </template>
 
-  <!-- MODAL ¿CÓMO FUNCIONA? — infografía pantalla completa -->
+  <!-- MODAL ¿CÓMO FUNCIONA? — carrusel de infografías -->
   <template x-if="infoModal">
-    <div style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center"
+    <div x-data="{ slide: 0, slides: [
+          { icon: '📋', label: 'Pedir Ayuda',  src: '/static/infografia_pedir_ayuda.html' },
+          { icon: '🆘', label: 'Alerta SOS',   src: '/static/infografia_alerta_sos.html'  }
+        ] }"
+      style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center"
       @click.self="infoModal=false">
       <div style="background:white;border-radius:24px 24px 0 0;width:100%;max-width:520px;height:95vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.35)">
-        <!-- Handle + cerrar -->
-        <div style="flex-shrink:0;padding:10px 20px 0;display:flex;align-items:center;justify-content:space-between;background:white">
+
+        <!-- Handle -->
+        <div style="flex-shrink:0;padding:10px 20px 0">
           <div style="width:40px;height:4px;background:#e5e7eb;border-radius:999px;margin:0 auto"></div>
         </div>
-        <div style="flex-shrink:0;padding:8px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6">
+
+        <!-- Título + cerrar -->
+        <div style="flex-shrink:0;padding:8px 20px 0;display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:15px;font-weight:800;color:#111827">❓ ¿Cómo funciona?</span>
           <button @click="infoModal=false"
-            style="background:#f3f4f6;border:none;color:#6b7280;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:700">
-            ✕
-          </button>
+            style="background:#f3f4f6;border:none;color:#6b7280;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:700">✕</button>
         </div>
-        <!-- Iframe ocupa todo el espacio restante -->
-        <iframe src="/static/infografia_pedir_ayuda.html"
-          style="flex:1;border:none;width:100%;display:block"
-          loading="lazy">
-        </iframe>
+
+        <!-- Tabs píldora -->
+        <div style="flex-shrink:0;padding:10px 16px 10px;display:flex;gap:8px;overflow-x:auto;border-bottom:1px solid #f3f4f6;scrollbar-width:none">
+          <template x-for="(s, i) in slides" :key="i">
+            <button @click="slide=i"
+              :style="slide===i
+                ? 'background:#dc2626;color:white;border:1.5px solid #dc2626'
+                : 'background:white;color:#6b7280;border:1.5px solid #e5e7eb'"
+              style="flex-shrink:0;border-radius:999px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s">
+              <span x-text="s.icon"></span>
+              <span x-text="s.label"></span>
+            </button>
+          </template>
+        </div>
+
+        <!-- Iframe cambia con el slide -->
+        <template x-for="(s, i) in slides" :key="i">
+          <iframe
+            :src="s.src"
+            x-show="slide===i"
+            style="flex:1;border:none;width:100%;display:block"
+            loading="lazy">
+          </iframe>
+        </template>
+
       </div>
     </div>
   </template>
