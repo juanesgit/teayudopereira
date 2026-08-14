@@ -2132,7 +2132,7 @@
             <div class="flex items-center gap-2">
               <span class="text-xs bg-violet-100 text-violet-700 font-bold rounded-full px-2 py-0.5"
                 x-text="adminVolunteers.length+' total'"></span>
-              <button @click="exportVolunteersCSV()"
+              <button x-show="user?.role === 'admin'" @click="exportVolunteersCSV()"
                 class="text-xs bg-green-600 text-white font-bold rounded-lg px-2 py-1 border-none cursor-pointer flex items-center gap-1"
                 title="Exportar lista para WhatsApp">
                 📥 Exportar CSV
@@ -2896,7 +2896,7 @@
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-sm text-gray-900">Usuarios registrados</h3>
             <div class="flex items-center gap-2">
-              <button @click="exportVolunteersCSV()"
+              <button x-show="user?.role === 'admin'" @click="exportVolunteersCSV()"
                 class="text-xs bg-green-600 text-white font-bold rounded-lg px-2 py-1.5 border-none cursor-pointer">
                 📥 Exportar CSV
               </button>
