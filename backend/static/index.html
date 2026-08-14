@@ -1170,20 +1170,16 @@
           x-text="volunteers.length"></div>
       </div>
 
-      <!-- Chips de habilidad — scroll horizontal -->
-      <div class="hide-scroll flex gap-2" style="overflow-x:auto; padding-bottom:2px">
+      <!-- Tabs de habilidad — mismo patrón que panel admin -->
+      <div class="hide-scroll border-b border-gray-100 -mx-4 -mb-3" style="display:flex;overflow-x:auto;">
         <template x-for="s in skillTags" :key="s.v">
           <button @click="skillFilter=s.v; loadVolunteers()"
-            class="flex-shrink-0 flex items-center gap-1.5 px-3 rounded-full border text-xs font-semibold transition-all"
-            style="min-height:34px"
+            class="py-3 px-4 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex-shrink-0 flex flex-col items-center gap-0.5"
             :style="skillFilter===s.v
-              ? 'background:#fef2f2;color:#991b1b;border-color:#fca5a5'
-              : 'background:white;color:#9ca3af;border-color:#e5e7eb'">
-            <span x-text="s.e"></span>
+              ? 'border-bottom:2px solid #dc2626;color:#dc2626'
+              : 'border-bottom:2px solid transparent;color:#9ca3af'">
+            <span x-text="s.e" style="font-size:16px;line-height:1"></span>
             <span x-text="s.v||'Todos'"></span>
-            <span x-show="s.v===skillFilter && skillFilter!==''" class="rounded-full px-1.5 py-0.5 text-xs font-bold"
-              style="background:#dc2626;color:white"
-              x-text="volunteers.length"></span>
           </button>
         </template>
       </div>
