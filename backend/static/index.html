@@ -2501,12 +2501,14 @@
 
         <!-- Botón GPS -->
         <template x-if="!dangerLocOk && !dangerLocLoading">
-          <button type="button" @click="getDangerLocation()"
-            class="w-full bg-orange-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-3 mb-3 border-none cursor-pointer"
-            style="min-height:52px">📍 Usar mi ubicación actual</button>
-          <button type="button" @click="dangerLocOk=false; $nextTick(()=>initDangerMap(4.8133,-75.6961))"
-            class="w-full bg-white border border-gray-300 text-gray-600 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 cursor-pointer"
-            style="min-height:44px">🗺️ Seleccionar manualmente en el mapa</button>
+          <div class="flex flex-col gap-2 mb-1">
+            <button type="button" @click="getDangerLocation()"
+              class="w-full bg-orange-600 text-white rounded-xl font-bold text-base flex items-center justify-center gap-3 border-none cursor-pointer"
+              style="min-height:52px">📍 Usar mi ubicación actual</button>
+            <button type="button" @click="$nextTick(()=>initDangerMap(4.8133,-75.6961))"
+              class="w-full bg-white border border-gray-300 text-gray-600 rounded-xl font-medium text-sm flex items-center justify-center gap-2 cursor-pointer"
+              style="min-height:44px">🗺️ Seleccionar en el mapa manualmente</button>
+          </div>
         </template>
         <template x-if="dangerLocLoading">
           <div class="text-center py-6"><p class="text-gray-500">📡 Obteniendo ubicación...</p></div>
@@ -5423,17 +5425,28 @@ function app() {
         color: '#ea580c', fillColor: '#ea580c', fillOpacity: 0.15, weight: 2
       }).addTo(this.dangerMap)
 
-      this.dangerMarker.on('dragend', e => {
+      this.dangerMarker.on('dragend', async e => {
         const ll = e.target.getLatLng()
         this.dangerForm.lat = ll.lat; this.dangerForm.lng = ll.lng
         this.dangerLocOk = true
         this.updateDangerCircle()
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ll.lat}&lon=${ll.lng}&format=json&accept-language=es`)
+          const d = await r.json()
+          if (d?.display_name) this.dangerForm.address = d.display_name.split(',').slice(0,3).join(', ')
+        } catch {}
       })
-      this.dangerMap.on('click', e => {
-        this.dangerForm.lat = e.latlng.lat; this.dangerForm.lng = e.latlng.lng
-        this.dangerMarker.setLatLng(e.latlng)
+      this.dangerMap.on('click', async e => {
+        const ll = e.latlng
+        this.dangerForm.lat = ll.lat; this.dangerForm.lng = ll.lng
+        this.dangerMarker.setLatLng(ll)
         this.dangerLocOk = true
         this.updateDangerCircle()
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ll.lat}&lon=${ll.lng}&format=json&accept-language=es`)
+          const d = await r.json()
+          if (d?.display_name) this.dangerForm.address = d.display_name.split(',').slice(0,3).join(', ')
+        } catch {}
       })
     },
 
