@@ -2895,8 +2895,14 @@
         <div x-show="sysTab==='users'" class="p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-sm text-gray-900">Usuarios registrados</h3>
-            <button @click="loadAdminVolunteers(true)"
-              class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄 Recargar</button>
+            <div class="flex items-center gap-2">
+              <button @click="exportVolunteersCSV()"
+                class="text-xs bg-green-600 text-white font-bold rounded-lg px-2 py-1.5 border-none cursor-pointer">
+                📥 Exportar CSV
+              </button>
+              <button @click="loadAdminVolunteers(true)"
+                class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄 Recargar</button>
+            </div>
           </div>
           <div class="flex flex-col gap-2">
             <template x-for="v in adminVolunteers" :key="v.id">
