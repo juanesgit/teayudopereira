@@ -457,17 +457,22 @@
             style="background:#f3f4f6;border:none;color:#6b7280;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:700">✕</button>
         </div>
 
-        <!-- Tabs — mismo patrón que panel de voluntarios, distribuidos en ancho completo -->
-        <div class="hide-scroll" style="display:flex;flex-shrink:0;border-bottom:1px solid #f3f4f6;width:100%">
+        <!-- Tabs — patrón idéntico al menú de voluntarios -->
+        <div style="display:flex;flex-shrink:0;border-bottom:1px solid #f3f4f6;overflow-x:auto">
           <template x-for="(s, i) in slides" :key="i">
             <button @click="slide=i"
-              class="text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex flex-col items-center gap-0.5"
-              style="flex:1;padding:12px 8px 10px;outline:none"
-              :style="slide===i
-                ? 'border-bottom:2px solid #dc2626;color:#dc2626'
-                : 'border-bottom:2px solid transparent;color:#9ca3af'">
-              <span x-text="s.icon" style="font-size:20px;line-height:1;margin-bottom:3px"></span>
-              <span x-text="s.label" style="font-size:11px;font-weight:700;letter-spacing:0.2px"></span>
+              :style="`
+                flex:1;min-width:80px;padding:14px 16px 12px;
+                background:transparent;cursor:pointer;outline:none;
+                display:flex;flex-direction:column;align-items:center;gap:5px;
+                font-family:inherit;transition:color .15s,border-color .15s;
+                border-top:none;border-left:none;border-right:none;
+                border-bottom:2px solid ${slide===i ? '#dc2626' : 'transparent'};
+                color:${slide===i ? '#dc2626' : '#9ca3af'};
+                font-size:11px;font-weight:700;
+              `">
+              <span x-text="s.icon" style="font-size:20px;line-height:1"></span>
+              <span x-text="s.label"></span>
             </button>
           </template>
         </div>
