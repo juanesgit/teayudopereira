@@ -417,12 +417,12 @@
               </button>
             </div>
 
-            <!-- Banner feedback — igual al banner superior (x-if evita conflicto display:flex) -->
+            <!-- Banner feedback — idéntico al banner superior -->
             <template x-if="forgotMsg && forgotStep==='otp'">
-              <div style="margin-top:12px;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid"
+              <div style="margin-top:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px"
                 :style="forgotError ? 'background:#fef2f2;border-color:#fecaca' : 'background:#f0fdf4;border-color:#bbf7d0'">
                 <span style="font-size:20px;flex-shrink:0" x-text="forgotError ? '🚫' : '📲'"></span>
-                <p x-text="forgotMsg" style="font-size:12px;font-weight:600;margin:0;line-height:1.4"
+                <p x-text="forgotMsg" style="font-size:12px;color:#166534;font-weight:600;margin:0;line-height:1.4"
                   :style="forgotError ? 'color:#991b1b' : 'color:#166534'"></p>
               </div>
             </template>
