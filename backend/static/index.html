@@ -2167,47 +2167,48 @@
   </div><!-- /guest-chat-overlay -->
 
   <!-- MODAL: instrucciones para agregar al home en iOS -->
-  <div x-show="iosInstallModal" style="position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px">
-    <div style="background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:400px">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-gray-900">Activa las notificaciones 🔔</h3>
-        <button @click="iosInstallModal=false" style="border:none;background:#f3f4f6;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
-      </div>
-      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">🧭</span>
-        <p class="text-xs text-orange-800 font-semibold">Debes hacerlo desde <u>Safari</u>, no desde Chrome. Chrome en iPhone no permite instalar apps.</p>
-      </div>
-      <p class="text-sm text-gray-600 mb-5">Una vez instalada, abre la app desde el ícono del home y las notificaciones se activarán.</p>
-      <div class="flex flex-col gap-4 mb-6">
-        <div class="flex items-start gap-3">
-          <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">1️⃣</div>
-          <div>
-            <p class="text-sm font-semibold text-gray-800">Abre esta página en <span style="color:#0369a1">Safari</span></p>
-            <p class="text-xs text-gray-500">Copia el enlace y pégalo en Safari si estás en Chrome</p>
+  <template x-if="iosInstallModal">
+    <div style="position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:400px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 class="text-lg font-bold text-gray-900">Activa las notificaciones 🔔</h3>
+          <button @click="iosInstallModal=false" style="border:none;background:#f3f4f6;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">🧭</span>
+          <p class="text-xs text-orange-800 font-semibold">Debes hacerlo desde <u>Safari</u>, no desde Chrome. Chrome en iPhone no permite instalar apps.</p>
+        </div>
+        <p class="text-sm text-gray-600 mb-5">Una vez instalada, abre la app desde el ícono del home y las notificaciones se activarán.</p>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="background:#fff1f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">1️⃣</div>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">Abre esta página en <span style="color:#dc2626">Safari</span></p>
+              <p class="text-xs text-gray-500">Copia el enlace y pégalo en Safari si estás en Chrome</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="background:#fff1f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">2️⃣</div>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">Toca el botón compartir ⬆️</p>
+              <p class="text-xs text-gray-500">En la barra inferior de Safari</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="background:#fff1f2;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">3️⃣</div>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">Selecciona "Añadir a pantalla de inicio"</p>
+              <p class="text-xs text-gray-500">Luego abre la app desde el ícono — ¡listo!</p>
+            </div>
           </div>
         </div>
-        <div class="flex items-start gap-3">
-          <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">2️⃣</div>
-          <div>
-            <p class="text-sm font-semibold text-gray-800">Toca el botón compartir ⬆️</p>
-            <p class="text-xs text-gray-500">En la barra inferior de Safari</p>
-          </div>
-        </div>
-        <div class="flex items-start gap-3">
-          <div style="background:#f0f9ff;border-radius:12px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">3️⃣</div>
-          <div>
-            <p class="text-sm font-semibold text-gray-800">Selecciona "Añadir a pantalla de inicio"</p>
-            <p class="text-xs text-gray-500">Luego abre la app desde el ícono — ¡listo!</p>
-          </div>
-        </div>
+        <button @click="iosInstallModal=false"
+          style="width:100%;min-height:48px;background:#dc2626;color:white;font-weight:700;border-radius:16px;border:none;cursor:pointer;font-size:15px">
+          Entendido
+        </button>
       </div>
-      <button @click="iosInstallModal=false"
-        class="w-full font-bold rounded-2xl border-none cursor-pointer text-white"
-        style="min-height:48px;background:#dc2626;font-size:15px">
-        Entendido
-      </button>
     </div>
-  </div>
+  </template>
 
   <!-- MODAL: pedir nombre al ciudadano anónimo -->
   <div x-show="guestNameModal" style="position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px">
