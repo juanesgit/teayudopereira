@@ -2129,8 +2129,15 @@
         <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-gray-900">🙋 Voluntarios registrados</h3>
-            <span class="text-xs bg-violet-100 text-violet-700 font-bold rounded-full px-2 py-0.5"
-              x-text="adminVolunteers.length+' total'"></span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs bg-violet-100 text-violet-700 font-bold rounded-full px-2 py-0.5"
+                x-text="adminVolunteers.length+' total'"></span>
+              <button @click="exportVolunteersCSV()"
+                class="text-xs bg-green-600 text-white font-bold rounded-lg px-2 py-1 border-none cursor-pointer flex items-center gap-1"
+                title="Exportar lista para WhatsApp">
+                📥 Exportar CSV
+              </button>
+            </div>
           </div>
           <div x-show="adminVolunteersLoading" class="text-center py-6 text-gray-400 text-sm">
             Cargando usuarios...
@@ -5826,6 +5833,28 @@ function app() {
         if (res.ok) this.adminVolunteers = await res.json()
       } catch(e) { console.warn('Error cargando voluntarios', e) }
       this.adminVolunteersLoading = false
+    },
+
+    exportVolunteersCSV() {
+      if (!this.adminVolunteers.length) return
+      const header = ['Nombre', 'Apellido', 'Teléfono', 'Email', 'Rol', 'Barrio', 'Activo']
+      const rows = this.adminVolunteers.map(v => [
+        v.full_name || '',
+        v.last_name || '',
+        v.phone || '',
+        v.email || '',
+        v.role === 'coordinator' ? 'Coordinador' : 'Voluntario',
+        v.neighborhood || '',
+        v.is_active ? 'Sí' : 'No',
+      ].map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      const csv = [header.join(','), ...rows].join('\n')
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `voluntarios_teayudo_${new Date().toISOString().slice(0,10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
     },
 
     async changeUserRole(userId, newRole) {
