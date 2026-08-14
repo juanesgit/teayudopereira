@@ -80,6 +80,11 @@
       50%  { box-shadow: 0 0 0 14px rgba(220,38,38,0), 0 4px 20px rgba(220,38,38,.5); transform: scale(1.06); }
       100% { box-shadow: 0 0 0 0px rgba(220,38,38,.8), 0 4px 20px rgba(220,38,38,.5); transform: scale(1); }
     }
+    @keyframes volunteer-pulse {
+      0%   { box-shadow: 0 0 0 0px rgba(255,255,255,.7); transform: scale(1); }
+      50%  { box-shadow: 0 0 0 8px rgba(255,255,255,0); transform: scale(1.04); }
+      100% { box-shadow: 0 0 0 0px rgba(255,255,255,.7); transform: scale(1); }
+    }
 
     /* ── Tooltips de marcadores ── */
     .tap-tooltip {
@@ -144,8 +149,9 @@
     </button>
     <div class="flex items-center gap-2">
       <template x-if="!user">
-        <button @click="page='login'; authTab='login'" class="bg-white text-red-600 text-xs font-semibold rounded-full px-4 h-9 border-none cursor-pointer">
-          Soy voluntario
+        <button @click="page='login'; authTab='login'" class="bg-white text-red-600 text-xs font-semibold rounded-full px-4 h-9 border-none cursor-pointer"
+          style="animation:volunteer-pulse 1.8s ease-in-out infinite">
+          🤝 Quiero Ayudar
         </button>
       </template>
       <template x-if="user">
