@@ -5180,8 +5180,8 @@ function app() {
       if (this.zoneAddressSearch.length < 3) { this.zoneAddressResults = []; return }
       this.zoneAddressLoading = true
       try {
-        const q = encodeURIComponent(this.zoneAddressSearch + ' Pereira Risaralda Colombia')
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&accept-language=es&countrycodes=co&viewbox=-75.80,4.57,-75.45,4.92&bounded=0`)
+        const q = encodeURIComponent(this.zoneAddressSearch + ' Pereira Dosquebradas Risaralda Colombia')
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&accept-language=es&countrycodes=co&viewbox=-75.80,4.57,-75.45,4.95&bounded=0`)
         this.zoneAddressResults = await r.json()
       } catch {} finally { this.zoneAddressLoading = false }
     },
@@ -5196,8 +5196,8 @@ function app() {
       if (this.aidCenterSearch.length < 3) { this.aidCenterSearchResults = []; return }
       this.aidCenterSearchLoading = true
       try {
-        const q = encodeURIComponent(this.aidCenterSearch + ' Pereira Risaralda Colombia')
-        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&accept-language=es&countrycodes=co&viewbox=-75.80,4.57,-75.45,4.92&bounded=0`)
+        const q = encodeURIComponent(this.aidCenterSearch + ' Pereira Dosquebradas Risaralda Colombia')
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=6&accept-language=es&countrycodes=co&viewbox=-75.80,4.57,-75.45,4.95&bounded=0`)
         this.aidCenterSearchResults = await r.json()
       } catch {} finally { this.aidCenterSearchLoading = false }
     },
