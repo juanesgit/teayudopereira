@@ -4065,7 +4065,7 @@ function app() {
       if (this.map) return
       const el = document.getElementById('map')
       if (!el) return
-      this.map = L.map('map').setView([4.8133, -75.6961], 13)
+      this.map = L.map('map', { markerZoomAnimation: false }).setView([4.8133, -75.6961], 13)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map)
@@ -4229,6 +4229,11 @@ function app() {
 
     renderMarkers() {
       if (!this.map) return
+      // Si hay una animación de zoom en curso, esperar a que termine
+      if (this.map._animatingZoom) {
+        this.map.once('zoomend', () => this.renderMarkers())
+        return
+      }
       this.markers.forEach(m => this.map.removeLayer(m))
       this.markers = []
 
