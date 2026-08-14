@@ -29,7 +29,7 @@ async def _notify_danger_zone(zone: DangerZone, db: AsyncSession) -> None:
         phones = [v.phone for v in volunteers if v.phone]
         if not phones:
             return
-        address = f"({zone.lat:.4f}, {zone.lng:.4f})"
+        address = zone.address or f"({zone.lat:.4f}, {zone.lng:.4f})"
         message = sms.msg_zona_peligro(zone.name, zone.danger_level.value, address)
         await sms.send_sms(phones, message)
     except Exception as exc:
