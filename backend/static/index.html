@@ -4876,7 +4876,7 @@ function app() {
         })
         return
       }
-      this.reportMap = L.map('report-map').setView([lat, lng], 16)
+      this.reportMap = L.map('report-map', { zoomAnimation: false }).setView([lat, lng], 16)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
       }).addTo(this.reportMap)
@@ -4971,7 +4971,11 @@ function app() {
       this.reportForm = { reporter_name:'', reporter_phone:'', need_type:'', description:'', address:'', lat:4.8133, lng:-75.6961, people_count:1, extra:{}, photoPreview:null, photoFile:null }
       this.locationOk = false; this.locationDenied = false; this.locationAddress = ''
       this.reportStep = 'location'; this.reportId = null; this.reportMsg = ''
-      if (this.reportMap) { this.reportMap.remove(); this.reportMap = null; this.reportMarker = null }
+      if (this.reportMap) {
+        if (this.reportMarker) { this.reportMarker.remove(); this.reportMarker = null }
+        this.reportMap.eachLayer(l => this.reportMap.removeLayer(l))
+        this.reportMap.remove(); this.reportMap = null
+      }
     },
 
     formatLoginPhone(e) {
@@ -5427,7 +5431,12 @@ function app() {
       this.dangerLocLoading = false
       this.dangerMsg = ''
       this.dangerError = false
-      if (this.dangerMap) { this.dangerMap.remove(); this.dangerMap = null; this.dangerMarker = null; this.dangerCircle = null }
+      if (this.dangerMap) {
+        if (this.dangerMarker) { this.dangerMarker.remove(); this.dangerMarker = null }
+        if (this.dangerCircle) { this.dangerCircle.remove(); this.dangerCircle = null }
+        this.dangerMap.eachLayer(l => this.dangerMap.removeLayer(l))
+        this.dangerMap.remove(); this.dangerMap = null
+      }
     },
 
     async getDangerLocation() {
@@ -5464,7 +5473,7 @@ function app() {
         setTimeout(() => this.dangerMap.invalidateSize(), 200)
         return
       }
-      this.dangerMap = L.map('danger-map').setView([lat, lng], 16)
+      this.dangerMap = L.map('danger-map', { zoomAnimation: false }).setView([lat, lng], 16)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(this.dangerMap)
       setTimeout(() => this.dangerMap.invalidateSize(), 200)
 
@@ -5721,7 +5730,7 @@ function app() {
           ? [this.user.action_lat, this.user.action_lng]
           : [4.8133, -75.6961]
 
-        this.actionMap = L.map('action-map', { zoomControl: true }).setView(center, 13)
+        this.actionMap = L.map('action-map', { zoomControl: true, zoomAnimation: false }).setView(center, 13)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OSM'
         }).addTo(this.actionMap)
