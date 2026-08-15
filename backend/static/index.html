@@ -4660,7 +4660,7 @@ function app() {
       this.stopGlobalAdminPoll()
       // Primera llamada: solo setea el baseline sin mostrar toast ni sonido
       this._fetchAdminUnread(true)
-      this._globalAdminPollInterval = setInterval(() => this._fetchAdminUnread(false), 20000)
+      this._globalAdminPollInterval = setInterval(() => this._fetchAdminUnread(false), 10000)
     },
 
     stopGlobalAdminPoll() {
@@ -4677,8 +4677,11 @@ function app() {
         if (!res.ok) return
         const { unread } = await res.json()
         const prev = this.adminTotalUnread
-        // Si admin está leyendo mensajes, solo actualizar el conteo sin alertar
-        if (this.sysTab === 'mensajes') { this.adminTotalUnread = 0; return }
+        // Si admin está en la tab de mensajes, no mostrar FAB ni alertar
+        if (this.page === 'sysadmin' && this.sysTab === 'mensajes') {
+          this.adminTotalUnread = 0
+          return
+        }
         this.adminTotalUnread = unread
         // silent=true en el primer poll: solo setea baseline, no alerta
         if (silent || unread <= prev) return
@@ -4738,14 +4741,15 @@ function app() {
       }
     },
 
-    _playAlertSound() {
+    async _playAlertSound() {
       try {
         // _audioCtx vive en closure (fuera del Proxy reactivo de Alpine)
         if (!_audioCtx) {
           _audioCtx = new (window.AudioContext || window.webkitAudioContext)()
         }
         const ctx = _audioCtx
-        if (ctx.state === 'suspended') ctx.resume()
+        // Esperar resume antes de schedular nodos de audio
+        if (ctx.state === 'suspended') await ctx.resume()
         const beep = (freq, start, dur) => {
           const o = ctx.createOscillator()
           const g = ctx.createGain()
@@ -4800,9 +4804,12 @@ function app() {
         this.adminDmConnected = false
         if (this._adminDmPing) { clearInterval(this._adminDmPing); this._adminDmPing = null }
       }
-      // Limpiar unread en la sala activa
+      // Limpiar unread de esta sala y actualizar el contador global inmediatamente
       const r = this.adminDmRooms.find(r => r.room === roomInfo.room)
-      if (r) r.unread = 0
+      if (r) {
+        this.adminTotalUnread = Math.max(0, this.adminTotalUnread - (r.unread || 0))
+        r.unread = 0
+      }
     },
 
     sendAdminDmMessage() {
@@ -6344,10 +6351,17 @@ function app() {
 
 <!-- ══ Toast de nuevo mensaje (admin) ══ -->
 <template x-if="user !== null && user.role === 'admin'">
-<div x-show="adminToast"
-     x-cloak
-     class="admin-toast-enter"
-     style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;width:calc(100% - 32px);max-width:400px;background:white;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden;border:1.5px solid #fecaca;">
+<div style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;width:calc(100% - 32px);max-width:400px;background:white;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden;border:1.5px solid #fecaca;display:none"
+     x-effect="
+       if (adminToast) {
+         $el.classList.remove('admin-toast-enter');
+         void $el.offsetWidth;
+         $el.classList.add('admin-toast-enter');
+         $el.style.display = 'block';
+       } else {
+         $el.style.display = 'none';
+       }
+     ">
   <!-- Barra de progreso -->
   <div x-show="adminToast" class="admin-toast-progress" style="height:3px;background:#dc2626;border-radius:3px 3px 0 0;"></div>
   <!-- Contenido -->
