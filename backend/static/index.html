@@ -2322,20 +2322,20 @@
           <template x-if="msg.is_system && msg.sender_name === 'Te Ayudo Pereira'">
             <div class="flex flex-col items-start gap-0.5">
               <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
-              <div style="max-width:82%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;white-space:pre-line" x-text="msg.text"></div>
+              <div style="max-width:82%;background:#dc2626;color:white;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
           <template x-if="!msg.is_system && msg.sender_role==='victim'">
             <div class="flex flex-col items-end gap-0.5">
-              <div style="max-width:78%;background:#dc2626;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <div style="max-width:78%;background:#374151;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
           <template x-if="!msg.is_system && msg.sender_role!=='victim'">
             <div class="flex flex-col items-start gap-0.5">
               <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
-              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;white-space:pre-line" x-text="msg.text"></div>
+              <div style="max-width:78%;background:#dc2626;color:white;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
