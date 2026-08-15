@@ -106,6 +106,7 @@
       pointer-events: none !important;
     }
     .tap-tooltip::before { display: none !important; }
+    .leaflet-div-icon-tap { background: transparent !important; border: none !important; }
 
     /* ── Popups de marcadores ── */
     .tap-popup .leaflet-popup-content-wrapper {
@@ -4070,10 +4071,11 @@ function app() {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map)
 
-      // Panes por categoría — filtrar por display en el pane nunca afecta _pixelOrigin
-      this.map.createPane('dangerPane');  this.map.getPane('dangerPane').style.zIndex = 399
-      this.map.createPane('aidPane');     this.map.getPane('aidPane').style.zIndex    = 601
-      this.map.createPane('reportsPane'); this.map.getPane('reportsPane').style.zIndex = 602
+      // Panes por categoría — filtrar por display en el pane nunca afecta _pixelOrigin.
+      // Los pines deben quedar ENCIMA del SVG overlayPane (z-index 400 por defecto en Leaflet).
+      this.map.createPane('dangerPane');  this.map.getPane('dangerPane').style.zIndex = 601
+      this.map.createPane('aidPane');     this.map.getPane('aidPane').style.zIndex    = 602
+      this.map.createPane('reportsPane'); this.map.getPane('reportsPane').style.zIndex = 603
 
       this.renderMarkers()
       // Recalibrar cuando el contenedor cambia de tamaño
