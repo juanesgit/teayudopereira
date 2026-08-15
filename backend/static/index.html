@@ -4071,11 +4071,16 @@ function app() {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map)
 
-      // Panes por categoría — filtrar por display en el pane nunca afecta _pixelOrigin.
-      // Los pines deben quedar ENCIMA del SVG overlayPane (z-index 400 por defecto en Leaflet).
-      this.map.createPane('dangerPane');  this.map.getPane('dangerPane').style.zIndex = 601
-      this.map.createPane('aidPane');     this.map.getPane('aidPane').style.zIndex    = 602
+      // Panes para marcadores div — filtrar ocultando el pane entero no afecta _pixelOrigin.
+      // z-index > 400 (overlayPane SVG) para que los pines queden sobre los círculos.
       this.map.createPane('reportsPane'); this.map.getPane('reportsPane').style.zIndex = 603
+      this.map.createPane('aidPane');     this.map.getPane('aidPane').style.zIndex    = 602
+      this.map.createPane('dangerPane');  this.map.getPane('dangerPane').style.zIndex = 601
+
+      // Capa de círculos SVG permanente — NUNCA se remueve del mapa, solo se limpia.
+      // Esto preserva el comportamiento original de los círculos (misma inicialización
+      // del SVG renderer que en el código original con _layerDanger).
+      this._circleDangerLayer = L.layerGroup().addTo(this.map)
 
       this.renderMarkers()
       // Recalibrar cuando el contenedor cambia de tamaño
@@ -4245,18 +4250,21 @@ function app() {
     },
 
     // Reconstruye todos los marcadores. El filtrado se hace únicamente
-    // ocultando el pane completo o el _path SVG — Leaflet nunca recalcula
-    // coordenadas y los marcadores siempre quedan en posición correcta.
+    // ocultando el pane completo (div markers) o via setStyle (SVG circles) —
+    // Leaflet nunca recalcula coordenadas y los marcadores siempre quedan correctos.
     renderMarkers() {
       if (!this.map) return
 
-      // Eliminar marcadores anteriores directamente del mapa
-      ;(this._mReports || []).concat(this._mAid || []).concat(this._mDangerPins || []).concat(this._mDangerCircles || [])
+      // Limpiar marcadores div anteriores (remove del mapa)
+      ;(this._mReports || []).concat(this._mAid || []).concat(this._mDangerPins || [])
         .forEach(l => { try { l.remove() } catch {} })
-      this._mReports      = []
-      this._mAid          = []
-      this._mDangerPins   = []
-      this._mDangerCircles= []
+      this._mReports    = []
+      this._mAid        = []
+      this._mDangerPins = []
+
+      // Limpiar círculos SVG de la capa permanente (NO remueve la capa del mapa)
+      if (this._circleDangerLayer) this._circleDangerLayer.clearLayers()
+      this._mDangerCircles = []
 
       const popupOpts = { className:'tap-popup', maxWidth:260, offset:[0,-4] }
       const tip = { className:'tap-tooltip', direction:'top', offset:[0,-20] }
@@ -4348,10 +4356,12 @@ function app() {
           </div>`
         const pin = L.marker([z.lat, z.lng], { icon: this._markerIcon('⚠️', c, 32), pane: 'dangerPane' })
           .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
+        // Círculo en la capa SVG permanente — misma forma que el código original
         const circle = L.circle([z.lat, z.lng], {
           radius: z.radius_meters, color: c, fillColor: c,
           fillOpacity: 0.15, weight: 2, dashArray: '6 4'
-        }).bindPopup(popupHtml, popupOpts).addTo(this.map)
+        }).bindPopup(popupHtml, popupOpts)
+        this._circleDangerLayer.addLayer(circle)
         this._mDangerPins.push(pin)
         this._mDangerCircles.push(circle)
       })
@@ -4361,8 +4371,9 @@ function app() {
     },
 
     // Filtrado sin tocar el sistema de coordenadas de Leaflet:
-    // - Marcadores div: ocultar el pane completo (Leaflet lo ignora para cálculos)
-    // - Círculos SVG: ocultar el _path individual (CSS puro, sin afectar nada más)
+    // - Marcadores div (pins): ocultar el pane completo — Leaflet nunca lo ve
+    // - Círculos SVG: setStyle opacity/fillOpacity — solo cambia atributos SVG,
+    //   no toca posiciones, viewBox, ni ningún cálculo interno de Leaflet
     _applyFilters() {
       if (!this.map) return
       const setPane = (name, visible) => {
@@ -4372,9 +4383,11 @@ function app() {
       setPane('reportsPane', this.filters.reports)
       setPane('aidPane',     this.filters.aidPoints)
       setPane('dangerPane',  this.filters.dangerZones)
-      // Círculos SVG van al overlayPane compartido — ocultar por _path individualmente
-      ;(this._mDangerCircles || []).forEach(c => {
-        if (c._path) c._path.style.display = this.filters.dangerZones ? '' : 'none'
+      const dangerVis = this.filters.dangerZones
+      ;(this._mDangerCircles || []).forEach(circle => {
+        circle.setStyle(dangerVis
+          ? { opacity: 1, fillOpacity: 0.15 }
+          : { opacity: 0, fillOpacity: 0 })
       })
     },
 
