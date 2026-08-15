@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal, get_db
@@ -148,6 +148,30 @@ async def guest_ws(
                     text=text, is_system=False, is_read=False,
                     created_at=datetime.utcnow(),
                 )
+                # Respuesta automática solo en el primer mensaje del ciudadano
+                prev_count = (await db.execute(
+                    select(func.count()).where(
+                        ChatMessage.channel == room,
+                        ChatMessage.sender_role == "victim",
+                        ChatMessage.id != msg.id,
+                    )
+                )).scalar()
+                auto_reply = None
+                if prev_count == 0:
+                    auto_text = (
+                        f"¡Hola {name}! 👋❤️ Recibimos tu mensaje y ya estamos "
+                        f"notificando a nuestros coordinadores de Te Ayudo Pereira.\n\n"
+                        f"📋 Mientras te atendemos, cuéntanos un poco más:\n"
+                        f"¿Cuál es tu situación actual? ¿Qué tipo de ayuda necesitas? "
+                        f"(alimentación 🍱, refugio 🏠, atención médica 🏥, agua 💧, u otra)\n\n"
+                        f"Entre más detalles nos des, más rápido podremos orientarte. ¡Estamos aquí para ayudarte! 🙏💪"
+                    )
+                    auto_reply = await _persist(
+                        db, channel=room,
+                        user_id=None, sender_name="Te Ayudo Pereira", sender_role="system",
+                        text=auto_text, is_system=True, is_read=True,
+                        created_at=datetime.utcnow(),
+                    )
                 # Push a admins si ninguno está en la sala
                 room_conns = dm_manager.get_local_room(room)
                 admin_in_room = any(
@@ -159,6 +183,8 @@ async def guest_ws(
                         db, f"🆘 Ciudadano: {name}", text[:80], "/"
                     )
             await dm_manager.broadcast(room, {"type": "message", "data": _msg_payload(msg)})
+            if auto_reply:
+                await dm_manager.broadcast(room, {"type": "message", "data": _msg_payload(auto_reply)})
 
     except WebSocketDisconnect:
         dm_manager.disconnect(ws, room)
