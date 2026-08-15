@@ -4658,9 +4658,9 @@ function app() {
     // ── Alertas globales de mensajes (corre siempre, no solo en tab mensajes) ──
     startGlobalAdminPoll() {
       this.stopGlobalAdminPoll()
-      // Cargar inmediatamente
-      this._fetchAdminUnread()
-      this._globalAdminPollInterval = setInterval(() => this._fetchAdminUnread(), 20000)
+      // Primera llamada: solo setea el baseline sin mostrar toast ni sonido
+      this._fetchAdminUnread(true)
+      this._globalAdminPollInterval = setInterval(() => this._fetchAdminUnread(false), 20000)
     },
 
     stopGlobalAdminPoll() {
@@ -4670,40 +4670,38 @@ function app() {
       }
     },
 
-    async _fetchAdminUnread() {
+    async _fetchAdminUnread(silent = false) {
       if (!this.token) return
       try {
         const res = await fetch('/dm/unread-count', { headers: this.authHeaders() })
         if (!res.ok) return
         const { unread } = await res.json()
         const prev = this.adminTotalUnread
-        this.adminTotalUnread = unread
+        // Si admin está leyendo mensajes, solo actualizar el conteo sin alertar
         if (this.sysTab === 'mensajes') { this.adminTotalUnread = 0; return }
-        // Nuevos mensajes → toast + sonido + notificación OS
-        if (unread > prev) {
-          // Obtener la sala con el mensaje más reciente sin leer
-          try {
-            const rr = await fetch('/dm/rooms', { headers: this.authHeaders() })
-            if (rr.ok) {
-              const rooms = await rr.json()
-              this.adminDmRooms = rooms
-              const newest = rooms
-                .filter(r => r.unread > 0 && r.last_message)
-                .sort((a, b) => b.last_message.created_at > a.last_message.created_at ? 1 : -1)[0]
-              if (newest) {
-                this._showAdminToast(newest.other_name, newest.last_message.text, newest)
-              }
-            }
-          } catch {}
-          this._playAlertSound()
-          if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
-            try {
-              new Notification('💬 Nuevo mensaje — Te Ayudo Pereira', {
-                body: `Tienes ${unread} mensaje${unread > 1 ? 's' : ''} sin leer`,
-                icon: '/icon-192.png', tag: 'admin-dm-alert', renotify: true,
-              })
-            } catch {}
+        this.adminTotalUnread = unread
+        // silent=true en el primer poll: solo setea baseline, no alerta
+        if (silent || unread <= prev) return
+        // Nuevos mensajes → buscar sala, mostrar toast, sonido
+        try {
+          const rr = await fetch('/dm/rooms', { headers: this.authHeaders() })
+          if (rr.ok) {
+            const rooms = await rr.json()
+            this.adminDmRooms = rooms
+            const newest = rooms
+              .filter(r => r.unread > 0 && r.last_message)
+              .sort((a, b) => b.last_message.created_at > a.last_message.created_at ? 1 : -1)[0]
+            if (newest) this._showAdminToast(newest.other_name, newest.last_message.text, newest)
           }
+        } catch {}
+        this._playAlertSound()
+        if (Notification.permission === 'granted' && document.visibilityState !== 'visible') {
+          try {
+            new Notification('💬 Nuevo mensaje — Te Ayudo Pereira', {
+              body: `Tienes ${unread} mensaje${unread > 1 ? 's' : ''} sin leer`,
+              icon: '/icon-192.png', tag: 'admin-dm-alert', renotify: true,
+            })
+          } catch {}
         }
       } catch {}
     },
@@ -6350,32 +6348,31 @@ function app() {
 </template>
 
 <!-- ══ Toast de nuevo mensaje (admin) ══ -->
-<template x-if="adminToast" x-data>
-  <div class="admin-toast-enter"
-       style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;width:calc(100% - 32px);max-width:400px;background:white;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden;border:1.5px solid #fecaca;"
-       x-data="{ shown: true }">
-    <!-- Barra de progreso -->
-    <div class="admin-toast-progress" style="height:3px;background:#dc2626;border-radius:3px 3px 0 0;"></div>
-    <!-- Contenido -->
-    <div style="display:flex;align-items:center;gap:12px;padding:13px 14px 13px 14px;">
-      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#dc2626,#b91c1c);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">💬</div>
-      <div style="flex:1;min-width:0;">
-        <p style="font-size:13px;font-weight:700;color:#111827;margin:0 0 2px" x-text="adminToast.name"></p>
-        <p style="font-size:12px;color:#6b7280;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="adminToast.preview"></p>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">
-        <button @click="_openToastDm()"
-          style="background:#dc2626;color:white;border:none;border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;">
-          Abrir →
-        </button>
-        <button @click="adminToast=null"
-          style="background:#f3f4f6;color:#6b7280;border:none;border-radius:10px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">
-          Cerrar
-        </button>
-      </div>
+<div x-show="adminToast"
+     x-cloak
+     class="admin-toast-enter"
+     style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;width:calc(100% - 32px);max-width:400px;background:white;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden;border:1.5px solid #fecaca;">
+  <!-- Barra de progreso -->
+  <div x-show="adminToast" class="admin-toast-progress" style="height:3px;background:#dc2626;border-radius:3px 3px 0 0;"></div>
+  <!-- Contenido -->
+  <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;">
+    <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#dc2626,#b91c1c);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">💬</div>
+    <div style="flex:1;min-width:0;">
+      <p style="font-size:13px;font-weight:700;color:#111827;margin:0 0 2px" x-text="adminToast?.name || ''"></p>
+      <p style="font-size:12px;color:#6b7280;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="adminToast?.preview || ''"></p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">
+      <button @click="_openToastDm()"
+        style="background:#dc2626;color:white;border:none;border-radius:10px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;">
+        Abrir →
+      </button>
+      <button @click="adminToast=null"
+        style="background:#f3f4f6;color:#6b7280;border:none;border-radius:10px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">
+        Cerrar
+      </button>
     </div>
   </div>
-</template>
+</div>
 
 </body>
 </html>
