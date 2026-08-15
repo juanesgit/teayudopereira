@@ -4065,7 +4065,7 @@ function app() {
       if (this.map) return
       const el = document.getElementById('map')
       if (!el) return
-      this.map = L.map('map', { markerZoomAnimation: false }).setView([4.8133, -75.6961], 13)
+      this.map = L.map('map', { zoomAnimation: false, markerZoomAnimation: false }).setView([4.8133, -75.6961], 13)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map)
@@ -4370,6 +4370,7 @@ function app() {
     // Aplica visibilidad de filtros sin recrear marcadores
     _applyFilters() {
       if (!this.map || !this._layerReports) return
+
       if (this.filters.reports) { if (!this.map.hasLayer(this._layerReports)) this._layerReports.addTo(this.map) }
       else { if (this.map.hasLayer(this._layerReports)) this.map.removeLayer(this._layerReports) }
 
@@ -4378,6 +4379,9 @@ function app() {
 
       if (this.filters.dangerZones) { if (!this.map.hasLayer(this._layerDanger)) this._layerDanger.addTo(this.map) }
       else { if (this.map.hasLayer(this._layerDanger)) this.map.removeLayer(this._layerDanger) }
+
+      // Forzar recálculo de posiciones de todos los markers
+      this.map.setView(this.map.getCenter(), this.map.getZoom(), { animate: false })
     },
 
     _timeAgo(isoStr) {
