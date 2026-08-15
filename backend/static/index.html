@@ -3408,128 +3408,81 @@
         </div>
 
         <!-- ── Tab Mensajes (admin bandeja DMs) ── -->
-        <div x-show="sysTab==='mensajes'" style="padding:0">
+        <div x-show="sysTab==='mensajes'" class="p-4">
 
           <!-- Lista de conversaciones -->
           <div x-show="!adminActiveDm">
 
-            <!-- ── Tabs de filtro estilo segmentado ── -->
-            <div style="padding:16px 16px 0">
-              <div style="background:#f1f5f9;border-radius:16px;padding:5px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
-                <template x-for="f in [
-                  {id:'all',    icon:'📋', label:'Todos'},
-                  {id:'pending',icon:'⏳', label:'Pendientes'},
-                  {id:'active', icon:'💬', label:'Atención'},
-                  {id:'resolved',icon:'✅',label:'Resueltos'}
-                ]" :key="f.id">
-                  <button @click="adminDmFilter=f.id"
-                    style="border:none;cursor:pointer;border-radius:11px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .2s;position:relative"
-                    :style="adminDmFilter===f.id
-                      ? 'background:white;box-shadow:0 2px 8px rgba(0,0,0,.12)'
-                      : 'background:transparent'">
-                    <span style="font-size:15px;line-height:1" x-text="f.icon"></span>
-                    <span style="font-size:9px;font-weight:700;letter-spacing:.3px;line-height:1"
-                      :style="adminDmFilter===f.id ? 'color:#dc2626' : 'color:#94a3b8'"
-                      x-text="f.label.toUpperCase()"></span>
-                    <!-- Contador -->
-                    <template x-if="adminDmRooms.filter(r => f.id==='all' || r.status===f.id).length > 0">
-                      <span style="position:absolute;top:4px;right:6px;min-width:16px;height:16px;border-radius:999px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1"
-                        :style="adminDmFilter===f.id
-                          ? (f.id==='pending' ? 'background:#dc2626;color:white' : f.id==='active' ? 'background:#059669;color:white' : 'background:#dc2626;color:white')
-                          : 'background:#cbd5e1;color:#475569'"
-                        x-text="adminDmRooms.filter(r => f.id==='all' || r.status===f.id).length"></span>
-                    </template>
-                  </button>
+            <!-- Filtros + recarga — mismo patrón que reportes -->
+            <div class="flex items-center gap-2 mb-3 flex-wrap">
+              <div class="flex gap-1 flex-1">
+                <template x-for="f in [{v:'all',l:'Todos'},{v:'pending',l:'🔴 Pendientes'},{v:'active',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
+                  <button @click="adminDmFilter=f.v"
+                    class="text-xs rounded-lg px-2.5 py-1.5 border-none cursor-pointer font-semibold transition-all"
+                    :style="adminDmFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                    x-text="f.l"></button>
                 </template>
               </div>
+              <button @click="loadAdminDmRooms()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
             </div>
 
-            <!-- ── Loading / empty ── -->
-            <div x-show="adminDmLoading" style="text-align:center;padding:40px 16px;color:#9ca3af;font-size:14px">Cargando...</div>
-            <div x-show="!adminDmLoading && adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter).length===0"
-                 style="text-align:center;padding:48px 16px;color:#9ca3af">
-              <p style="font-size:36px;margin-bottom:10px">💬</p>
-              <p style="font-size:14px;font-weight:600;color:#6b7280" x-text="adminDmFilter==='resolved' ? 'Sin conversaciones archivadas' : 'Sin conversaciones en esta categoría'"></p>
-            </div>
+            <!-- Contador -->
+            <p class="text-xs text-gray-400 mb-3"
+              x-text="adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter).length + ' conversación(es)'"></p>
 
-            <!-- ── Tarjetas de conversación ── -->
-            <div style="padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px">
+            <div x-show="adminDmLoading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
+
+            <!-- Lista — mismo patrón de tarjetas que reportes -->
+            <div class="flex flex-col gap-2">
               <template x-for="room in adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter)" :key="room.room">
-                <button @click="openAdminDm(room)"
-                  style="width:100%;text-align:left;border:none;cursor:pointer;border-radius:20px;background:white;overflow:hidden;display:flex;align-items:stretch;transition:transform .15s,box-shadow .15s;box-shadow:0 2px 12px rgba(0,0,0,.07)"
-                  :style="room.status==='resolved' ? 'opacity:.6' : ''"
-                  @mousedown="$el.style.transform='scale(.98)'" @mouseup="$el.style.transform=''" @mouseleave="$el.style.transform=''">
+                <div class="rounded-xl border overflow-hidden"
+                  :style="room.status==='pending' ? 'border-color:#fca5a5' : room.status==='active' ? 'border-color:#93c5fd' : 'border-color:#86efac'">
 
-                  <!-- Acento lateral de color -->
-                  <div style="width:5px;flex-shrink:0;border-radius:20px 0 0 20px"
-                    :style="room.status==='pending'  ? 'background:linear-gradient(180deg,#f59e0b,#d97706)' :
-                            room.status==='active'   ? 'background:linear-gradient(180deg,#10b981,#059669)' :
-                                                       'background:#e2e8f0'"></div>
-
-                  <!-- Contenido -->
-                  <div style="flex:1;min-width:0;padding:13px 12px 13px 14px">
-
-                    <!-- Fila superior: avatar + nombre + badges + hora/unread -->
-                    <div style="display:flex;align-items:flex-start;gap:10px">
-
-                      <!-- Avatar con iniciales -->
-                      <div style="width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:white;position:relative"
-                        :style="room.status==='pending'  ? 'background:linear-gradient(135deg,#f59e0b,#d97706)' :
-                                room.status==='active'   ? 'background:linear-gradient(135deg,#dc2626,#b91c1c)' :
-                                                           'background:linear-gradient(135deg,#94a3b8,#64748b)'"
-                        x-text="(room.other_name||'?').charAt(0).toUpperCase()">
-                      </div>
-
-                      <!-- Datos principales -->
-                      <div style="flex:1;min-width:0">
-                        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px">
-                          <p style="font-size:14px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="room.other_name"></p>
-                          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
-                            <!-- Badge unread -->
-                            <span x-show="room.unread > 0"
-                              style="background:#dc2626;color:white;font-size:11px;font-weight:900;border-radius:999px;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 2px 6px rgba(220,38,38,.5)"
-                              x-text="room.unread > 99 ? '99+' : room.unread"></span>
-                            <!-- Hora -->
-                            <span style="font-size:10px;color:#94a3b8;white-space:nowrap"
-                              x-text="room.last_message ? chatTimeLabel(room.last_message.created_at) : ''"></span>
-                          </div>
-                        </div>
-
-                        <!-- Badges de rol y estado -->
-                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap">
-                          <span style="font-size:10px;font-weight:700;border-radius:999px;padding:2px 8px;flex-shrink:0"
-                            :style="room.other_role==='victim' ? 'background:#fee2e2;color:#dc2626' : room.other_role==='coordinator' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'"
-                            x-text="room.other_role==='victim' ? '🆘 Ciudadano' : room.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
-                          <span style="font-size:10px;font-weight:700;border-radius:999px;padding:2px 8px;flex-shrink:0"
-                            :style="room.status==='pending' ? 'background:#fef3c7;color:#92400e' : room.status==='active' ? 'background:#d1fae5;color:#065f46' : 'background:#f1f5f9;color:#64748b'"
-                            x-text="room.status==='pending' ? '⏳ Pendiente' : room.status==='active' ? '💬 En atención' : '✅ Resuelto'"></span>
-                        </div>
-
-                        <!-- Último mensaje -->
-                        <p style="font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px"
-                           x-text="room.last_message ? room.last_message.text : 'Sin mensajes aún'"></p>
-
-                        <!-- Pie: teléfono + tiempo de espera -->
-                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                          <span x-show="room.phone_number"
-                            style="font-size:11px;color:#059669;font-weight:700;background:#d1fae5;border-radius:999px;padding:2px 8px;display:flex;align-items:center;gap:3px">
-                            📱 <span x-text="room.phone_number"></span>
-                          </span>
-                          <span x-show="room.wait_seconds !== null && room.wait_seconds !== undefined && room.status !== 'resolved'"
-                            style="font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;display:flex;align-items:center;gap:3px"
-                            :style="room.wait_seconds > 600
-                              ? 'background:#fee2e2;color:#dc2626'
-                              : room.wait_seconds > 180
-                                ? 'background:#fef3c7;color:#92400e'
-                                : 'background:#f1f5f9;color:#64748b'">
-                            ⏱ <span x-text="dmWaitLabel(room.wait_seconds) + ' sin respuesta'"></span>
-                          </span>
-                        </div>
-                      </div>
+                  <!-- Cabecera clickeable -->
+                  <div class="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                    :style="room.status==='pending' ? 'background:#fef2f2' : room.status==='active' ? 'background:#eff6ff' : 'background:#f0fdf4'"
+                    @click="openAdminDm(room)">
+                    <span class="text-lg flex-shrink-0">💬</span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 leading-tight" x-text="room.other_name"></p>
+                      <p class="text-xs text-gray-500 truncate"
+                         x-text="room.last_message ? room.last_message.text : 'Sin mensajes'"></p>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <!-- Unread badge -->
+                      <span x-show="room.unread > 0"
+                        class="text-xs font-bold rounded-full px-2 py-0.5"
+                        style="background:#dc2626;color:white"
+                        x-text="room.unread > 99 ? '99+' : room.unread"></span>
+                      <!-- Estado -->
+                      <span class="text-xs font-bold rounded-full px-2 py-0.5"
+                        :style="room.status==='pending' ? 'background:#dc2626;color:white' : room.status==='resolved' ? 'background:#16a34a;color:white' : 'background:#2563eb;color:white'"
+                        x-text="room.status==='pending' ? 'Pendiente' : room.status==='resolved' ? 'Resuelto' : 'En atención'"></span>
+                      <span class="text-gray-400 text-xs">›</span>
                     </div>
                   </div>
-                </button>
+
+                  <!-- Detalle: teléfono + tiempo de espera -->
+                  <div class="px-3 py-2 bg-white border-t border-gray-100 flex items-center gap-3 flex-wrap">
+                    <span class="text-xs text-gray-400"
+                      x-text="room.last_message ? chatTimeLabel(room.last_message.created_at) : ''"></span>
+                    <span x-show="room.phone_number"
+                      class="text-xs font-semibold"
+                      style="color:#059669"
+                      x-text="'📱 ' + room.phone_number"></span>
+                    <span x-show="room.wait_seconds !== null && room.wait_seconds !== undefined && room.status !== 'resolved'"
+                      class="text-xs font-semibold"
+                      :style="room.wait_seconds > 600 ? 'color:#dc2626' : room.wait_seconds > 180 ? 'color:#d97706' : 'color:#6b7280'"
+                      x-text="'⏱ ' + dmWaitLabel(room.wait_seconds) + ' sin respuesta'"></span>
+                  </div>
+
+                </div>
               </template>
+
+              <div x-show="!adminDmLoading && adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter).length===0"
+                   class="text-center py-8 text-gray-400 text-sm">
+                <p x-text="adminDmFilter==='resolved' ? 'Sin conversaciones archivadas.' : 'No hay conversaciones en esta categoría.'"></p>
+              </div>
             </div>
 
           </div>
