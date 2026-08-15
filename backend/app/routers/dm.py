@@ -311,6 +311,25 @@ async def list_dm_rooms(
     return out
 
 
+@router.get("/dm/unread-count")
+async def dm_unread_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Admin: total mensajes no leídos en todas las salas."""
+    if current_user.role not in (UserRole.admin, UserRole.coordinator):
+        raise HTTPException(403, "Sin permisos")
+
+    total = (await db.execute(
+        select(func.count()).where(
+            ChatMessage.is_read == False,  # noqa
+            ~ChatMessage.sender_role.in_(["admin", "coordinator", "system"])
+        )
+    )).scalar()
+
+    return {"unread": total or 0}
+
+
 @router.get("/dm/rooms/{room}")
 async def get_dm_room(
     room: str,
