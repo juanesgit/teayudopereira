@@ -2328,7 +2328,7 @@
           </template>
           <template x-if="!msg.is_system && msg.sender_role==='victim'">
             <div class="flex flex-col items-end gap-0.5">
-              <div style="max-width:78%;background:#374151;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;box-shadow:0 1px 3px rgba(0,0,0,.06)" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
