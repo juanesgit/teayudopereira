@@ -164,6 +164,8 @@ async def guest_ws(
                         f"📋 Mientras te atendemos, cuéntanos un poco más:\n"
                         f"¿Cuál es tu situación actual? ¿Qué tipo de ayuda necesitas? "
                         f"(alimentación 🍱, refugio 🏠, atención médica 🏥, agua 💧, u otra)\n\n"
+                        f"📱 También compártenos un número de celular o WhatsApp donde podamos contactarte directamente, "
+                        f"en caso de que la conexión al chat se interrumpa.\n\n"
                         f"Entre más detalles nos des, más rápido podremos orientarte. ¡Estamos aquí para ayudarte! 🙏💪"
                     )
                     auto_reply = await _persist(
