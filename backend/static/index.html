@@ -2305,8 +2305,15 @@
       </template>
       <template x-for="(msg, idx) in guestMessages" :key="msg.id ?? ('gm-'+idx)">
         <div>
-          <template x-if="msg.is_system">
+          <template x-if="msg.is_system && msg.sender_name !== 'Te Ayudo Pereira'">
             <div class="text-center text-xs text-gray-400 py-1" x-text="msg.text"></div>
+          </template>
+          <template x-if="msg.is_system && msg.sender_name === 'Te Ayudo Pereira'">
+            <div class="flex flex-col items-start gap-0.5">
+              <span class="text-xs font-semibold" style="color:#0369a1" x-text="msg.sender_name"></span>
+              <div style="max-width:82%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #bae6fd;white-space:pre-line" x-text="msg.text"></div>
+              <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
+            </div>
           </template>
           <template x-if="!msg.is_system && msg.sender_role==='victim'">
             <div class="flex flex-col items-end gap-0.5">
@@ -2317,7 +2324,7 @@
           <template x-if="!msg.is_system && msg.sender_role!=='victim'">
             <div class="flex flex-col items-start gap-0.5">
               <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
-              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
