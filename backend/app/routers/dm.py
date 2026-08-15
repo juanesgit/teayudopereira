@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
@@ -161,7 +162,19 @@ async def dm_ws(ws: WebSocket, room: str, token: str = Query(...)):
                 # Push al otro participante si no está conectado al WS
                 room_conns = dm_manager.get_local_room(room)
                 if room.startswith("guest_"):
-                    # Admin respondiendo a ciudadano → push al guest
+                    # Admin/coord respondiendo → auto-activar sala si estaba pending
+                    if user_role in ("admin", "coordinator"):
+                        gs = (await db.execute(
+                            select(GuestSession).where(GuestSession.room == room)
+                        )).scalar_one_or_none()
+                        if gs and gs.status == "pending":
+                            await db.execute(
+                                update(GuestSession)
+                                .where(GuestSession.room == room)
+                                .values(status="active")
+                            )
+                            await db.commit()
+                    # Push al guest si no está en la sala
                     guest_in_room = any(
                         info["role"] == "victim" for info in room_conns.values()
                     )
@@ -273,6 +286,8 @@ async def list_dm_rooms(
         })
 
     # Procesar salas guest
+    _phone_re = re.compile(r"(\+?57[\s\-]?)?3\d{2}[\s\-]?\d{3}[\s\-]?\d{4}")
+
     for room in guest_rooms:
         gs = (await db.execute(
             select(GuestSession).where(GuestSession.room == room)
@@ -293,8 +308,54 @@ async def list_dm_rooms(
             )
         )).scalar()
 
+        # Tiempo de espera: último mensaje del ciudadano sin respuesta posterior de admin
+        last_victim_msg = (await db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.channel == room, ChatMessage.sender_role == "victim")
+            .order_by(ChatMessage.created_at.desc())
+            .limit(1)
+        )).scalar_one_or_none()
+
+        last_admin_msg = (await db.execute(
+            select(ChatMessage)
+            .where(ChatMessage.channel == room, ChatMessage.sender_role.in_(["admin", "coordinator"]))
+            .order_by(ChatMessage.created_at.desc())
+            .limit(1)
+        )).scalar_one_or_none()
+
+        # wait_seconds: tiempo desde último msg del ciudadano si no hay respuesta posterior del admin
+        wait_seconds = None
+        if last_victim_msg:
+            if not last_admin_msg or last_admin_msg.created_at < last_victim_msg.created_at:
+                delta = datetime.utcnow() - last_victim_msg.created_at
+                wait_seconds = int(delta.total_seconds())
+
+        # Teléfono: buscar en mensajes del ciudadano
+        phone_found = gs.phone_number if gs and gs.phone_number else None
+        if not phone_found:
+            victim_msgs = (await db.execute(
+                select(ChatMessage.text)
+                .where(ChatMessage.channel == room, ChatMessage.sender_role == "victim")
+                .order_by(ChatMessage.created_at.asc())
+                .limit(20)
+            )).scalars().all()
+            for txt in victim_msgs:
+                m = _phone_re.search(txt or "")
+                if m:
+                    phone_found = re.sub(r"[\s\-]", "", m.group())
+                    # Persistir en GuestSession para no re-escanear
+                    if gs:
+                        await db.execute(
+                            update(GuestSession)
+                            .where(GuestSession.room == room)
+                            .values(phone_number=phone_found)
+                        )
+                        await db.commit()
+                    break
+
         guest_name = gs.guest_name if gs else "Ciudadano"
         report_id = gs.report_id if gs else None
+        status = gs.status if gs else "pending"
 
         out.append({
             "room": room,
@@ -305,6 +366,9 @@ async def list_dm_rooms(
             "unread": unread,
             "is_guest": True,
             "report_id": report_id,
+            "status": status,
+            "wait_seconds": wait_seconds,
+            "phone_number": phone_found,
         })
 
     out.sort(key=lambda x: x["last_message"]["created_at"] if x["last_message"] else "", reverse=True)
@@ -316,18 +380,52 @@ async def dm_unread_count(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Admin: total mensajes no leídos en todas las salas."""
+    """Admin: total mensajes no leídos (excluye salas resueltas)."""
     if current_user.role not in (UserRole.admin, UserRole.coordinator):
         raise HTTPException(403, "Sin permisos")
 
-    total = (await db.execute(
-        select(func.count()).where(
-            ChatMessage.is_read == False,  # noqa
-            ~ChatMessage.sender_role.in_(["admin", "coordinator", "system"])
-        )
-    )).scalar()
+    # Salas guest resueltas — no cuentan para el badge
+    resolved_rooms = (await db.execute(
+        select(GuestSession.room).where(GuestSession.status == "resolved")
+    )).scalars().all()
 
+    q = select(func.count()).where(
+        ChatMessage.is_read == False,  # noqa
+        ~ChatMessage.sender_role.in_(["admin", "coordinator", "system"])
+    )
+    if resolved_rooms:
+        q = q.where(~ChatMessage.channel.in_(resolved_rooms))
+
+    total = (await db.execute(q)).scalar()
     return {"unread": total or 0}
+
+
+@router.patch("/dm/rooms/{room}/status")
+async def update_room_status(
+    room: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Admin: cambiar estado de una sala guest (pending/active/resolved)."""
+    if current_user.role not in (UserRole.admin, UserRole.coordinator):
+        raise HTTPException(403, "Sin permisos")
+
+    new_status = body.get("status")
+    if new_status not in ("pending", "active", "resolved"):
+        raise HTTPException(400, "Estado inválido")
+
+    gs = (await db.execute(
+        select(GuestSession).where(GuestSession.room == room)
+    )).scalar_one_or_none()
+    if not gs:
+        raise HTTPException(404, "Sala no encontrada")
+
+    await db.execute(
+        update(GuestSession).where(GuestSession.room == room).values(status=new_status)
+    )
+    await db.commit()
+    return {"ok": True, "status": new_status}
 
 
 @router.get("/dm/rooms/{room}")

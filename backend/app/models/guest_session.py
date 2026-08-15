@@ -15,3 +15,7 @@ class GuestSession(Base):
     room: Mapped[str] = mapped_column(String(80), unique=True, index=True, nullable=False)
     report_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("reports.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    # Estado de la conversación: pending | active | resolved
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="pending")
+    # Número de contacto compartido por el ciudadano (extraído del chat)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)

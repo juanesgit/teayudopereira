@@ -3412,36 +3412,75 @@
 
           <!-- Lista de conversaciones -->
           <div x-show="!adminActiveDm">
-            <h3 class="font-bold text-gray-900 mb-3">📩 Conversaciones directas</h3>
-            <div x-show="adminDmLoading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
-            <div x-show="!adminDmLoading && adminDmRooms.length===0" class="text-center py-8 text-gray-400 text-sm">
-              <p style="font-size:28px;margin-bottom:8px">💬</p>
-              <p>Sin conversaciones aún.</p>
+
+            <!-- Filtros de estado -->
+            <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px">
+              <template x-for="f in [{id:'all',label:'Todos'},{id:'pending',label:'⏳ Pendientes'},{id:'active',label:'💬 En atención'},{id:'resolved',label:'✅ Resueltos'}]" :key="f.id">
+                <button @click="adminDmFilter=f.id"
+                  style="flex-shrink:0;border-radius:999px;padding:5px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .15s"
+                  :style="adminDmFilter===f.id
+                    ? 'background:#dc2626;color:white'
+                    : 'background:#f3f4f6;color:#6b7280'"
+                  x-text="f.label + ' (' + adminDmRooms.filter(r => f.id==='all' || r.status===f.id).length + ')'"></button>
+              </template>
             </div>
+
+            <div x-show="adminDmLoading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
+            <div x-show="!adminDmLoading && adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter).length===0"
+                 class="text-center py-8 text-gray-400 text-sm">
+              <p style="font-size:28px;margin-bottom:8px">💬</p>
+              <p x-text="adminDmFilter==='resolved' ? 'Sin conversaciones archivadas.' : 'Sin conversaciones en esta categoría.'"></p>
+            </div>
+
             <div class="flex flex-col gap-2">
-              <template x-for="room in adminDmRooms" :key="room.room">
+              <template x-for="room in adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter)" :key="room.room">
                 <button @click="openAdminDm(room)"
-                  class="w-full text-left bg-white border border-gray-200 rounded-2xl px-4 py-3 cursor-pointer transition-all"
-                  :style="room.unread > 0 ? 'border-color:#dc2626;background:#fff7f7' : ''">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-1.5">
-                        <p class="font-semibold text-gray-900 text-sm" x-text="room.other_name"></p>
-                        <span class="text-xs font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0"
-                          :style="room.other_role==='victim' ? 'background:#fee2e2;color:#dc2626' : room.other_role==='coordinator' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'"
-                          x-text="room.other_role==='victim' ? '🆘 Ciudadano' : room.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
-                      </div>
-                      <p class="text-xs text-gray-400 truncate mt-0.5"
-                         x-text="room.last_message ? room.last_message.text : 'Sin mensajes'"></p>
+                  class="w-full text-left bg-white border border-gray-200 rounded-2xl cursor-pointer transition-all"
+                  style="padding:12px 14px"
+                  :style="room.unread > 0 ? 'border-color:#dc2626;background:#fff7f7' : room.status==='resolved' ? 'opacity:.65' : ''">
+
+                  <!-- Fila 1: nombre + badges -->
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <p class="font-semibold text-gray-900 text-sm truncate" x-text="room.other_name"></p>
+                      <!-- Badge tipo usuario -->
+                      <span class="text-xs font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0"
+                        :style="room.other_role==='victim' ? 'background:#fee2e2;color:#dc2626' : room.other_role==='coordinator' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'"
+                        x-text="room.other_role==='victim' ? '🆘 Ciudadano' : room.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
+                      <!-- Badge estado -->
+                      <span class="text-xs font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0"
+                        :style="room.status==='pending'  ? 'background:#fef3c7;color:#92400e' :
+                                room.status==='active'   ? 'background:#d1fae5;color:#065f46' :
+                                                           'background:#f3f4f6;color:#6b7280'"
+                        x-text="room.status==='pending' ? '⏳ Pendiente' : room.status==='active' ? '💬 En atención' : '✅ Resuelto'"></span>
                     </div>
-                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                    <!-- Unread + hora -->
+                    <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
                       <span x-show="room.unread > 0"
-                        class="bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5"
+                        style="background:#dc2626;color:white;font-size:11px;font-weight:900;border-radius:999px;padding:1px 7px"
                         x-text="room.unread"></span>
                       <span class="text-xs text-gray-400"
                         x-text="room.last_message ? chatTimeLabel(room.last_message.created_at) : ''"></span>
                     </div>
                   </div>
+
+                  <!-- Fila 2: último mensaje -->
+                  <p class="text-xs text-gray-400 truncate"
+                     x-text="room.last_message ? room.last_message.text : 'Sin mensajes'"></p>
+
+                  <!-- Fila 3: teléfono + tiempo de espera -->
+                  <div class="flex items-center gap-3 mt-1.5">
+                    <span x-show="room.phone_number"
+                      style="font-size:11px;color:#059669;font-weight:600;display:flex;align-items:center;gap:3px">
+                      📱 <span x-text="room.phone_number"></span>
+                    </span>
+                    <span x-show="room.wait_seconds !== null && room.wait_seconds !== undefined && room.status !== 'resolved'"
+                      style="font-size:11px;font-weight:600;display:flex;align-items:center;gap:3px"
+                      :style="room.wait_seconds > 600 ? 'color:#dc2626' : room.wait_seconds > 180 ? 'color:#d97706' : 'color:#6b7280'">
+                      ⏱ <span x-text="dmWaitLabel(room.wait_seconds)"></span> sin respuesta
+                    </span>
+                  </div>
+
                 </button>
               </template>
             </div>
@@ -3458,22 +3497,50 @@
 
     <!-- Header -->
     <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
-      <button @click="adminActiveDm=null; adminDmMessages=[]; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms(); startAdminDmPolling()"
-        style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;">
+      <!-- Botón volver -->
+      <button @click="adminActiveDm=null; adminDmMessages=[]; adminQuickReplies=false; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms(); startAdminDmPolling()"
+        style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;flex-shrink:0;">
         ← Volver
       </button>
-      <div>
+      <!-- Info ciudadano -->
+      <div style="flex:1;min-width:0">
         <div class="flex items-center gap-1.5">
-          <p class="font-bold" style="font-size:15px;color:white" x-text="adminActiveDm?.other_name"></p>
-          <span class="text-xs font-semibold rounded-full px-1.5 py-0.5"
-            :style="adminActiveDm?.other_role==='victim' ? 'background:rgba(255,255,255,.25);color:white' : adminActiveDm?.other_role==='coordinator' ? 'background:rgba(255,255,255,.25);color:white' : 'background:rgba(255,255,255,.25);color:white'"
+          <p class="font-bold truncate" style="font-size:15px;color:white" x-text="adminActiveDm?.other_name"></p>
+          <span class="text-xs font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0"
+            style="background:rgba(255,255,255,.25);color:white"
             x-text="adminActiveDm?.other_role==='victim' ? '🆘 Ciudadano' : adminActiveDm?.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
         </div>
-        <p class="text-xs" style="opacity:.8">
-          <span :style="adminDmConnected ? 'color:#86efac' : 'color:#fca5a5'">●</span>
-          <span x-text="adminDmConnected ? 'En línea' : 'Conectando...'"></span>
-        </p>
+        <div class="flex items-center gap-2 mt-0.5">
+          <p class="text-xs" style="opacity:.8">
+            <span :style="adminDmConnected ? 'color:#86efac' : 'color:#fca5a5'">●</span>
+            <span x-text="adminDmConnected ? 'En línea' : 'Conectando...'"></span>
+          </p>
+          <!-- Teléfono si existe -->
+          <span x-show="adminActiveDm?.phone_number"
+            style="font-size:11px;color:#bbf7d0;font-weight:600"
+            x-text="'📱 ' + (adminActiveDm?.phone_number || '')"></span>
+          <!-- Badge estado -->
+          <span class="text-xs font-semibold rounded-full px-1.5 py-0.5"
+            style="flex-shrink:0"
+            :style="adminActiveDm?.status==='pending' ? 'background:rgba(255,255,255,.2);color:#fde68a' :
+                    adminActiveDm?.status==='active'  ? 'background:rgba(255,255,255,.2);color:#a7f3d0' :
+                                                        'background:rgba(255,255,255,.15);color:rgba(255,255,255,.7)'"
+            x-text="adminActiveDm?.status==='pending' ? '⏳ Pendiente' : adminActiveDm?.status==='active' ? '💬 En atención' : '✅ Resuelto'"></span>
+        </div>
       </div>
+      <!-- Botón Resolver -->
+      <template x-if="adminActiveDm?.status !== 'resolved'">
+        <button @click="resolveAdminDm()"
+          style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;color:white;cursor:pointer;flex-shrink:0;white-space:nowrap">
+          ✅ Resolver
+        </button>
+      </template>
+      <template x-if="adminActiveDm?.status === 'resolved'">
+        <button @click="reopenAdminDm()"
+          style="border:none;background:rgba(255,255,255,.15);border-radius:10px;padding:6px 10px;font-size:12px;font-weight:700;color:rgba(255,255,255,.8);cursor:pointer;flex-shrink:0;white-space:nowrap">
+          ↩ Reabrir
+        </button>
+      </template>
     </div>
 
     <!-- Mensajes -->
@@ -3484,13 +3551,18 @@
       </template>
       <template x-for="(msg, idx) in adminDmMessages" :key="msg.id ?? ('adm-'+idx)">
         <div>
-          <template x-if="user && msg.user_id == user.id">
+          <template x-if="msg.is_system">
+            <div class="flex justify-center">
+              <span style="font-size:11px;color:#9ca3af;background:#f3f4f6;border-radius:999px;padding:3px 10px;font-style:italic" x-text="msg.text"></span>
+            </div>
+          </template>
+          <template x-if="!msg.is_system && user && msg.user_id == user.id">
             <div class="flex flex-col items-end gap-0.5">
               <div style="max-width:78%;background:#dc2626;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
-          <template x-if="!user || msg.user_id != user.id">
+          <template x-if="!msg.is_system && (!user || msg.user_id != user.id)">
             <div class="flex flex-col items-start gap-0.5">
               <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
               <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;white-space:pre-line" x-text="msg.text"></div>
@@ -3501,16 +3573,36 @@
       </template>
     </div>
 
+    <!-- Panel respuestas rápidas -->
+    <div x-show="adminQuickReplies"
+         style="background:#fff7f7;border-top:1px solid #fecaca;padding:10px 14px;flex-shrink:0;max-height:180px;overflow-y:auto">
+      <p style="font-size:11px;font-weight:700;color:#b91c1c;margin-bottom:8px">⚡ Respuestas rápidas</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <template x-for="(qr, i) in adminQuickReplyList" :key="i">
+          <button @click="adminDmInput=qr.text; adminQuickReplies=false; $nextTick(()=>{ const t=document.querySelector('.admin-dm-input'); if(t){t.focus();t.style.height='auto';t.style.height=Math.min(t.scrollHeight,80)+'px'} })"
+            style="text-align:left;background:white;border:1px solid #fecaca;border-radius:10px;padding:7px 12px;font-size:12px;color:#374151;cursor:pointer;line-height:1.4">
+            <span style="font-weight:700;color:#b91c1c" x-text="qr.label + ': '"></span>
+            <span x-text="qr.text"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+
     <!-- Input -->
     <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 16px 14px;flex-shrink:0;">
       <div style="display:flex;align-items:flex-end;gap:8px;">
+        <!-- Botón respuestas rápidas -->
+        <button @click="adminQuickReplies=!adminQuickReplies"
+          style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:background .15s"
+          :style="adminQuickReplies ? 'background:#fee2e2' : 'background:#f3f4f6'"
+          title="Respuestas rápidas">⚡</button>
         <textarea x-model="adminDmInput"
           @keydown.enter.prevent="if(!$event.shiftKey){ sendAdminDmMessage() }"
           @input="$el.style.height='auto'; $el.style.height=Math.min($el.scrollHeight,80)+'px'"
           @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe una respuesta..."
           rows="1" maxlength="500"
-          class="chat-input border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
+          class="chat-input admin-dm-input border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
           style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:80px;overflow-y:hidden;padding:10px 14px"
           :disabled="!adminDmConnected"></textarea>
         <button @click="sendAdminDmMessage()" :disabled="!adminDmInput.trim() || !adminDmConnected"
@@ -4010,7 +4102,7 @@ function app() {
     // Admin bandeja DMs
     adminDmRooms: [],
     adminDmLoading: false,
-    adminActiveDm: null,   // {room, other_name, other_role}
+    adminActiveDm: null,   // {room, other_name, other_role, status, phone_number, ...}
     adminDmMessages: [],
     adminDmWs: null,
     adminDmInput: '',
@@ -4019,6 +4111,16 @@ function app() {
     _globalAdminPollInterval: null,
     adminToast: null,
     _adminToastTimer: null,
+    adminDmFilter: 'all',   // all | pending | active | resolved
+    adminQuickReplies: false,
+    adminQuickReplyList: [
+      { label: 'Recibido',    text: 'Hola, recibimos tu mensaje. Ya estamos revisando tu caso y un coordinador te contactará pronto. 🙏' },
+      { label: 'En camino',   text: 'Ya estamos coordinando el apoyo. Un voluntario se dirigirá a tu ubicación. ¿Puedes confirmar tu dirección exacta?' },
+      { label: 'Dirección',   text: '¿Puedes compartir tu dirección exacta o un punto de referencia cercano para ubicarte mejor?' },
+      { label: 'Albergue',    text: 'Te informamos que hay un albergue disponible en el sector. ¿Necesitas transporte para llegar o puedes desplazarte?' },
+      { label: 'Asistencia',  text: 'Ya asignamos un coordinador a tu caso. Por favor mantente en un lugar seguro y sigue pendiente de este chat. 💪' },
+      { label: 'Resuelto',    text: 'Nos alegra haberte podido ayudar. Si necesitas algo más, no dudes en escribirnos. ¡Cuídate mucho! ❤️' },
+    ],
     // ─────────────────────────────────────────────────────────────────────
     isOnline: navigator.onLine,
     offlineQueue: JSON.parse(localStorage.getItem('tap_offline_queue') || '[]'),
@@ -4817,6 +4919,58 @@ function app() {
       if (!text || !this.adminDmWs || this.adminDmWs.readyState !== WebSocket.OPEN) return
       this.adminDmWs.send(JSON.stringify({ text }))
       this.adminDmInput = ''
+    },
+
+    async resolveAdminDm() {
+      if (!this.adminActiveDm) return
+      const room = this.adminActiveDm.room
+      try {
+        const res = await fetch(`/dm/rooms/${room}/status`, {
+          method: 'PATCH',
+          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'resolved' }),
+        })
+        if (res.ok) {
+          this.adminActiveDm = { ...this.adminActiveDm, status: 'resolved' }
+          const r = this.adminDmRooms.find(r => r.room === room)
+          if (r) r.status = 'resolved'
+          // Volver a la bandeja automáticamente después de 1s
+          setTimeout(() => {
+            this.adminActiveDm = null
+            this.adminDmMessages = []
+            this.adminQuickReplies = false
+            if (this.adminDmWs) { this.adminDmWs.close(); this.adminDmWs = null }
+            this.loadAdminDmRooms()
+            this.startAdminDmPolling()
+          }, 800)
+        }
+      } catch {}
+    },
+
+    async reopenAdminDm() {
+      if (!this.adminActiveDm) return
+      const room = this.adminActiveDm.room
+      try {
+        const res = await fetch(`/dm/rooms/${room}/status`, {
+          method: 'PATCH',
+          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'active' }),
+        })
+        if (res.ok) {
+          this.adminActiveDm = { ...this.adminActiveDm, status: 'active' }
+          const r = this.adminDmRooms.find(r => r.room === room)
+          if (r) r.status = 'active'
+        }
+      } catch {}
+    },
+
+    dmWaitLabel(seconds) {
+      if (seconds === null || seconds === undefined) return ''
+      if (seconds < 60) return `${seconds}s`
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}min`
+      const h = Math.floor(seconds / 3600)
+      const m = Math.floor((seconds % 3600) / 60)
+      return m > 0 ? `${h}h ${m}min` : `${h}h`
     },
     // ─────────────────────────────────────────────────────────────────────
 
