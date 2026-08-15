@@ -4069,6 +4069,12 @@ function app() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(this.map)
+
+      // Panes por categoría — filtrar por display en el pane nunca afecta _pixelOrigin
+      this.map.createPane('dangerPane');  this.map.getPane('dangerPane').style.zIndex = 399
+      this.map.createPane('aidPane');     this.map.getPane('aidPane').style.zIndex    = 601
+      this.map.createPane('reportsPane'); this.map.getPane('reportsPane').style.zIndex = 602
+
       this.renderMarkers()
       // Recalibrar cuando el contenedor cambia de tamaño
       // (barra URL del móvil aparece/desaparece, rotación, etc.)
@@ -4231,26 +4237,24 @@ function app() {
     _markerIcon(emoji, color, size=36) {
       return L.divIcon({
         html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.5)}px;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.35);cursor:pointer;box-sizing:border-box">${emoji}</div>`,
-        className: '',
+        className: 'leaflet-div-icon-tap',
         iconSize:[size,size], iconAnchor:[size/2,size/2], popupAnchor:[0,-size/2-4]
       })
     },
 
-    // Reconstruye todos los marcadores y los pone en el mapa de una vez.
-    // El filtrado se hace exclusivamente por CSS (display) — nunca add/remove de capas.
+    // Reconstruye todos los marcadores. El filtrado se hace únicamente
+    // ocultando el pane completo o el _path SVG — Leaflet nunca recalcula
+    // coordenadas y los marcadores siempre quedan en posición correcta.
     renderMarkers() {
       if (!this.map) return
 
-      // Limpiar marcadores anteriores
-      if (this._allMarkersLayer) {
-        this._allMarkersLayer.clearLayers()
-      } else {
-        this._allMarkersLayer = L.layerGroup().addTo(this.map)
-      }
-      // Listas para filtrado CSS posterior
-      this._mReports = []
-      this._mAid     = []
-      this._mDanger  = []
+      // Eliminar marcadores anteriores directamente del mapa
+      ;(this._mReports || []).concat(this._mAid || []).concat(this._mDangerPins || []).concat(this._mDangerCircles || [])
+        .forEach(l => { try { l.remove() } catch {} })
+      this._mReports      = []
+      this._mAid          = []
+      this._mDangerPins   = []
+      this._mDangerCircles= []
 
       const popupOpts = { className:'tap-popup', maxWidth:260, offset:[0,-4] }
       const tip = { className:'tap-tooltip', direction:'top', offset:[0,-20] }
@@ -4281,9 +4285,8 @@ function app() {
               ${ago ? `<p style="font-size:11px;color:#9ca3af;margin:0">🕐 ${ago}</p>` : ''}
             </div>
           </div>`
-        const m = L.marker([r.lat, r.lng], { icon: this._markerIcon(emoji, color) })
-          .bindTooltip(`🆘 ${label}`, tip).bindPopup(popupHtml, popupOpts)
-        this._allMarkersLayer.addLayer(m)
+        const m = L.marker([r.lat, r.lng], { icon: this._markerIcon(emoji, color), pane: 'reportsPane' })
+          .bindTooltip(`🆘 ${label}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
         this._mReports.push(m)
         if (this._newMarkerIds?.has(r.id)) {
           const el = m.getElement()
@@ -4315,9 +4318,8 @@ function app() {
               ${a.contact_phone ? `<p style="font-size:12px;color:#059669;margin:4px 0 0;font-weight:600">📞 ${a.contact_phone}</p>` : ''}
             </div>
           </div>`
-        const m = L.marker([a.lat, a.lng], { icon: this._markerIcon(e, c) })
-          .bindTooltip(`${e} ${lbl} · ${a.name}`, tip).bindPopup(popupHtml, popupOpts)
-        this._allMarkersLayer.addLayer(m)
+        const m = L.marker([a.lat, a.lng], { icon: this._markerIcon(e, c), pane: 'aidPane' })
+          .bindTooltip(`${e} ${lbl} · ${a.name}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
         this._mAid.push(m)
       })
 
@@ -4342,35 +4344,36 @@ function app() {
               ${z.address ? `<p style="font-size:12px;color:#6b7280;margin:0">📍 ${z.address}</p>` : ''}
             </div>
           </div>`
-        const pin = L.marker([z.lat, z.lng], { icon: this._markerIcon('⚠️', c, 32) })
-          .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip).bindPopup(popupHtml, popupOpts)
+        const pin = L.marker([z.lat, z.lng], { icon: this._markerIcon('⚠️', c, 32), pane: 'dangerPane' })
+          .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
         const circle = L.circle([z.lat, z.lng], {
           radius: z.radius_meters, color: c, fillColor: c,
           fillOpacity: 0.15, weight: 2, dashArray: '6 4'
-        }).bindPopup(popupHtml, popupOpts)
-        this._allMarkersLayer.addLayer(pin)
-        this._allMarkersLayer.addLayer(circle)
-        this._mDanger.push(pin, circle)
+        }).bindPopup(popupHtml, popupOpts).addTo(this.map)
+        this._mDangerPins.push(pin)
+        this._mDangerCircles.push(circle)
       })
 
-      // Aplicar visibilidad inicial según filtros actuales
+      // Aplicar estado visual de filtros
       this._applyFilters()
     },
 
-    // Filtrado por CSS — NUNCA agrega/quita capas del mapa
+    // Filtrado sin tocar el sistema de coordenadas de Leaflet:
+    // - Marcadores div: ocultar el pane completo (Leaflet lo ignora para cálculos)
+    // - Círculos SVG: ocultar el _path individual (CSS puro, sin afectar nada más)
     _applyFilters() {
-      const show = (layers, visible) => {
-        layers.forEach(layer => {
-          // Marcadores div (L.marker)
-          const el = layer.getElement ? layer.getElement() : null
-          if (el) el.style.display = visible ? '' : 'none'
-          // Círculos SVG (L.circle)
-          if (layer._path) layer._path.style.display = visible ? '' : 'none'
-        })
+      if (!this.map) return
+      const setPane = (name, visible) => {
+        const p = this.map.getPane(name)
+        if (p) p.style.display = visible ? '' : 'none'
       }
-      if (this._mReports) show(this._mReports, this.filters.reports)
-      if (this._mAid)     show(this._mAid,     this.filters.aidPoints)
-      if (this._mDanger)  show(this._mDanger,   this.filters.dangerZones)
+      setPane('reportsPane', this.filters.reports)
+      setPane('aidPane',     this.filters.aidPoints)
+      setPane('dangerPane',  this.filters.dangerZones)
+      // Círculos SVG van al overlayPane compartido — ocultar por _path individualmente
+      ;(this._mDangerCircles || []).forEach(c => {
+        if (c._path) c._path.style.display = this.filters.dangerZones ? '' : 'none'
+      })
     },
 
     _timeAgo(isoStr) {
