@@ -4717,11 +4717,26 @@ function app() {
     _openToastDm() {
       const roomInfo = this.adminToast?.roomInfo
       this.adminToast = null
-      if (!roomInfo) return
+      if (!roomInfo) { this._openPendingMessages(); return }
       this.page = 'sysadmin'
       this.sysTab = 'mensajes'
       this.adminTotalUnread = 0
       this.$nextTick(() => this.openAdminDm(roomInfo))
+    },
+
+    _openPendingMessages() {
+      this.adminToast = null
+      this.page = 'sysadmin'
+      this.sysTab = 'mensajes'
+      this.adminTotalUnread = 0
+      // Si solo hay una sala con mensajes, abrirla directo
+      const pending = this.adminDmRooms.filter(r => r.unread > 0)
+      if (pending.length === 1) {
+        this.$nextTick(() => this.openAdminDm(pending[0]))
+      } else {
+        this.loadAdminDmRooms()
+        this.startAdminDmPolling()
+      }
     },
 
     _playAlertSound() {
@@ -6314,6 +6329,25 @@ function app() {
   }
 }
 </script>
+
+<!-- ══ FAB mensajes pendientes (admin) ══ -->
+<template x-if="adminTotalUnread > 0 && user?.role === 'admin'">
+  <button @click="_openPendingMessages()"
+    style="position:fixed;bottom:calc(var(--nav-h) + 14px);right:16px;z-index:3000;
+           width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
+           background:linear-gradient(135deg,#dc2626,#b91c1c);
+           box-shadow:0 4px 18px rgba(220,38,38,.5);
+           display:flex;align-items:center;justify-content:center;
+           animation:panic-pulse 1.8s ease-in-out infinite;">
+    <span style="font-size:22px">💬</span>
+    <span style="position:absolute;top:-4px;right:-4px;
+                 background:white;color:#dc2626;border:2px solid #dc2626;
+                 border-radius:999px;font-size:11px;font-weight:900;
+                 padding:0 5px;min-width:20px;height:20px;
+                 display:flex;align-items:center;justify-content:center;line-height:1"
+          x-text="adminTotalUnread > 99 ? '99+' : adminTotalUnread"></span>
+  </button>
+</template>
 
 <!-- ══ Toast de nuevo mensaje (admin) ══ -->
 <template x-if="adminToast" x-data>
