@@ -3982,7 +3982,7 @@ function app() {
     ],
 
     map: null,
-    markers: [], // legacy — ya no se usa directamente (ver _layerReports/_layerAid/_layerDanger)
+    markers: [],
 
     async init() {
       // Registrar Service Worker (PWA)
@@ -4227,24 +4227,35 @@ function app() {
       }
     },
 
-    // ── Helpers de iconos/popups (compartidos) ──────────────────────
+    // ── Icon helper ───────────────────────────────────────────────────
     _markerIcon(emoji, color, size=36) {
       return L.divIcon({
         html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.5)}px;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.35);cursor:pointer;box-sizing:border-box">${emoji}</div>`,
-        className: 'leaflet-div-icon-tap',
+        className: '',
         iconSize:[size,size], iconAnchor:[size/2,size/2], popupAnchor:[0,-size/2-4]
       })
     },
 
-    // Construye los LayerGroups con todos los marcadores, sin agregarlos al mapa todavía
-    _buildLayers() {
+    // Reconstruye todos los marcadores y los pone en el mapa de una vez.
+    // El filtrado se hace exclusivamente por CSS (display) — nunca add/remove de capas.
+    renderMarkers() {
+      if (!this.map) return
+
+      // Limpiar marcadores anteriores
+      if (this._allMarkersLayer) {
+        this._allMarkersLayer.clearLayers()
+      } else {
+        this._allMarkersLayer = L.layerGroup().addTo(this.map)
+      }
+      // Listas para filtrado CSS posterior
+      this._mReports = []
+      this._mAid     = []
+      this._mDanger  = []
+
       const popupOpts = { className:'tap-popup', maxWidth:260, offset:[0,-4] }
       const tip = { className:'tap-tooltip', direction:'top', offset:[0,-20] }
 
       // ── EMERGENCIAS ──────────────────────────────────────────────
-      if (this._layerReports) this._layerReports.clearLayers()
-      else this._layerReports = L.layerGroup()
-
       this.reports.filter(r => r.status !== 'resolved').forEach(r => {
         const inProgress = r.status === 'in_progress'
         const { emoji } = this.needEmoji[r.need_type] || { emoji:'📌' }
@@ -4254,7 +4265,6 @@ function app() {
           ? `<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">🔵 En atención</span>`
           : `<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">🔴 Pendiente</span>`
         const ago = r.created_at ? this._timeAgo(r.created_at) : ''
-
         const popupHtml = `
           <div>
             <div style="background:${color};padding:10px 14px;display:flex;align-items:center;gap:8px">
@@ -4271,33 +4281,24 @@ function app() {
               ${ago ? `<p style="font-size:11px;color:#9ca3af;margin:0">🕐 ${ago}</p>` : ''}
             </div>
           </div>`
-
         const m = L.marker([r.lat, r.lng], { icon: this._markerIcon(emoji, color) })
-          .bindTooltip(`🆘 ${label}`, tip)
-          .bindPopup(popupHtml, popupOpts)
-        this._layerReports.addLayer(m)
-
+          .bindTooltip(`🆘 ${label}`, tip).bindPopup(popupHtml, popupOpts)
+        this._allMarkersLayer.addLayer(m)
+        this._mReports.push(m)
         if (this._newMarkerIds?.has(r.id)) {
-          m.on('add', () => {
-            const el = m.getElement()
-            if (el) { el.style.animation = 'flash-marker 0.5s ease-in-out 5'; el.style.zIndex = '1000' }
-          })
+          const el = m.getElement()
+          if (el) { el.style.animation = 'flash-marker 0.5s ease-in-out 5'; el.style.zIndex = '1000' }
         }
       })
 
       // ── PUNTOS DE AYUDA ──────────────────────────────────────────
-      if (this._layerAid) this._layerAid.clearLayers()
-      else this._layerAid = L.layerGroup()
-
       const aidColors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280', veterinary:'#ec4899' }
       const aidEmojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️', veterinary:'🐾' }
       const aidLabels = { shelter:'Albergue', food:'Alimentos', medical:'Médico', water:'Agua', supplies:'Suministros', information:'Información', veterinary:'Veterinario' }
-
       this.aidPoints.forEach(a => {
         const e = aidEmojis[a.aid_type] || '🤝'
         const c = aidColors[a.aid_type] || '#3b82f6'
         const lbl = aidLabels[a.aid_type] || a.aid_type
-
         const popupHtml = `
           <div>
             <div style="background:${c};padding:10px 14px;display:flex;align-items:center;gap:8px">
@@ -4314,24 +4315,18 @@ function app() {
               ${a.contact_phone ? `<p style="font-size:12px;color:#059669;margin:4px 0 0;font-weight:600">📞 ${a.contact_phone}</p>` : ''}
             </div>
           </div>`
-
         const m = L.marker([a.lat, a.lng], { icon: this._markerIcon(e, c) })
-          .bindTooltip(`${e} ${lbl} · ${a.name}`, tip)
-          .bindPopup(popupHtml, popupOpts)
-        this._layerAid.addLayer(m)
+          .bindTooltip(`${e} ${lbl} · ${a.name}`, tip).bindPopup(popupHtml, popupOpts)
+        this._allMarkersLayer.addLayer(m)
+        this._mAid.push(m)
       })
 
       // ── ZONAS DE PELIGRO ─────────────────────────────────────────
-      if (this._layerDanger) this._layerDanger.clearLayers()
-      else this._layerDanger = L.layerGroup()
-
       const lvlColor = { low:'#fbbf24', medium:'#f97316', high:'#ef4444', critical:'#7f1d1d' }
       const lvlLabel = { low:'⚠️ Precaución', medium:'🟠 Peligro moderado', high:'🔴 Peligro alto', critical:'🚨 Evacuación inmediata' }
-
       this.dangerZones.forEach(z => {
         const c = lvlColor[z.danger_level] || '#ef4444'
         const lbl = lvlLabel[z.danger_level] || '⚠️ Zona peligrosa'
-
         const popupHtml = `
           <div>
             <div style="background:${c};padding:10px 14px;display:flex;align-items:center;gap:8px">
@@ -4347,41 +4342,35 @@ function app() {
               ${z.address ? `<p style="font-size:12px;color:#6b7280;margin:0">📍 ${z.address}</p>` : ''}
             </div>
           </div>`
-
         const pin = L.marker([z.lat, z.lng], { icon: this._markerIcon('⚠️', c, 32) })
-          .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip)
-          .bindPopup(popupHtml, popupOpts)
+          .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip).bindPopup(popupHtml, popupOpts)
         const circle = L.circle([z.lat, z.lng], {
           radius: z.radius_meters, color: c, fillColor: c,
           fillOpacity: 0.15, weight: 2, dashArray: '6 4'
         }).bindPopup(popupHtml, popupOpts)
-        this._layerDanger.addLayer(pin)
-        this._layerDanger.addLayer(circle)
+        this._allMarkersLayer.addLayer(pin)
+        this._allMarkersLayer.addLayer(circle)
+        this._mDanger.push(pin, circle)
       })
-    },
 
-    // renderMarkers: reconstruye capas y aplica filtros
-    renderMarkers() {
-      if (!this.map) return
-      this._buildLayers()
+      // Aplicar visibilidad inicial según filtros actuales
       this._applyFilters()
     },
 
-    // Aplica visibilidad de filtros sin recrear marcadores
+    // Filtrado por CSS — NUNCA agrega/quita capas del mapa
     _applyFilters() {
-      if (!this.map || !this._layerReports) return
-
-      if (this.filters.reports) { if (!this.map.hasLayer(this._layerReports)) this._layerReports.addTo(this.map) }
-      else { if (this.map.hasLayer(this._layerReports)) this.map.removeLayer(this._layerReports) }
-
-      if (this.filters.aidPoints) { if (!this.map.hasLayer(this._layerAid)) this._layerAid.addTo(this.map) }
-      else { if (this.map.hasLayer(this._layerAid)) this.map.removeLayer(this._layerAid) }
-
-      if (this.filters.dangerZones) { if (!this.map.hasLayer(this._layerDanger)) this._layerDanger.addTo(this.map) }
-      else { if (this.map.hasLayer(this._layerDanger)) this.map.removeLayer(this._layerDanger) }
-
-      // Forzar recálculo de posiciones de todos los markers
-      this.map.setView(this.map.getCenter(), this.map.getZoom(), { animate: false })
+      const show = (layers, visible) => {
+        layers.forEach(layer => {
+          // Marcadores div (L.marker)
+          const el = layer.getElement ? layer.getElement() : null
+          if (el) el.style.display = visible ? '' : 'none'
+          // Círculos SVG (L.circle)
+          if (layer._path) layer._path.style.display = visible ? '' : 'none'
+        })
+      }
+      if (this._mReports) show(this._mReports, this.filters.reports)
+      if (this._mAid)     show(this._mAid,     this.filters.aidPoints)
+      if (this._mDanger)  show(this._mDanger,   this.filters.dangerZones)
     },
 
     _timeAgo(isoStr) {
