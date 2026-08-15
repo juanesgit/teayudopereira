@@ -3713,6 +3713,20 @@ document.addEventListener('input', function(e) {
 }, true) // capture=true: corre antes que los handlers de Alpine
 
 function app() {
+  // ─── Leaflet state fuera del Proxy reactivo de Alpine ─────────────────────
+  // Alpine v3 usa @alpinejs/reactivity (fork de Vue 3) que envuelve TODOS los
+  // objetos anidados en Proxies. Cuando Leaflet lee/escribe propiedades internas
+  // (_pixelOrigin, _layers, _bounds, _pxOffset…) a través del Proxy, los cálculos
+  // de coordenadas SVG se corrompen → círculos en posición incorrecta.
+  // Solución: variables de closure que Alpine NUNCA ve.
+  let _map = null
+  let _circleLayer = null   // L.layerGroup permanente para círculos SVG
+  let _mR  = []             // markers emergencias
+  let _mA  = []             // markers puntos de ayuda
+  let _mDP = []             // markers pines de zonas peligro
+  let _mDC = []             // L.circle zonas peligro
+  // ──────────────────────────────────────────────────────────────────────────
+
   return {
     page: 'map',
     user: null,
@@ -4063,37 +4077,30 @@ function app() {
     },
 
     async initMap() {
-      if (this.map) return
+      if (_map) return
       const el = document.getElementById('map')
       if (!el) return
-      this.map = L.map('map', { zoomAnimation: false, markerZoomAnimation: false }).setView([4.8133, -75.6961], 13)
+
+      // _map vive en closure — Alpine NUNCA lo envuelve en Proxy reactivo
+      _map = L.map('map', { zoomAnimation: false, markerZoomAnimation: false }).setView([4.8133, -75.6961], 13)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
-      }).addTo(this.map)
+      }).addTo(_map)
 
-      // Panes para marcadores div — filtrar ocultando el pane entero no afecta _pixelOrigin.
-      // z-index > 400 (overlayPane SVG) para que los pines queden sobre los círculos.
-      this.map.createPane('reportsPane'); this.map.getPane('reportsPane').style.zIndex = 603
-      this.map.createPane('aidPane');     this.map.getPane('aidPane').style.zIndex    = 602
-      this.map.createPane('dangerPane');  this.map.getPane('dangerPane').style.zIndex = 601
+      // Panes para marcadores div (z-index > 400 overlayPane para quedar encima de círculos)
+      _map.createPane('reportsPane'); _map.getPane('reportsPane').style.zIndex = 603
+      _map.createPane('aidPane');     _map.getPane('aidPane').style.zIndex    = 602
+      _map.createPane('dangerPane');  _map.getPane('dangerPane').style.zIndex = 601
 
-      // Capa de círculos SVG permanente — NUNCA se remueve del mapa, solo se limpia.
-      // Esto preserva el comportamiento original de los círculos (misma inicialización
-      // del SVG renderer que en el código original con _layerDanger).
-      this._circleDangerLayer = L.layerGroup().addTo(this.map)
+      // Capa SVG permanente para círculos — también en closure, fuera de Alpine
+      _circleLayer = L.layerGroup().addTo(_map)
 
       this.renderMarkers()
-      // Recalibrar cuando el contenedor cambia de tamaño
-      // (barra URL del móvil aparece/desaparece, rotación, etc.)
       if (window.ResizeObserver) {
-        const ro = new ResizeObserver(() => {
-          if (this.map) this.map.invalidateSize({ animate: false, pan: false })
-        })
+        const ro = new ResizeObserver(() => { if (_map) _map.invalidateSize({ animate: false, pan: false }) })
         ro.observe(el)
       }
-      window.addEventListener('resize', () => {
-        if (this.map) this.map.invalidateSize({ animate: false, pan: false })
-      })
+      window.addEventListener('resize', () => { if (_map) _map.invalidateSize({ animate: false, pan: false }) })
     },
 
     async loadData() {
@@ -4249,22 +4256,16 @@ function app() {
       })
     },
 
-    // Reconstruye todos los marcadores. El filtrado se hace únicamente
-    // ocultando el pane completo (div markers) o via setStyle (SVG circles) —
-    // Leaflet nunca recalcula coordenadas y los marcadores siempre quedan correctos.
     renderMarkers() {
-      if (!this.map) return
+      if (!_map) return
 
-      // Limpiar marcadores div anteriores (remove del mapa)
-      ;(this._mReports || []).concat(this._mAid || []).concat(this._mDangerPins || [])
-        .forEach(l => { try { l.remove() } catch {} })
-      this._mReports    = []
-      this._mAid        = []
-      this._mDangerPins = []
+      // Limpiar marcadores div anteriores
+      _mR.concat(_mA).concat(_mDP).forEach(l => { try { l.remove() } catch {} })
+      _mR = []; _mA = []; _mDP = []
 
-      // Limpiar círculos SVG de la capa permanente (NO remueve la capa del mapa)
-      if (this._circleDangerLayer) this._circleDangerLayer.clearLayers()
-      this._mDangerCircles = []
+      // Limpiar círculos SVG (NO remueve _circleLayer del mapa)
+      if (_circleLayer) _circleLayer.clearLayers()
+      _mDC = []
 
       const popupOpts = { className:'tap-popup', maxWidth:260, offset:[0,-4] }
       const tip = { className:'tap-tooltip', direction:'top', offset:[0,-20] }
@@ -4296,8 +4297,8 @@ function app() {
             </div>
           </div>`
         const m = L.marker([r.lat, r.lng], { icon: this._markerIcon(emoji, color), pane: 'reportsPane' })
-          .bindTooltip(`🆘 ${label}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
-        this._mReports.push(m)
+          .bindTooltip(`🆘 ${label}`, tip).bindPopup(popupHtml, popupOpts).addTo(_map)
+        _mR.push(m)
         if (this._newMarkerIds?.has(r.id)) {
           const el = m.getElement()
           if (el) { el.style.animation = 'flash-marker 0.5s ease-in-out 5'; el.style.zIndex = '1000' }
@@ -4329,8 +4330,8 @@ function app() {
             </div>
           </div>`
         const m = L.marker([a.lat, a.lng], { icon: this._markerIcon(e, c), pane: 'aidPane' })
-          .bindTooltip(`${e} ${lbl} · ${a.name}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
-        this._mAid.push(m)
+          .bindTooltip(`${e} ${lbl} · ${a.name}`, tip).bindPopup(popupHtml, popupOpts).addTo(_map)
+        _mA.push(m)
       })
 
       // ── ZONAS DE PELIGRO ─────────────────────────────────────────
@@ -4355,40 +4356,27 @@ function app() {
             </div>
           </div>`
         const pin = L.marker([z.lat, z.lng], { icon: this._markerIcon('⚠️', c, 32), pane: 'dangerPane' })
-          .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip).bindPopup(popupHtml, popupOpts).addTo(this.map)
-        // Círculo en la capa SVG permanente — misma forma que el código original
+          .bindTooltip(`⚠️ ${z.name} · ${lbl}`, tip).bindPopup(popupHtml, popupOpts).addTo(_map)
         const circle = L.circle([z.lat, z.lng], {
           radius: z.radius_meters, color: c, fillColor: c,
           fillOpacity: 0.15, weight: 2, dashArray: '6 4'
         }).bindPopup(popupHtml, popupOpts)
-        this._circleDangerLayer.addLayer(circle)
-        this._mDangerPins.push(pin)
-        this._mDangerCircles.push(circle)
+        _circleLayer.addLayer(circle)
+        _mDP.push(pin)
+        _mDC.push(circle)
       })
 
-      // Aplicar estado visual de filtros
       this._applyFilters()
     },
 
-    // Filtrado sin tocar el sistema de coordenadas de Leaflet:
-    // - Marcadores div (pins): ocultar el pane completo — Leaflet nunca lo ve
-    // - Círculos SVG: setStyle opacity/fillOpacity — solo cambia atributos SVG,
-    //   no toca posiciones, viewBox, ni ningún cálculo interno de Leaflet
     _applyFilters() {
-      if (!this.map) return
-      const setPane = (name, visible) => {
-        const p = this.map.getPane(name)
-        if (p) p.style.display = visible ? '' : 'none'
-      }
+      if (!_map) return
+      const setPane = (name, vis) => { const p = _map.getPane(name); if (p) p.style.display = vis ? '' : 'none' }
       setPane('reportsPane', this.filters.reports)
       setPane('aidPane',     this.filters.aidPoints)
       setPane('dangerPane',  this.filters.dangerZones)
-      const dangerVis = this.filters.dangerZones
-      ;(this._mDangerCircles || []).forEach(circle => {
-        circle.setStyle(dangerVis
-          ? { opacity: 1, fillOpacity: 0.15 }
-          : { opacity: 0, fillOpacity: 0 })
-      })
+      const dv = this.filters.dangerZones
+      _mDC.forEach(c => c.setStyle(dv ? { opacity:1, fillOpacity:0.15 } : { opacity:0, fillOpacity:0 }))
     },
 
     _timeAgo(isoStr) {
@@ -4756,9 +4744,11 @@ function app() {
         // Destruir y recrear el mapa para garantizar coordenadas perfectas.
         // Es equivalente a un refresh pero sin recargar la página.
         this.$nextTick(() => {
-          if (this.map) {
-            this.map.remove()
-            this.map = null
+          if (_map) {
+            _map.remove()
+            _map = null
+            _circleLayer = null
+            _mR = []; _mA = []; _mDP = []; _mDC = []
           }
           this.initMap()
         })
