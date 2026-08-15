@@ -6329,23 +6329,30 @@ function app() {
 </script>
 
 <!-- ══ FAB mensajes pendientes (admin) ══ -->
-<template x-if="adminTotalUnread > 0 && user?.role === 'admin'">
-  <button @click="_openPendingMessages()"
-    style="position:fixed;bottom:calc(var(--nav-h) + 14px);right:16px;z-index:3000;
-           width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
-           background:linear-gradient(135deg,#dc2626,#b91c1c);
-           box-shadow:0 4px 18px rgba(220,38,38,.5);
-           display:flex;align-items:center;justify-content:center;
-           animation:panic-pulse 1.8s ease-in-out infinite;">
-    <span style="font-size:22px">💬</span>
-    <span style="position:absolute;top:-4px;right:-4px;
-                 background:white;color:#dc2626;border:2px solid #dc2626;
-                 border-radius:999px;font-size:11px;font-weight:900;
-                 padding:0 5px;min-width:20px;height:20px;
-                 display:flex;align-items:center;justify-content:center;line-height:1"
-          x-text="adminTotalUnread > 99 ? '99+' : adminTotalUnread"></span>
-  </button>
-</template>
+<button x-show="adminTotalUnread > 0 && user?.role === 'admin'"
+        x-cloak
+        @click="_openPendingMessages()"
+        :style="page === 'map'
+          ? 'position:fixed;bottom:calc(var(--nav-h) + 136px);right:94px;z-index:1500;width:68px;height:68px;'
+          : 'position:fixed;bottom:calc(var(--nav-h) + 14px);right:16px;z-index:3000;width:56px;height:56px;'"
+        style="border-radius:50%;border:none;cursor:pointer;
+               background:linear-gradient(135deg,#dc2626,#b91c1c);
+               box-shadow:0 4px 18px rgba(220,38,38,.5);
+               display:flex;align-items:center;justify-content:center;
+               animation:panic-pulse 1.8s ease-in-out infinite;
+               position:fixed;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+    <span :style="page==='map' ? 'font-size:24px' : 'font-size:20px'">💬</span>
+    <span x-show="page==='map'"
+          style="font-size:9px;font-weight:900;color:white;letter-spacing:1px;line-height:1">MSG</span>
+  </div>
+  <span style="position:absolute;top:-4px;right:-4px;
+               background:white;color:#dc2626;border:2px solid #dc2626;
+               border-radius:999px;font-size:11px;font-weight:900;
+               padding:0 5px;min-width:20px;height:20px;
+               display:flex;align-items:center;justify-content:center;line-height:1"
+        x-text="adminTotalUnread > 99 ? '99+' : adminTotalUnread"></span>
+</button>
 
 <!-- ══ Toast de nuevo mensaje (admin) ══ -->
 <div x-show="adminToast"
