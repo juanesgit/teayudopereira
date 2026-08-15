@@ -51,6 +51,7 @@
     input, textarea, select { font-size: 16px !important; } /* evita zoom en iOS */
     input:not([type="password"]):not([type="range"]):not([type="file"]):not([type="number"]),
     textarea { text-transform: uppercase; }
+    textarea.chat-input { text-transform: none; }
     :root {
       --nav-h: 60px;
       --safe-top: 0px;
@@ -2262,7 +2263,7 @@
           @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe un mensaje..."
           rows="1" maxlength="500"
-          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
+          class="chat-input border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
           style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
           :disabled="!dmConnected"></textarea>
         <button @click="sendDmMessage()" :disabled="!dmInput.trim() || !dmConnected"
@@ -2341,7 +2342,7 @@
           @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe un mensaje..."
           rows="1" maxlength="500"
-          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
+          class="chat-input border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
           style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
           :disabled="!guestWsConnected"></textarea>
         <button @click="sendGuestMessage()" :disabled="!guestInput.trim() || !guestWsConnected"
@@ -3499,12 +3500,12 @@
           @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe una respuesta..."
           rows="1" maxlength="500"
-          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+          class="chat-input border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
           style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:80px;overflow-y:hidden;padding:10px 14px"
           :disabled="!adminDmConnected"></textarea>
         <button @click="sendAdminDmMessage()" :disabled="!adminDmInput.trim() || !adminDmConnected"
           style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
-          :style="{background: adminDmInput.trim() && adminDmConnected ? '#0369a1' : '#d1d5db'}">
+          :style="{background: adminDmInput.trim() && adminDmConnected ? '#dc2626' : '#d1d5db'}">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
