@@ -15,6 +15,7 @@ class AidType(str, enum.Enum):
     supplies = "supplies"        # ropa, colchonetas, kit de aseo
     information = "information"  # punto de información
     veterinary = "veterinary"    # centro veterinario
+    nursing_home = "nursing_home"  # ancianato / hogar de adulto mayor
 
 
 class AidPoint(Base):

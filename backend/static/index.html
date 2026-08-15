@@ -3800,6 +3800,7 @@ function app() {
       { v:'supplies',    e:'📦', l:'Suministros' },
       { v:'information', e:'ℹ️', l:'Información' },
       { v:'veterinary',  e:'🐾', l:'Veterinario' },
+      { v:'nursing_home',e:'👴', l:'Ancianato' },
     ],
     aidCenterForm: { name:'', aid_type:'', description:'', address:'', lat:4.8133, lng:-75.6961, contact_phone:'', capacity:null },
     aidCenterSearch: '',
@@ -4306,9 +4307,9 @@ function app() {
       })
 
       // ── PUNTOS DE AYUDA ──────────────────────────────────────────
-      const aidColors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280', veterinary:'#ec4899' }
-      const aidEmojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️', veterinary:'🐾' }
-      const aidLabels = { shelter:'Albergue', food:'Alimentos', medical:'Médico', water:'Agua', supplies:'Suministros', information:'Información', veterinary:'Veterinario' }
+      const aidColors = { shelter:'#3b82f6', food:'#f59e0b', medical:'#10b981', water:'#06b6d4', supplies:'#8b5cf6', information:'#6b7280', veterinary:'#ec4899', nursing_home:'#a855f7' }
+      const aidEmojis = { shelter:'🏠', food:'🍲', medical:'⚕️', water:'💧', supplies:'📦', information:'ℹ️', veterinary:'🐾', nursing_home:'👴' }
+      const aidLabels = { shelter:'Albergue', food:'Alimentos', medical:'Médico', water:'Agua', supplies:'Suministros', information:'Información', veterinary:'Veterinario', nursing_home:'Ancianato' }
       this.aidPoints.forEach(a => {
         const e = aidEmojis[a.aid_type] || '🤝'
         const c = aidColors[a.aid_type] || '#3b82f6'
