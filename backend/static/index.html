@@ -3757,6 +3757,7 @@ function app() {
   let _mA  = []             // markers puntos de ayuda
   let _mDP = []             // markers pines de zonas peligro
   let _mDC = []             // L.circle zonas peligro
+  let _audioCtx = null      // AudioContext fuera del Proxy de Alpine
   // ──────────────────────────────────────────────────────────────────────────
 
   return {
@@ -4018,7 +4019,6 @@ function app() {
     _globalAdminPollInterval: null,
     adminToast: null,
     _adminToastTimer: null,
-    _audioCtx: null,
     // ─────────────────────────────────────────────────────────────────────
     isOnline: navigator.onLine,
     offlineQueue: JSON.parse(localStorage.getItem('tap_offline_queue') || '[]'),
@@ -4671,7 +4671,7 @@ function app() {
     },
 
     async _fetchAdminUnread(silent = false) {
-      if (!this.token) return
+      if (!this.token || this.user?.role !== 'admin') return
       try {
         const res = await fetch('/dm/unread-count', { headers: this.authHeaders() })
         if (!res.ok) return
@@ -4739,11 +4739,11 @@ function app() {
 
     _playAlertSound() {
       try {
-        // Reutilizar AudioContext para cumplir la política de autoplay
-        if (!this._audioCtx) {
-          this._audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+        // _audioCtx vive en closure (fuera del Proxy reactivo de Alpine)
+        if (!_audioCtx) {
+          _audioCtx = new (window.AudioContext || window.webkitAudioContext)()
         }
-        const ctx = this._audioCtx
+        const ctx = _audioCtx
         if (ctx.state === 'suspended') ctx.resume()
         const beep = (freq, start, dur) => {
           const o = ctx.createOscillator()
@@ -6360,7 +6360,7 @@ function app() {
 </button>
 
 <!-- ══ Toast de nuevo mensaje (admin) ══ -->
-<div x-show="adminToast"
+<div x-show="adminToast && user?.role === 'admin'"
      x-cloak
      class="admin-toast-enter"
      style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;width:calc(100% - 32px);max-width:400px;background:white;border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden;border:1.5px solid #fecaca;">
