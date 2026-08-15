@@ -6339,7 +6339,7 @@ function app() {
 <!-- ══ FAB mensajes pendientes (solo admin) ══ -->
 <template x-if="user !== null && user.role === 'admin'">
   <button @click="_openPendingMessages()"
-          :style="(adminTotalUnread > 0 && !(page === 'sysadmin' && sysTab === 'mensajes') && !guestChatOpen && !adminActiveDm)
+          :style="(adminTotalUnread > 0 && !(page === 'sysadmin' && sysTab === 'mensajes') && !guestChatOpen)
             ? (page === 'map'
                 ? 'position:fixed;bottom:calc(var(--nav-h) + 136px);right:94px;z-index:1500;width:68px;height:68px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 0 0 4px rgba(220,38,38,.25),0 4px 20px rgba(220,38,38,.6);display:flex;align-items:center;justify-content:center;animation:panic-pulse 1.4s ease-in-out infinite;'
                 : 'position:fixed;bottom:calc(var(--nav-h) + 14px);right:16px;z-index:1500;width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 0 0 4px rgba(220,38,38,.25),0 4px 20px rgba(220,38,38,.6);display:flex;align-items:center;justify-content:center;animation:panic-pulse 1.4s ease-in-out infinite;')
