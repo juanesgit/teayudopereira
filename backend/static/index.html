@@ -2204,8 +2204,8 @@
   <!-- ── DM voluntario — overlay full-screen (mismo patrón que admin DM) ── -->
   <div x-show="page==='panel' && panelTab==='mensajes'" class="chat-overlay">
 
-    <!-- Header azul con volver -->
-    <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
+    <!-- Header corporativo con volver -->
+    <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
       <button @click="panelTab='pendientes'" style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;">
         ← Volver
       </button>
@@ -2234,14 +2234,14 @@
         <div>
           <template x-if="!msg.is_system && user && msg.user_id == user.id">
             <div class="flex flex-col items-end gap-0.5">
-              <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <div style="max-width:78%;background:#dc2626;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
           <template x-if="!msg.is_system && (!user || msg.user_id != user.id)">
             <div class="flex flex-col items-start gap-0.5">
-              <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
-              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+              <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
@@ -2262,12 +2262,12 @@
           @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe un mensaje..."
           rows="1" maxlength="500"
-          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
           style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
           :disabled="!dmConnected"></textarea>
         <button @click="sendDmMessage()" :disabled="!dmInput.trim() || !dmConnected"
           style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
-          :style="{background: dmInput.trim() && dmConnected ? '#0369a1' : '#d1d5db'}">
+          :style="{background: dmInput.trim() && dmConnected ? '#dc2626' : '#d1d5db'}">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -2280,7 +2280,7 @@
   <div x-show="guestChatOpen" class="chat-overlay" style="z-index:2500">
 
     <!-- Header -->
-    <div style="background:#0369a1;color:white;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
+    <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;padding:12px 16px;flex-shrink:0;display:flex;align-items:center;gap:12px;">
       <button @click="guestChatOpen=false" style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;">
         ← Volver
       </button>
@@ -2310,21 +2310,21 @@
           </template>
           <template x-if="msg.is_system && msg.sender_name === 'Te Ayudo Pereira'">
             <div class="flex flex-col items-start gap-0.5">
-              <span class="text-xs font-semibold" style="color:#0369a1" x-text="msg.sender_name"></span>
-              <div style="max-width:82%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #bae6fd;white-space:pre-line" x-text="msg.text"></div>
+              <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
+              <div style="max-width:82%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
           <template x-if="!msg.is_system && msg.sender_role==='victim'">
             <div class="flex flex-col items-end gap-0.5">
-              <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <div style="max-width:78%;background:#dc2626;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
           <template x-if="!msg.is_system && msg.sender_role!=='victim'">
             <div class="flex flex-col items-start gap-0.5">
-              <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
-              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb;white-space:pre-line" x-text="msg.text"></div>
+              <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
@@ -2341,12 +2341,12 @@
           @focus="setTimeout(_applyKeyboardLayout, 350)"
           placeholder="Escribe un mensaje..."
           rows="1" maxlength="500"
-          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-blue-400"
+          class="border border-gray-300 rounded-2xl focus:outline-none focus:border-red-400"
           style="flex:1;min-width:0;resize:none;font-family:inherit;font-size:14px;line-height:1.4;max-height:96px;overflow-y:hidden;padding:10px 14px"
           :disabled="!guestWsConnected"></textarea>
         <button @click="sendGuestMessage()" :disabled="!guestInput.trim() || !guestWsConnected"
           style="width:40px;height:40px;border-radius:50%;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s"
-          :style="{background: guestInput.trim() && guestWsConnected ? '#0369a1' : '#d1d5db'}">
+          :style="{background: guestInput.trim() && guestWsConnected ? '#dc2626' : '#d1d5db'}">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
             <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
