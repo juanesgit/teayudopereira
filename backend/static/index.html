@@ -3412,7 +3412,7 @@
               <template x-for="room in adminDmRooms" :key="room.room">
                 <button @click="openAdminDm(room)"
                   class="w-full text-left bg-white border border-gray-200 rounded-2xl px-4 py-3 cursor-pointer transition-all"
-                  :style="room.unread > 0 ? 'border-color:#0369a1;background:#f0f9ff' : ''">
+                  :style="room.unread > 0 ? 'border-color:#dc2626;background:#fff7f7' : ''">
                   <div class="flex items-center justify-between gap-2">
                     <div class="min-w-0">
                       <div class="flex items-center gap-1.5">
@@ -3447,20 +3447,20 @@
   <div x-show="page==='sysadmin' && adminActiveDm" class="chat-overlay">
 
     <!-- Header -->
-    <div style="background:white;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
+    <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;">
       <button @click="adminActiveDm=null; adminDmMessages=[]; if(adminDmWs){adminDmWs.close();adminDmWs=null}; loadAdminDmRooms(); startAdminDmPolling()"
-        style="border:none;background:#f3f4f6;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;">
+        style="border:none;background:rgba(255,255,255,.2);border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600;color:white;cursor:pointer;">
         ← Volver
       </button>
       <div>
         <div class="flex items-center gap-1.5">
-          <p class="font-bold text-gray-900" style="font-size:15px" x-text="adminActiveDm?.other_name"></p>
+          <p class="font-bold" style="font-size:15px;color:white" x-text="adminActiveDm?.other_name"></p>
           <span class="text-xs font-semibold rounded-full px-1.5 py-0.5"
-            :style="adminActiveDm?.other_role==='victim' ? 'background:#fee2e2;color:#dc2626' : adminActiveDm?.other_role==='coordinator' ? 'background:#dbeafe;color:#1d4ed8' : 'background:#dcfce7;color:#15803d'"
+            :style="adminActiveDm?.other_role==='victim' ? 'background:rgba(255,255,255,.25);color:white' : adminActiveDm?.other_role==='coordinator' ? 'background:rgba(255,255,255,.25);color:white' : 'background:rgba(255,255,255,.25);color:white'"
             x-text="adminActiveDm?.other_role==='victim' ? '🆘 Ciudadano' : adminActiveDm?.other_role==='coordinator' ? '🏛️ Coord.' : '🙋 Vol.'"></span>
         </div>
-        <p class="text-xs text-gray-400">
-          <span :style="adminDmConnected ? 'color:#16a34a' : 'color:#9ca3af'">●</span>
+        <p class="text-xs" style="opacity:.8">
+          <span :style="adminDmConnected ? 'color:#86efac' : 'color:#fca5a5'">●</span>
           <span x-text="adminDmConnected ? 'En línea' : 'Conectando...'"></span>
         </p>
       </div>
@@ -3476,14 +3476,14 @@
         <div>
           <template x-if="user && msg.user_id == user.id">
             <div class="flex flex-col items-end gap-0.5">
-              <div style="max-width:78%;background:#0369a1;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word" x-text="msg.text"></div>
+              <div style="max-width:78%;background:#dc2626;color:white;border-radius:18px 18px 4px 18px;padding:9px 13px;font-size:14px;word-break:break-word;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
           <template x-if="!user || msg.user_id != user.id">
             <div class="flex flex-col items-start gap-0.5">
-              <span class="text-xs font-semibold text-gray-500" x-text="msg.sender_name"></span>
-              <div style="max-width:78%;background:white;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #e5e7eb" x-text="msg.text"></div>
+              <span class="text-xs font-semibold" style="color:#b91c1c" x-text="msg.sender_name"></span>
+              <div style="max-width:78%;background:white;color:#111827;border-radius:4px 18px 18px 18px;padding:9px 13px;font-size:14px;word-break:break-word;border:1px solid #fecaca;white-space:pre-line" x-text="msg.text"></div>
               <span class="text-xs text-gray-400" x-text="chatTimeLabel(msg.created_at)"></span>
             </div>
           </template>
@@ -3719,6 +3719,7 @@ document.addEventListener('input', function(e) {
   const skipTypes = ['password', 'range', 'file', 'number', 'email']
   if (skipTypes.includes(el.type)) return
   if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return
+  if (el.classList.contains('chat-input')) return  // chats en minúscula normal
   const s = el.selectionStart, end = el.selectionEnd
   el.value = el.value.toUpperCase()
   try { el.setSelectionRange(s, end) } catch(_) {}
