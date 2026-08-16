@@ -1,17 +1,19 @@
 from __future__ import annotations
+import io
 import json
 import logging
 from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.census import CensusRecord
 from app.models.user import User, UserRole
-from app.services.auth import get_current_user
+from app.services.auth import get_current_user, get_current_user_from_query
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/census", tags=["Census"])
@@ -146,6 +148,131 @@ async def update_census(
     await db.execute(update(CensusRecord).where(CensusRecord.id == record_id).values(**vals))
     await db.commit()
     return {"ok": True}
+
+
+# ── Exportación Excel ─────────────────────────────────────────────────────────
+
+@router.get("/export")
+async def export_census_xlsx(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_from_query),
+):
+    """Exporta el censo de afectados como archivo Excel. Solo admins."""
+    if current_user.role != UserRole.admin:
+        raise HTTPException(403, "Solo administradores pueden exportar")
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    result = await db.execute(
+        select(CensusRecord)
+        .where(CensusRecord.is_active == True)  # noqa
+        .order_by(CensusRecord.created_at.desc())
+    )
+    records = result.scalars().all()
+
+    # Cargar nombres de registradores una sola vez
+    user_ids = {r.registered_by for r in records if r.registered_by}
+    users = {}
+    for uid in user_ids:
+        u = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
+        if u:
+            users[uid] = f"{u.full_name}{' ' + u.last_name if u.last_name else ''}".strip()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Censo Afectados"
+
+    COLS = 12
+    thin = Side(style="thin", color="D1D5DB")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    # Encabezado principal
+    ws.merge_cells(f"A1:{get_column_letter(COLS)}1")
+    t = ws["A1"]
+    t.value = "Te Ayudo Pereira — Censo de Afectados"
+    t.font = Font(bold=True, size=13, color="FFFFFF")
+    t.fill = PatternFill("solid", fgColor="DC2626")
+    t.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+
+    ws.merge_cells(f"A2:{get_column_letter(COLS)}2")
+    d = ws["A2"]
+    d.value = f"Generado el {datetime.utcnow().strftime('%d/%m/%Y %H:%M')} UTC  ·  {len(records)} registro(s)"
+    d.font = Font(italic=True, size=9, color="6B7280")
+    d.alignment = Alignment(horizontal="center")
+    ws.row_dimensions[2].height = 16
+
+    # Cabeceras
+    headers = [
+        "Nombre completo", "Documento", "Edad", "Género",
+        "Teléfono", "WhatsApp", "Dirección", "Barrio",
+        "Personas", "Menores", "Adultos mayores",
+        "Alojamiento", "Necesidades", "Notas",
+        "Registrado por", "Fecha registro",
+    ]
+    COLS = len(headers)
+    hfill = PatternFill("solid", fgColor="111827")
+    for col, h in enumerate(headers, 1):
+        c = ws.cell(row=3, column=col, value=h)
+        c.font = Font(bold=True, color="FFFFFF", size=10)
+        c.fill = hfill
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = border
+    ws.row_dimensions[3].height = 20
+
+    # Datos
+    alt_fill = PatternFill("solid", fgColor="F9FAFB")
+    shelter_labels = {
+        "own_home": "Casa propia", "renting": "Alquiler",
+        "shelter": "Albergue", "relative": "Familiar",
+        "street": "Calle", None: "",
+    }
+    need_labels = {
+        "food": "Alimentos", "water": "Agua", "medical": "Médico",
+        "shelter": "Alojamiento", "clothing": "Ropa",
+        "psychological": "Apoyo psicológico", "legal": "Legal",
+        "baby": "Bebé", "pet": "Mascotas",
+    }
+
+    for i, r in enumerate(records, start=4):
+        needs_str = ", ".join(need_labels.get(n, n) for n in (json.loads(r.needs) if r.needs else []))
+        shelter = shelter_labels.get(r.shelter_status, r.shelter_status or "")
+        vol_name = users.get(r.registered_by, "desconocido") if r.registered_by else "—"
+        fecha = r.created_at.strftime("%d/%m/%Y %H:%M") if r.created_at else ""
+
+        row_data = [
+            r.full_name, r.document_number, r.age, r.gender,
+            r.phone, r.whatsapp, r.address, r.neighborhood,
+            r.people_count, r.children_count, r.elderly_count,
+            shelter, needs_str, r.notes,
+            vol_name, fecha,
+        ]
+        fill = alt_fill if i % 2 == 0 else None
+        for col, val in enumerate(row_data, 1):
+            c = ws.cell(row=i, column=col, value=val)
+            c.font = Font(size=10)
+            c.alignment = Alignment(vertical="center", wrap_text=True)
+            c.border = border
+            if fill:
+                c.fill = fill
+        ws.row_dimensions[i].height = 16
+
+    # Anchos de columna
+    col_widths = [28, 16, 8, 12, 14, 14, 30, 18, 10, 10, 14, 16, 32, 28, 22, 18]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    filename = f"censo_afectados_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.delete("/{record_id}")

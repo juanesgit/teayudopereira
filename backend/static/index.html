@@ -3791,6 +3791,9 @@
         </div>
         <div class="flex gap-2">
           <button @click="loadCensus()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+          <a x-show="role==='admin'" :href="'/census/export?token='+token" target="_blank"
+            class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer no-underline"
+            style="background:#16a34a;color:white">⬇ Excel</a>
           <button @click="censusForm=!censusForm"
             class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
             :style="censusForm ? 'background:#fee2e2;color:#991b1b' : 'background:#111827;color:white'"
@@ -4028,8 +4031,13 @@
                 </div>
                 <p x-show="r.notes" class="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2"
                   x-text="r.notes"></p>
-                <p class="text-xs text-gray-400"
-                  x-text="'Por: '+(r.registered_by_name||'desconocido')+' · '+fmtDate(r.created_at)"></p>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2.5 py-1"
+                    style="background:#eff6ff;color:#1d4ed8">
+                    🙋 <span x-text="r.registered_by_name||'desconocido'"></span>
+                  </span>
+                  <span class="text-xs text-gray-400" x-text="fmtDate(r.created_at)"></span>
+                </div>
               </div>
 
               <!-- Acciones -->
