@@ -1935,7 +1935,7 @@
                   <p><span class="text-gray-400">Reportado por:</span> <span class="font-semibold" x-text="r.reporter_name||'Anónimo'"></span></p>
                   <p><span class="text-gray-400">Personas:</span> <span class="font-semibold" x-text="'👥 '+r.people_count"></span></p>
                   <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
-                  <p><span class="text-gray-400">Fecha:</span> <span x-text="new Date(r.created_at).toLocaleString('es-CO')"></span></p>
+                  <p><span class="text-gray-400">Fecha:</span> <span x-text="fmtDatetime(r.created_at)"></span></p>
                 </div>
                 <div class="flex gap-2">
                   <a :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
@@ -3089,7 +3089,7 @@
                   <div class="flex justify-between items-start mb-1">
                     <span class="text-xs font-bold text-gray-700"
                       x-text="b.target==='volunteers'?'🙋 Voluntarios':b.target==='coordinators'?'🏛️ Coordinadores':'👥 Todos'"></span>
-                    <span class="text-xs text-gray-400" x-text="new Date(b.ts).toLocaleString('es-CO')"></span>
+                    <span class="text-xs text-gray-400" x-text="fmtDatetime(b.ts)"></span>
                   </div>
                   <p class="text-xs text-gray-600" x-text="b.message"></p>
                   <p class="text-xs text-green-600 mt-1 font-semibold" x-text="'✅ Enviado a '+b.recipients+' persona(s)'"></p>
@@ -3310,7 +3310,7 @@
                     </p>
                     <p><span class="text-gray-400">Personas:</span> <span class="font-semibold" x-text="r.people_count"></span></p>
                     <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
-                    <p><span class="text-gray-400">Fecha:</span> <span x-text="new Date(r.created_at).toLocaleString('es-CO')"></span></p>
+                    <p><span class="text-gray-400">Fecha:</span> <span x-text="fmtDatetime(r.created_at)"></span></p>
                   </div>
 
                   <!-- Asignar voluntario -->
@@ -3417,7 +3417,7 @@
                         <a :href="'tel:'+r.reporter_phone" class="font-semibold text-blue-600" x-text="r.reporter_phone"></a></p>
                       <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
                       <p><span class="text-gray-400">Dirección:</span> <span x-text="r.address"></span></p>
-                      <p><span class="text-gray-400">Fecha:</span> <span x-text="new Date(r.created_at).toLocaleString('es-CO')"></span></p>
+                      <p><span class="text-gray-400">Fecha:</span> <span x-text="fmtDatetime(r.created_at)"></span></p>
                       <p x-show="r.deliveries && r.deliveries.length > 0">
                         <span class="text-gray-400">Entregas:</span>
                         <span class="font-semibold text-green-700" x-text="r.deliveries.length+' registrada(s)'"></span>
@@ -3627,7 +3627,7 @@
                         x-text="'Entregado a: '+d.delivered_to+' · Solicitud #'+d.report_id"></p>
                     </div>
                     <span class="text-xs text-gray-400 flex-shrink-0"
-                      x-text="new Date(d.delivered_at).toLocaleDateString('es-CO')"></span>
+                      x-text="fmtDate(d.delivered_at)"></span>
                   </div>
                   <div x-show="d.delivery_notes" class="px-3 py-1.5 bg-white border-t border-gray-100">
                     <p class="text-xs text-gray-500" x-text="d.delivery_notes"></p>
@@ -4029,7 +4029,7 @@
                 <p x-show="r.notes" class="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2"
                   x-text="r.notes"></p>
                 <p class="text-xs text-gray-400"
-                  x-text="'Por: '+(r.registered_by_name||'desconocido')+' · '+new Date(r.created_at).toLocaleDateString('es-CO')"></p>
+                  x-text="'Por: '+(r.registered_by_name||'desconocido')+' · '+fmtDate(r.created_at)"></p>
               </div>
 
               <!-- Acciones -->
@@ -5111,8 +5111,22 @@ function app() {
       _mDC.forEach(c => c.setStyle(dv ? { opacity:1, fillOpacity:0.15 } : { opacity:0, fillOpacity:0 }))
     },
 
+    // Convierte string ISO a Date tratándolo como UTC (añade Z si falta sufijo)
+    _utcDate(s) {
+      if (!s) return new Date(NaN)
+      return new Date(s.endsWith('Z') || s.includes('+') ? s : s + 'Z')
+    },
+    fmtDatetime(s) {
+      const d = this._utcDate(s)
+      return isNaN(d) ? '' : d.toLocaleString('es-CO', { timeZone: 'America/Bogota' })
+    },
+    fmtDate(s) {
+      const d = this._utcDate(s)
+      return isNaN(d) ? '' : d.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })
+    },
+
     _timeAgo(isoStr) {
-      const diff = Math.floor((Date.now() - new Date(isoStr)) / 60000)
+      const diff = Math.floor((Date.now() - this._utcDate(isoStr)) / 60000)
       if (diff < 1) return 'Hace un momento'
       if (diff < 60) return `Hace ${diff} min`
       const h = Math.floor(diff / 60)
@@ -5626,13 +5640,15 @@ function app() {
     },
 
     chatTimeLabel(iso) {
-      // Añadir Z si no tiene sufijo de zona para que JS lo trate como UTC
-      const d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z')
+      const d = this._utcDate(iso)
+      if (isNaN(d)) return ''
+      const opts = { timeZone: 'America/Bogota' }
       const now = new Date()
-      const sameDay = d.toDateString() === now.toDateString()
-      return sameDay
-        ? d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })
-        : d.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit' }) + ' ' + d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })
+      const bogotaDate = d.toLocaleDateString('es-CO', opts)
+      const todayDate = now.toLocaleDateString('es-CO', opts)
+      return bogotaDate === todayDate
+        ? d.toLocaleTimeString('es-CO', { ...opts, hour:'2-digit', minute:'2-digit' })
+        : d.toLocaleDateString('es-CO', { ...opts, day:'2-digit', month:'2-digit' }) + ' ' + d.toLocaleTimeString('es-CO', { ...opts, hour:'2-digit', minute:'2-digit' })
     },
     // ─────────────────────────────────────────────────────────────────────
 
