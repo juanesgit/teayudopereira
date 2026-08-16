@@ -3791,7 +3791,7 @@
         </div>
         <div class="flex gap-2">
           <button @click="loadCensus()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
-          <a x-show="role==='admin'" :href="'/census/export?token='+token" target="_blank"
+          <a x-show="user?.role==='admin'" :href="'/census/export?token='+token" target="_blank"
             class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer no-underline"
             style="background:#16a34a;color:white">⬇ Excel</a>
           <button @click="censusForm=!censusForm"
