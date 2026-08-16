@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -72,11 +72,10 @@ async def get_current_user_optional(
 
 
 async def get_current_user_from_query(
-    token: Optional[str] = None,
+    token: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Permite autenticar vía query param ?token=... (usado para descargas directas)."""
-    from fastapi import Query
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Token inválido o expirado",
