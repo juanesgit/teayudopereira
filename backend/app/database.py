@@ -18,7 +18,7 @@ async def get_db():
 
 async def init_db():
     async with engine.begin() as conn:
-        from app.models import user, report, aid_point, danger_zone, chat, guest_session, push_subscription  # noqa: F401
+        from app.models import user, report, aid_point, danger_zone, chat, guest_session, push_subscription, medication  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
         # Migraciones manuales — agrega columnas nuevas sin borrar datos
         migrations = [
@@ -38,6 +38,7 @@ async def init_db():
             "ALTER TABLE chat_messages ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0",
             "ALTER TABLE guest_sessions ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'",
             "ALTER TABLE guest_sessions ADD COLUMN phone_number VARCHAR(30)",
+            "ALTER TABLE reports ADD COLUMN medication_detail TEXT",
         ]
         for sql in migrations:
             try:

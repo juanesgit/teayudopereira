@@ -2933,8 +2933,8 @@
       <!-- Tabs internos -->
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
         <div class="hide-scroll border-b border-gray-100" style="display:flex;overflow-x:auto;">
-          <template x-for="t in [{id:'users',e:'👥',l:'Usuarios'},{id:'reports',e:'🆘',l:'Reportes'},{id:'centers',e:'🤝',l:'Centros'},{id:'zones',e:'⚠️',l:'Zonas'},{id:'avisos',e:'📢',l:'Avisos'},{id:'sms',e:'📱',l:'SMS'},{id:'mensajes',e:'💬',l:'Mensajes'}]" :key="t.id">
-            <button @click="sysTab=t.id; if(t.id==='mensajes'){adminTotalUnread=0;loadAdminDmRooms();startAdminDmPolling();} else {stopAdminDmPolling();}; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones();"
+          <template x-for="t in [{id:'users',e:'👥',l:'Usuarios'},{id:'reports',e:'🆘',l:'Reportes'},{id:'medicamentos',e:'💊',l:'Medicamentos'},{id:'centers',e:'🤝',l:'Centros'},{id:'zones',e:'⚠️',l:'Zonas'},{id:'avisos',e:'📢',l:'Avisos'},{id:'sms',e:'📱',l:'SMS'},{id:'mensajes',e:'💬',l:'Mensajes'}]" :key="t.id">
+            <button @click="sysTab=t.id; if(t.id==='mensajes'){adminTotalUnread=0;loadAdminDmRooms();startAdminDmPolling();} else {stopAdminDmPolling();}; if(t.id==='sms')loadSmsBalance(); if(t.id==='users')loadAdminVolunteers(); if(t.id==='centers')loadAdminAidPoints(); if(t.id==='reports'){loadData();loadAdminVolunteers();}; if(t.id==='avisos')loadBroadcastStats(); if(t.id==='zones')loadAdminDangerZones(); if(t.id==='medicamentos')loadMedData();"
               class="py-3 px-3 text-xs font-semibold border-none cursor-pointer transition-all bg-transparent flex-shrink-0 flex flex-col items-center gap-0.5"
               style="position:relative"
               :style="sysTab===t.id ? 'border-bottom:2px solid #111827;color:#111827' : 'border-bottom:2px solid transparent;color:#9ca3af'">
@@ -3355,6 +3355,242 @@
             </div>
           </div>
         </div>
+
+        <!-- TAB: MEDICAMENTOS -->
+        <div x-show="sysTab==='medicamentos'" class="p-4">
+
+          <!-- Sub-tabs -->
+          <div class="flex gap-1 mb-4">
+            <template x-for="s in [{v:'requests',l:'💊 Solicitudes'},{v:'stock',l:'📦 Stock'},{v:'deliveries',l:'✅ Entregas'}]" :key="s.v">
+              <button @click="medTab=s.v"
+                class="text-xs rounded-lg px-2.5 py-1.5 border-none cursor-pointer font-semibold transition-all flex-1"
+                :style="medTab===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                x-text="s.l"></button>
+            </template>
+          </div>
+
+          <!-- ══ SOLICITUDES ══ -->
+          <div x-show="medTab==='requests'">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="flex gap-1 flex-1">
+                <template x-for="f in [{v:'all',l:'Todas'},{v:'pending',l:'🔴 Pendientes'},{v:'in_progress',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltas'}]" :key="f.v">
+                  <button @click="medReqFilter=f.v"
+                    class="text-xs rounded-lg px-2 py-1.5 border-none cursor-pointer font-semibold transition-all"
+                    :style="medReqFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                    x-text="f.l"></button>
+                </template>
+              </div>
+              <button @click="loadMedRequests()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-3" x-text="medRequests.filter(r=>medReqFilter==='all'||r.status===medReqFilter).length+' solicitud(es)'"></p>
+            <div x-show="medLoading" class="text-center py-6 text-gray-400 text-sm">Cargando...</div>
+            <div class="flex flex-col gap-2">
+              <template x-for="r in medRequests.filter(r=>medReqFilter==='all'||r.status===medReqFilter)" :key="r.id">
+                <div class="rounded-xl border overflow-hidden"
+                  :style="r.status==='pending'?'border-color:#fca5a5':r.status==='in_progress'?'border-color:#93c5fd':'border-color:#86efac'">
+
+                  <!-- Cabecera -->
+                  <div class="flex items-center gap-2 px-3 py-2.5 cursor-pointer"
+                    :style="r.status==='pending'?'background:#fef2f2':r.status==='in_progress'?'background:#eff6ff':'background:#f0fdf4'"
+                    @click="medExpanded=medExpanded===r.id?null:r.id">
+                    <span class="text-lg">💊</span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 leading-tight" x-text="'#'+r.id+' · '+r.reporter_name"></p>
+                      <p class="text-xs text-gray-500 truncate" x-text="r.medication_detail||r.description||'Sin detalle'"></p>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                      <span class="text-xs font-bold rounded-full px-2 py-0.5"
+                        :style="r.status==='pending'?'background:#dc2626;color:white':r.status==='resolved'?'background:#16a34a;color:white':'background:#2563eb;color:white'"
+                        x-text="r.status==='pending'?'Pendiente':r.status==='resolved'?'Resuelta':'En atención'"></span>
+                      <span class="text-gray-400 text-xs" x-text="medExpanded===r.id?'▲':'▼'"></span>
+                    </div>
+                  </div>
+
+                  <!-- Detalle expandible -->
+                  <div x-show="medExpanded===r.id" class="px-3 py-3 bg-white border-t border-gray-100">
+
+                    <!-- Info del paciente -->
+                    <div class="bg-gray-50 rounded-xl p-3 mb-3 flex flex-col gap-1.5 text-xs">
+                      <p><span class="text-gray-400">Paciente:</span> <span class="font-semibold" x-text="r.reporter_name"></span></p>
+                      <p x-show="r.reporter_phone"><span class="text-gray-400">Teléfono:</span>
+                        <a :href="'tel:'+r.reporter_phone" class="font-semibold text-blue-600" x-text="r.reporter_phone"></a></p>
+                      <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
+                      <p><span class="text-gray-400">Dirección:</span> <span x-text="r.address"></span></p>
+                      <p><span class="text-gray-400">Fecha:</span> <span x-text="new Date(r.created_at).toLocaleString('es-CO')"></span></p>
+                      <p x-show="r.deliveries && r.deliveries.length > 0">
+                        <span class="text-gray-400">Entregas:</span>
+                        <span class="font-semibold text-green-700" x-text="r.deliveries.length+' registrada(s)'"></span>
+                      </p>
+                    </div>
+
+                    <!-- Medicamento exacto -->
+                    <div class="mb-3">
+                      <p class="text-xs text-gray-500 mb-1.5 font-semibold">Medicamento solicitado</p>
+                      <div class="flex gap-2">
+                        <input :id="'med-detail-'+r.id" type="text"
+                          :value="r.medication_detail||''"
+                          placeholder="Ej: Metformina 500mg x30 tabletas"
+                          class="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                        <button @click="saveMedDetail(r.id, document.getElementById('med-detail-'+r.id).value)"
+                          class="text-xs bg-gray-800 text-white rounded-xl px-3 py-2 border-none cursor-pointer flex-shrink-0">
+                          Guardar
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Registrar entrega -->
+                    <div class="mb-3 border border-green-200 rounded-xl p-3 bg-green-50">
+                      <p class="text-xs font-semibold text-green-800 mb-2">📦 Registrar entrega</p>
+                      <div class="flex flex-col gap-2">
+                        <div class="flex gap-2">
+                          <input :id="'del-med-'+r.id" type="text"
+                            :value="r.medication_detail||''"
+                            placeholder="Medicamento entregado"
+                            class="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                          <input :id="'del-qty-'+r.id" type="number" value="1" min="1"
+                            class="w-16 text-xs border border-gray-200 rounded-xl px-2 py-2 bg-white text-center">
+                        </div>
+                        <div class="flex gap-2">
+                          <select :id="'del-stock-'+r.id"
+                            class="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white">
+                            <option value="">— Sin descontar stock —</option>
+                            <template x-for="s in medStock" :key="s.id">
+                              <option :value="s.id" x-text="s.name+' ('+s.quantity+' '+s.unit+')'"></option>
+                            </template>
+                          </select>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                          <label class="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                            <input :id="'del-resolve-'+r.id" type="checkbox" class="rounded">
+                            Marcar solicitud como resuelta
+                          </label>
+                          <button @click="registerDelivery(r.id, r.reporter_name)"
+                            class="text-xs bg-green-700 text-white rounded-xl px-3 py-2 border-none cursor-pointer flex-shrink-0 ml-auto">
+                            ✅ Registrar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Cambiar estado -->
+                    <div>
+                      <p class="text-xs text-gray-500 mb-1.5 font-semibold">Cambiar estado</p>
+                      <div class="flex gap-2">
+                        <button @click="saveMedDetail(r.id,null,'pending')" :disabled="r.status==='pending'"
+                          class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
+                          style="background:#fee2e2;color:#991b1b">🔴 Pendiente</button>
+                        <button @click="saveMedDetail(r.id,null,'in_progress')" :disabled="r.status==='in_progress'"
+                          class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
+                          style="background:#dbeafe;color:#1e40af">🔵 En atención</button>
+                        <button @click="saveMedDetail(r.id,null,'resolved')" :disabled="r.status==='resolved'"
+                          class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
+                          style="background:#dcfce7;color:#166534">✅ Resuelta</button>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </template>
+              <div x-show="!medLoading && medRequests.filter(r=>medReqFilter==='all'||r.status===medReqFilter).length===0"
+                class="text-center py-8 text-gray-400 text-sm">No hay solicitudes con este filtro</div>
+            </div>
+          </div>
+
+          <!-- ══ STOCK ══ -->
+          <div x-show="medTab==='stock'">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs text-gray-400" x-text="medStock.length+' ítem(s) en inventario'"></p>
+              <button @click="medStockForm=!medStockForm"
+                class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
+                :style="medStockForm?'background:#fee2e2;color:#991b1b':'background:#111827;color:white'"
+                x-text="medStockForm?'✕ Cancelar':'+ Agregar'"></button>
+            </div>
+
+            <!-- Formulario agregar stock -->
+            <div x-show="medStockForm" class="rounded-xl border border-gray-200 p-3 mb-4 bg-gray-50 flex flex-col gap-2">
+              <p class="text-xs font-bold text-gray-700 mb-1">Nuevo medicamento en inventario</p>
+              <input x-model="medStockNew.name" type="text" placeholder="Nombre del medicamento (ej: Metformina 500mg)"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+              <div class="flex gap-2">
+                <input x-model="medStockNew.quantity" type="number" min="0" placeholder="Cantidad"
+                  class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
+                <input x-model="medStockNew.unit" type="text" placeholder="Unidad (tabletas...)"
+                  class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
+              </div>
+              <input x-model="medStockNew.expiry_date" type="date" placeholder="Fecha vencimiento"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+              <input x-model="medStockNew.storage_location" type="text" placeholder="Lugar de almacenamiento"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+              <input x-model="medStockNew.donated_by" type="text" placeholder="Donado por (opcional)"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+              <button @click="createMedStock()"
+                class="text-xs bg-gray-800 text-white rounded-xl py-2 border-none cursor-pointer font-semibold">
+                Guardar en inventario
+              </button>
+            </div>
+
+            <!-- Lista stock -->
+            <div class="flex flex-col gap-2">
+              <template x-for="s in medStock" :key="s.id">
+                <div class="rounded-xl border border-gray-200 overflow-hidden">
+                  <div class="flex items-center gap-2 px-3 py-2.5 bg-white">
+                    <span class="text-base">📦</span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 truncate" x-text="s.name"></p>
+                      <p class="text-xs text-gray-500"
+                        x-text="s.quantity+' '+s.unit+(s.storage_location?' · '+s.storage_location:'')+(s.expiry_date?' · Vence: '+s.expiry_date:'')"></p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <span class="text-sm font-black"
+                        :style="s.quantity===0?'color:#dc2626':s.quantity<5?'color:#d97706':'color:#16a34a'"
+                        x-text="s.quantity"></span>
+                      <button @click="updateMedStock(s.id, s.quantity-1)" :disabled="s.quantity<=0"
+                        class="w-6 h-6 rounded-lg bg-gray-100 border-none cursor-pointer text-xs font-bold disabled:opacity-30">−</button>
+                      <button @click="updateMedStock(s.id, s.quantity+1)"
+                        class="w-6 h-6 rounded-lg bg-gray-100 border-none cursor-pointer text-xs font-bold">+</button>
+                      <button @click="deleteMedStock(s.id)"
+                        class="text-xs text-red-400 bg-transparent border-none cursor-pointer px-1">✕</button>
+                    </div>
+                  </div>
+                  <div x-show="s.donated_by" class="px-3 py-1.5 bg-gray-50 border-t border-gray-100">
+                    <p class="text-xs text-gray-400" x-text="'Donado por: '+s.donated_by"></p>
+                  </div>
+                </div>
+              </template>
+              <div x-show="medStock.length===0" class="text-center py-8 text-gray-400 text-sm">Sin stock registrado</div>
+            </div>
+          </div>
+
+          <!-- ══ ENTREGAS ══ -->
+          <div x-show="medTab==='deliveries'">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs text-gray-400" x-text="medDeliveries.length+' entrega(s) registrada(s)'"></p>
+              <button @click="loadMedDeliveries()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+            </div>
+            <div class="flex flex-col gap-2">
+              <template x-for="d in medDeliveries" :key="d.id">
+                <div class="rounded-xl border border-green-200 overflow-hidden">
+                  <div class="flex items-center gap-2 px-3 py-2.5 bg-green-50">
+                    <span class="text-base">✅</span>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 leading-tight"
+                        x-text="d.medication_name+' ('+d.quantity_delivered+' '+d.unit+')'"></p>
+                      <p class="text-xs text-gray-500"
+                        x-text="'Entregado a: '+d.delivered_to+' · Solicitud #'+d.report_id"></p>
+                    </div>
+                    <span class="text-xs text-gray-400 flex-shrink-0"
+                      x-text="new Date(d.delivered_at).toLocaleDateString('es-CO')"></span>
+                  </div>
+                  <div x-show="d.delivery_notes" class="px-3 py-1.5 bg-white border-t border-gray-100">
+                    <p class="text-xs text-gray-500" x-text="d.delivery_notes"></p>
+                  </div>
+                </div>
+              </template>
+              <div x-show="medDeliveries.length===0" class="text-center py-8 text-gray-400 text-sm">Sin entregas registradas</div>
+            </div>
+          </div>
+
+        </div><!-- /TAB medicamentos -->
 
         <!-- TAB: ZONAS DE PELIGRO -->
         <div x-show="sysTab==='zones'" class="p-4">
@@ -3939,6 +4175,16 @@ function app() {
     adminAidPoints: [],
     adminReportFilter: 'all',
     adminReportExpanded: null,
+    // Módulo medicamentos
+    medTab: 'requests',
+    medReqFilter: 'all',
+    medExpanded: null,
+    medLoading: false,
+    medRequests: [],
+    medStock: [],
+    medDeliveries: [],
+    medStockForm: false,
+    medStockNew: { name:'', quantity:0, unit:'tabletas', expiry_date:'', storage_location:'', donated_by:'' },
     panelReportExpanded: null,
     broadcastConfirm: false,
     broadcastLog: JSON.parse(localStorage.getItem('tap_broadcast_log') || '[]'),
@@ -5530,6 +5776,123 @@ function app() {
         }
       } catch {}
     },
+
+    // ── Módulo Medicamentos ───────────────────────────────────────────────────
+    async loadMedData() {
+      await Promise.all([this.loadMedRequests(), this.loadMedStock(), this.loadMedDeliveries()])
+    },
+
+    async loadMedRequests() {
+      this.medLoading = true
+      try {
+        const res = await fetch('/medication/requests', { headers: this.authHeaders() })
+        if (res.ok) this.medRequests = await res.json()
+      } catch {}
+      this.medLoading = false
+    },
+
+    async loadMedStock() {
+      try {
+        const res = await fetch('/medication/stock', { headers: this.authHeaders() })
+        if (res.ok) this.medStock = await res.json()
+      } catch {}
+    },
+
+    async loadMedDeliveries() {
+      try {
+        const res = await fetch('/medication/deliveries', { headers: this.authHeaders() })
+        if (res.ok) this.medDeliveries = await res.json()
+      } catch {}
+    },
+
+    async saveMedDetail(reportId, detail, status = null) {
+      try {
+        const body = {}
+        if (detail !== null) body.medication_detail = detail
+        if (status) body.status = status
+        const res = await fetch(`/medication/requests/${reportId}/detail`, {
+          method: 'PATCH',
+          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        if (res.ok) {
+          const r = this.medRequests.find(r => r.id === reportId)
+          if (r) {
+            if (detail !== null) r.medication_detail = detail
+            if (status) r.status = status
+          }
+        }
+      } catch {}
+    },
+
+    async createMedStock() {
+      if (!this.medStockNew.name.trim()) return
+      try {
+        const res = await fetch('/medication/stock', {
+          method: 'POST',
+          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...this.medStockNew, quantity: Number(this.medStockNew.quantity) }),
+        })
+        if (res.ok) {
+          const s = await res.json()
+          this.medStock.unshift(s)
+          this.medStockNew = { name:'', quantity:0, unit:'tabletas', expiry_date:'', storage_location:'', donated_by:'' }
+          this.medStockForm = false
+        }
+      } catch {}
+    },
+
+    async updateMedStock(stockId, newQty) {
+      try {
+        const res = await fetch(`/medication/stock/${stockId}`, {
+          method: 'PATCH',
+          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: Math.max(0, newQty) }),
+        })
+        if (res.ok) {
+          const s = this.medStock.find(s => s.id === stockId)
+          if (s) s.quantity = Math.max(0, newQty)
+        }
+      } catch {}
+    },
+
+    async deleteMedStock(stockId) {
+      if (!confirm('¿Desactivar este ítem del inventario?')) return
+      try {
+        const res = await fetch(`/medication/stock/${stockId}`, {
+          method: 'DELETE', headers: this.authHeaders(),
+        })
+        if (res.ok) this.medStock = this.medStock.filter(s => s.id !== stockId)
+      } catch {}
+    },
+
+    async registerDelivery(reportId, reporterName) {
+      const medName = document.getElementById('del-med-'+reportId)?.value?.trim()
+      const qty = parseInt(document.getElementById('del-qty-'+reportId)?.value || '1')
+      const stockId = document.getElementById('del-stock-'+reportId)?.value || null
+      const resolve = document.getElementById('del-resolve-'+reportId)?.checked || false
+      if (!medName) { alert('Indica el medicamento entregado'); return }
+      try {
+        const res = await fetch('/medication/deliveries', {
+          method: 'POST',
+          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            report_id: reportId,
+            medication_name: medName,
+            quantity_delivered: qty,
+            unit: 'unidades',
+            delivered_to: reporterName,
+            stock_id: stockId ? parseInt(stockId) : null,
+            resolve_report: resolve,
+          }),
+        })
+        if (res.ok) {
+          await this.loadMedData()
+          this.medExpanded = null
+        }
+      } catch {}
+    },
+    // ─────────────────────────────────────────────────────────────────────
 
     async loadAdminDangerZones(force = false) {
       if (this.adminDangerZones.length > 0 && !force) return
