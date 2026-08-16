@@ -5027,7 +5027,7 @@ function app() {
               <p style="font-size:12px;color:#6b7280;margin:0 0 4px">📍 ${r.address}</p>
               ${ago ? `<p style="font-size:11px;color:#9ca3af;margin:0 0 10px">🕐 ${ago}</p>` : '<div style="margin-bottom:10px"></div>'}
               <a href="https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}" target="_blank" rel="noopener"
-                style="display:block;text-align:center;background:#1d4ed8;color:white;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none">
+                style="display:block;text-align:center;background:${color};color:white;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none">
                 🗺️ Cómo llegar
               </a>
             </div>
@@ -5064,7 +5064,7 @@ function app() {
               <p style="font-size:12px;color:#6b7280;margin:0 0 4px">📍 ${a.address}</p>
               ${a.contact_phone ? `<p style="font-size:12px;color:#059669;margin:0 0 10px;font-weight:600">📞 ${a.contact_phone}</p>` : '<div style="margin-bottom:10px"></div>'}
               <a href="https://www.google.com/maps/dir/?api=1&destination=${a.lat},${a.lng}" target="_blank" rel="noopener"
-                style="display:block;text-align:center;background:#1d4ed8;color:white;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none">
+                style="display:block;text-align:center;background:${c};color:white;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none">
                 🗺️ Cómo llegar
               </a>
             </div>
@@ -5094,7 +5094,7 @@ function app() {
               ${z.description ? `<p style="font-size:13px;color:#374151;margin:8px 0 6px;line-height:1.4">${z.description}</p>` : '<div style="margin-bottom:6px"></div>'}
               ${z.address ? `<p style="font-size:12px;color:#6b7280;margin:0 0 10px">📍 ${z.address}</p>` : '<div style="margin-bottom:10px"></div>'}
               <a href="https://www.google.com/maps/dir/?api=1&destination=${z.lat},${z.lng}" target="_blank" rel="noopener"
-                style="display:block;text-align:center;background:#b91c1c;color:white;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none">
+                style="display:block;text-align:center;background:${c};color:white;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;text-decoration:none">
                 🗺️ Ver ubicación
               </a>
             </div>
