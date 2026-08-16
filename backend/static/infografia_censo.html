@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page { size: 512px auto; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f0f0;
+    display: flex; justify-content: center;
+    padding: 32px 16px;
+  }
+  .card { background: white; width: 480px; border-radius: 28px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,.13); }
+  .header { background: #ffffff; padding: 28px 28px 0; text-align: center; position: relative; }
+  .top-stripe { position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #dc2626 33%, #FCD116 33%, #FCD116 66%, #dc2626 66%); }
+  .header-tag { display: inline-flex; align-items: center; gap: 6px; background: #fef2f2; color: #dc2626; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border-radius: 999px; padding: 5px 16px; border: 1.5px solid #fecaca; margin-bottom: 16px; margin-top: 12px; }
+  .brand-name { font-size: 13px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #dc2626; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .brand-name::before, .brand-name::after { content:''; display:block; height:2px; width:28px; background:#FCD116; border-radius:2px; }
+  .header h1 { font-size: 27px; font-weight: 900; color: #111827; line-height: 1.15; margin-bottom: 6px; }
+  .header h1 em { color: #dc2626; font-style: normal; }
+  .header-sub { font-size: 12.5px; color: #6b7280; line-height: 1.5; margin-bottom: 20px; }
+  .value-badges { display: flex; gap: 10px; justify-content: center; margin: 0 -28px; padding: 18px 20px; background: linear-gradient(135deg, #1e3a5f, #1e40af); }
+  .vbadge { flex: 1; background: rgba(255,255,255,.12); border: 1.5px solid rgba(255,255,255,.25); border-radius: 16px; padding: 12px 8px; text-align: center; }
+  .vbadge .vicon { font-size: 22px; margin-bottom: 5px; }
+  .vbadge .vtitle { font-size: 12px; font-weight: 900; color: #fff; display: block; line-height: 1.2; margin-bottom: 2px; }
+  .vbadge .vsub { font-size: 10px; color: rgba(255,255,255,.75); line-height: 1.3; }
+  .vbadge.gold { background: #FCD116; border-color: #e6b800; }
+  .vbadge.gold .vtitle { color: #7b3f00; }
+  .vbadge.gold .vsub { color: #a05a00; }
+  .body { padding: 26px 28px 0; }
+  .intro { background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 0 12px 12px 0; padding: 12px 14px; font-size: 12.5px; color: #1e3a5f; line-height: 1.5; margin-bottom: 26px; }
+  .intro strong { color: #1e3a5f; }
+  .section-title { font-size: 11px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: #dc2626; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content:''; flex:1; height:1.5px; background:#f3f4f6; border-radius:2px; }
+  /* Quién puede censar */
+  .who-grid { display: flex; gap: 10px; margin-bottom: 26px; }
+  .who-card { flex: 1; background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 16px; padding: 14px 10px; text-align: center; }
+  .who-card .wicon { font-size: 28px; margin-bottom: 6px; }
+  .who-card .wtitle { font-size: 12px; font-weight: 800; color: #111827; margin-bottom: 3px; }
+  .who-card .wsub { font-size: 10.5px; color: #6b7280; line-height: 1.4; }
+  .who-card.active { background: #fef2f2; border-color: #fca5a5; }
+  .who-card.active .wtitle { color: #dc2626; }
+  /* Datos que se registran */
+  .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 26px; }
+  .data-item { background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 12px; display: flex; align-items: flex-start; gap: 10px; }
+  .data-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .data-text strong { font-size: 12px; font-weight: 800; color: #111827; display: block; margin-bottom: 2px; }
+  .data-text span { font-size: 10.5px; color: #6b7280; line-height: 1.4; }
+  /* Pasos */
+  .steps { display: flex; flex-direction: column; margin-bottom: 4px; }
+  .step-row { display: flex; align-items: stretch; }
+  .step-left { display: flex; flex-direction: column; align-items: center; width: 48px; flex-shrink: 0; }
+  .step-circle { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #dc2626, #a51515); color: white; font-size: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(220,38,38,.35); flex-shrink: 0; }
+  .step-line { width: 2px; background: #f0f0f0; flex: 1; margin: 4px 0; }
+  .step-content { flex: 1; padding: 0 0 20px 16px; display: flex; gap: 14px; align-items: flex-start; }
+  .step-icon-box { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; margin-top: -2px; }
+  .step-text h3 { font-size: 14px; font-weight: 800; color: #111827; margin-bottom: 3px; }
+  .step-text p { font-size: 12px; color: #6b7280; line-height: 1.5; }
+  .chip { display: inline-block; background: #f3f4f6; border-radius: 999px; padding: 2px 10px; font-size: 11px; color: #374151; font-weight: 600; margin-top: 5px; margin-right: 4px; }
+  .chip.red { background: #fef2f2; color: #dc2626; }
+  .chip.blue { background: #eff6ff; color: #2563eb; }
+  .chip.green { background: #f0fdf4; color: #16a34a; }
+  .step-row.last .step-circle { background: linear-gradient(135deg,#16a34a,#15803d); box-shadow: 0 3px 10px rgba(22,163,74,.35); }
+  .step-row.last .step-content { padding-bottom: 6px; }
+  /* Resultado */
+  .result-block { margin: 0 28px 28px; background: linear-gradient(135deg,#f0fdf4,#dcfce7); border: 1.5px solid #86efac; border-radius: 18px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+  .result-icon { font-size: 36px; flex-shrink: 0; }
+  .result-text h3 { font-size: 15px; font-weight: 800; color: #166534; margin-bottom: 4px; }
+  .result-text p { font-size: 12px; color: #15803d; line-height: 1.5; }
+  /* Necesidades chips */
+  .needs-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 26px; }
+  .need-chip { display: flex; align-items: center; gap: 5px; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 999px; padding: 5px 12px; font-size: 11.5px; font-weight: 700; color: #dc2626; }
+  /* Footer */
+  .footer { background: #111827; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .footer-left strong { font-size: 14px; font-weight: 800; color: #FCD116; display: block; }
+  .footer-left span { font-size: 11px; color: #9ca3af; }
+  .footer-right { background: #dc2626; color: white; border-radius: 999px; padding: 8px 20px; font-size: 12px; font-weight: 800; }
+</style>
+<script>
+  (function() {
+    var s = document.createElement('style');
+    document.head.appendChild(s);
+    window.addEventListener('load', function() {
+      var h = Math.ceil(document.documentElement.scrollHeight) + 10;
+      s.textContent = '@page { size: 512px ' + h + 'px; margin: 0; }';
+    });
+  })();
+</script>
+</head>
+<body>
+<div class="card">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="top-stripe"></div>
+    <div class="header-tag">📋 Herramienta para voluntarios y admin</div>
+    <div class="brand-name">Te Ayudo Pereira</div>
+    <h1>Censo de <em>Afectados</em></h1>
+    <p class="header-sub">Registra y organiza la información de las personas<br>afectadas para coordinar la ayuda de forma efectiva.</p>
+
+    <!-- Badges -->
+    <div class="value-badges">
+      <div class="vbadge">
+        <div class="vicon">🗂</div>
+        <span class="vtitle">Organización</span>
+        <span class="vsub">Datos centralizados y accesibles</span>
+      </div>
+      <div class="vbadge gold">
+        <div class="vicon">⚡</div>
+        <span class="vtitle">Respuesta rápida</span>
+        <span class="vsub">Prioriza según necesidades</span>
+      </div>
+      <div class="vbadge">
+        <div class="vicon">📍</div>
+        <span class="vtitle">Geolocalización</span>
+        <span class="vsub">Ubica a cada familia</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- Intro -->
+    <div class="intro">
+      <strong>¿Qué es el censo?</strong> Es un registro digital de las personas y familias afectadas por la emergencia. Permite saber <strong>quiénes necesitan ayuda, dónde están y qué requieren</strong>, para que los coordinadores dirijan los recursos de manera eficiente y justa.
+    </div>
+
+    <!-- Quién puede registrar -->
+    <div class="section-title">¿Quién puede registrar?</div>
+    <div class="who-grid">
+      <div class="who-card active">
+        <div class="wicon">🧑‍💼</div>
+        <div class="wtitle">Administrador</div>
+        <div class="wsub">Acceso completo al censo y panel de coordinación</div>
+      </div>
+      <div class="who-card active">
+        <div class="wicon">🤝</div>
+        <div class="wtitle">Coordinador</div>
+        <div class="wsub">Registra y gestiona familias en su zona asignada</div>
+      </div>
+      <div class="who-card active">
+        <div class="wicon">🦺</div>
+        <div class="wtitle">Voluntario</div>
+        <div class="wsub">Registra en campo durante el recorrido de atención</div>
+      </div>
+    </div>
+
+    <!-- Datos que se capturan -->
+    <div class="section-title">Datos que se registran</div>
+    <div class="data-grid">
+      <div class="data-item">
+        <div class="data-icon">👤</div>
+        <div class="data-text">
+          <strong>Datos personales</strong>
+          <span>Nombre, documento, edad y género</span>
+        </div>
+      </div>
+      <div class="data-item">
+        <div class="data-icon">📞</div>
+        <div class="data-text">
+          <strong>Contacto</strong>
+          <span>Celular y WhatsApp para seguimiento</span>
+        </div>
+      </div>
+      <div class="data-item">
+        <div class="data-icon">📍</div>
+        <div class="data-text">
+          <strong>Ubicación</strong>
+          <span>Dirección, barrio o coordenadas GPS</span>
+        </div>
+      </div>
+      <div class="data-item">
+        <div class="data-icon">👨‍👩‍👧</div>
+        <div class="data-text">
+          <strong>Grupo familiar</strong>
+          <span>Total de personas, menores y adultos mayores</span>
+        </div>
+      </div>
+      <div class="data-item">
+        <div class="data-icon">🆘</div>
+        <div class="data-text">
+          <strong>Necesidades</strong>
+          <span>Alimentos, agua, refugio, médica, medicamentos</span>
+        </div>
+      </div>
+      <div class="data-item">
+        <div class="data-icon">🏠</div>
+        <div class="data-text">
+          <strong>Estado actual</strong>
+          <span>En casa, evacuado, en albergue o en calle</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tipos de necesidades -->
+    <div class="section-title">Necesidades que se pueden registrar</div>
+    <div class="needs-row">
+      <div class="need-chip">🍱 Alimentos</div>
+      <div class="need-chip">💧 Agua</div>
+      <div class="need-chip">🏠 Refugio</div>
+      <div class="need-chip">🏥 Atención médica</div>
+      <div class="need-chip">💊 Medicamentos</div>
+      <div class="need-chip">👕 Ropa</div>
+    </div>
+
+    <!-- Cómo registrar paso a paso -->
+    <div class="section-title">¿Cómo registrar una persona?</div>
+    <div class="steps">
+
+      <div class="step-row">
+        <div class="step-left">
+          <div class="step-circle">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-icon-box" style="background:#eff6ff">📋</div>
+          <div class="step-text">
+            <h3>Abre el módulo Censo</h3>
+            <p>En el menú inferior toca <strong>📋 Censo</strong>. Solo está visible para voluntarios, coordinadores y administradores.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-left">
+          <div class="step-circle">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-icon-box" style="background:#fef2f2">➕</div>
+          <div class="step-text">
+            <h3>Pulsa "+ Registrar"</h3>
+            <p>Se abre el formulario de registro. Ingresa el <strong>nombre</strong> (campo obligatorio) y los demás datos disponibles.</p>
+            <span class="chip red">Mínimo: nombre</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-left">
+          <div class="step-circle">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-icon-box" style="background:#f0fdf4">📞</div>
+          <div class="step-text">
+            <h3>Registra el contacto</h3>
+            <p>Anota el <strong>celular y WhatsApp</strong>. Este dato es clave para hacer seguimiento aunque la persona no tenga conexión a internet.</p>
+            <span class="chip green">Muy importante</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-left">
+          <div class="step-circle">4</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-icon-box" style="background:#fefce8">📍</div>
+          <div class="step-text">
+            <h3>Ubica a la persona</h3>
+            <p>Escribe la dirección o barrio, o toca <strong>🎯 "Usar mi ubicación actual"</strong> para capturar coordenadas GPS en el lugar.</p>
+            <span class="chip blue">GPS automático</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row">
+        <div class="step-left">
+          <div class="step-circle">5</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-icon-box" style="background:#fef2f2">🆘</div>
+          <div class="step-text">
+            <h3>Selecciona las necesidades</h3>
+            <p>Marca las necesidades actuales y el estado (en casa, evacuado, albergue, calle). Puedes seleccionar varias.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-row last">
+        <div class="step-left">
+          <div class="step-circle">✓</div>
+        </div>
+        <div class="step-content">
+          <div class="step-icon-box" style="background:#f0fdf4">💾</div>
+          <div class="step-text">
+            <h3>Guarda el registro</h3>
+            <p>Toca <strong>"✓ Guardar registro"</strong>. Quedará visible en la lista para todos los voluntarios y coordinadores del sistema.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /steps -->
+
+  </div><!-- /body -->
+
+  <!-- Resultado -->
+  <div class="result-block">
+    <div class="result-icon">🎯</div>
+    <div class="result-text">
+      <h3>¿Para qué sirve el censo?</h3>
+      <p>Permite <strong>priorizar y dirigir la ayuda</strong> correctamente: saber cuántas familias necesitan alimentos, cuántas están en la calle, quiénes son adultos mayores o tienen menores, y contactarlas directamente por WhatsApp.</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left">
+      <strong>Te Ayudo Pereira</strong>
+      <span>Sistema de ayuda humanitaria · Pereira, Colombia</span>
+    </div>
+    <div class="footer-right">📋 Censo</div>
+  </div>
+
+</div>
+</body>
+</html>
