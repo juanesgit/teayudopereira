@@ -3517,8 +3517,11 @@
                 <input x-model="medStockNew.unit" type="text" placeholder="Unidad (tabletas...)"
                   class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
               </div>
-              <input x-model="medStockNew.expiry_date" type="date" placeholder="Fecha vencimiento"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 font-medium px-1">📅 Fecha de vencimiento (opcional)</label>
+                <input x-model="medStockNew.expiry_date" type="date"
+                  class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+              </div>
               <input x-model="medStockNew.storage_location" type="text" placeholder="Lugar de almacenamiento"
                 class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
               <input x-model="medStockNew.donated_by" type="text" placeholder="Donado por (opcional)"
