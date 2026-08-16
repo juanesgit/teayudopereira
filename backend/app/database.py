@@ -18,7 +18,7 @@ async def get_db():
 
 async def init_db():
     async with engine.begin() as conn:
-        from app.models import user, report, aid_point, danger_zone, chat, guest_session, push_subscription, medication  # noqa: F401
+        from app.models import user, report, aid_point, danger_zone, chat, guest_session, push_subscription, medication, census  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
         # Migraciones manuales — agrega columnas nuevas sin borrar datos
         migrations = [
