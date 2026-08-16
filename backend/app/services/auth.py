@@ -69,3 +69,30 @@ async def get_current_user_optional(
         return user if (user and user.is_active) else None
     except JWTError:
         return None
+
+
+async def get_current_user_from_query(
+    token: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Permite autenticar vía query param ?token=... (usado para descargas directas)."""
+    from fastapi import Query
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token inválido o expirado",
+    )
+    if not token:
+        raise credentials_exception
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: Optional[str] = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    result = await db.execute(select(User).where(User.id == int(user_id)))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise credentials_exception
+    return user

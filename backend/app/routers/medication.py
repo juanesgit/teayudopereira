@@ -14,7 +14,9 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+import io
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +24,7 @@ from app.database import get_db
 from app.models.medication import MedicationStock, MedicationDelivery
 from app.models.report import Report, NeedType, ReportStatus
 from app.models.user import User, UserRole
-from app.services.auth import get_current_user
+from app.services.auth import get_current_user, get_current_user_from_query
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/medication", tags=["Medication"])
@@ -321,3 +323,115 @@ async def create_delivery(
     await db.commit()
     await db.refresh(d)
     return _delivery_payload(d)
+
+
+# ── Exportación Excel ─────────────────────────────────────────────────────────
+
+@router.get("/stock/export")
+async def export_stock_xlsx(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_from_query),
+):
+    """Exporta el inventario de medicamentos activo como archivo Excel."""
+    _require_admin(current_user)
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    result = await db.execute(
+        select(MedicationStock)
+        .where(MedicationStock.is_active == True)  # noqa
+        .order_by(MedicationStock.name)
+    )
+    items = result.scalars().all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Inventario Medicamentos"
+
+    # ── Encabezado principal ──────────────────────────────────────────────
+    ws.merge_cells("A1:G1")
+    title_cell = ws["A1"]
+    title_cell.value = "Te Ayudo Pereira — Inventario de Medicamentos"
+    title_cell.font = Font(bold=True, size=13, color="FFFFFF")
+    title_cell.fill = PatternFill("solid", fgColor="DC2626")
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+
+    ws.merge_cells("A2:G2")
+    date_cell = ws["A2"]
+    date_cell.value = f"Generado el {datetime.utcnow().strftime('%d/%m/%Y %H:%M')} UTC"
+    date_cell.font = Font(italic=True, size=9, color="6B7280")
+    date_cell.alignment = Alignment(horizontal="center")
+    ws.row_dimensions[2].height = 16
+
+    # ── Cabeceras de columnas ─────────────────────────────────────────────
+    headers = ["Medicamento", "Cantidad", "Unidad", "Vencimiento", "Almacenamiento", "Donado por", "Fecha registro"]
+    header_fill = PatternFill("solid", fgColor="111827")
+    thin = Side(style="thin", color="D1D5DB")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for col, h in enumerate(headers, start=1):
+        cell = ws.cell(row=3, column=col, value=h)
+        cell.font = Font(bold=True, color="FFFFFF", size=10)
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = border
+    ws.row_dimensions[3].height = 20
+
+    # ── Filas de datos ────────────────────────────────────────────────────
+    red_fill   = PatternFill("solid", fgColor="FEF2F2")  # qty 0
+    yellow_fill = PatternFill("solid", fgColor="FFFBEB")  # qty < 5
+    white_fill  = PatternFill("solid", fgColor="FFFFFF")
+
+    for row_idx, s in enumerate(items, start=4):
+        qty = s.quantity
+        row_fill = red_fill if qty == 0 else (yellow_fill if qty < 5 else white_fill)
+
+        values = [
+            s.name,
+            qty,
+            s.unit,
+            s.expiry_date.strftime("%d/%m/%Y") if s.expiry_date else "—",
+            s.storage_location or "—",
+            s.donated_by or "—",
+            s.created_at.strftime("%d/%m/%Y") if s.created_at else "—",
+        ]
+        for col_idx, val in enumerate(values, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.fill = row_fill
+            cell.border = border
+            cell.alignment = Alignment(vertical="center", wrap_text=True)
+            if col_idx == 2:  # Cantidad — centrar y negrita
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.font = Font(bold=True,
+                                 color="DC2626" if qty == 0 else ("D97706" if qty < 5 else "16A34A"))
+
+    # ── Leyenda ───────────────────────────────────────────────────────────
+    legend_row = len(items) + 5
+    ws.merge_cells(f"A{legend_row}:G{legend_row}")
+    legend = ws[f"A{legend_row}"]
+    legend.value = "🔴 Sin stock   🟡 Stock bajo (< 5)   🟢 Disponible"
+    legend.font = Font(size=9, color="6B7280", italic=True)
+    legend.alignment = Alignment(horizontal="left")
+
+    # ── Anchos de columna ─────────────────────────────────────────────────
+    col_widths = [36, 12, 14, 16, 28, 24, 16]
+    for i, w in enumerate(col_widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    # ── Congelar encabezados ──────────────────────────────────────────────
+    ws.freeze_panes = "A4"
+
+    # ── Serializar y devolver ─────────────────────────────────────────────
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    filename = f"inventario_medicamentos_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

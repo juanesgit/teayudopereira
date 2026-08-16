@@ -3498,12 +3498,19 @@
 
           <!-- ══ STOCK ══ -->
           <div x-show="medTab==='stock'">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <p class="text-xs text-gray-400" x-text="medStock.length+' ítem(s) en inventario'"></p>
-              <button @click="medStockForm=!medStockForm"
-                class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
-                :style="medStockForm?'background:#fee2e2;color:#991b1b':'background:#111827;color:white'"
-                x-text="medStockForm?'✕ Cancelar':'+ Agregar'"></button>
+              <div class="flex gap-2">
+                <a :href="'/medication/stock/export?token='+token" target="_blank"
+                  class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer no-underline"
+                  style="background:#16a34a;color:white">
+                  ⬇ Exportar Excel
+                </a>
+                <button @click="medStockForm=!medStockForm"
+                  class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
+                  :style="medStockForm?'background:#fee2e2;color:#991b1b':'background:#111827;color:white'"
+                  x-text="medStockForm?'✕ Cancelar':'+ Agregar'"></button>
+              </div>
             </div>
 
             <!-- Formulario agregar stock -->
