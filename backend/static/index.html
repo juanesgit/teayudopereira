@@ -3416,7 +3416,7 @@
             <!-- Filtros + recarga — mismo patrón que reportes -->
             <div class="flex items-center gap-2 mb-3 flex-wrap">
               <div class="flex gap-1 flex-1">
-                <template x-for="f in [{v:'all',l:'Todos'},{v:'pending',l:'🔴 Pendientes'},{v:'active',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
+                <template x-for="f in [{v:'all',l:'Cola activa'},{v:'pending',l:'🔴 Pendientes'},{v:'active',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
                   <button @click="adminDmFilter=f.v"
                     class="text-xs rounded-lg px-2.5 py-1.5 border-none cursor-pointer font-semibold transition-all"
                     :style="adminDmFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
@@ -3428,13 +3428,13 @@
 
             <!-- Contador -->
             <p class="text-xs text-gray-400 mb-3"
-              x-text="adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter).length + ' conversación(es)'"></p>
+              x-text="adminDmRooms.filter(r => adminDmFilter==='all' ? r.status!=='resolved' : r.status===adminDmFilter).length + ' conversación(es)'"></p>
 
             <div x-show="adminDmLoading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
 
             <!-- Lista — mismo patrón de tarjetas que reportes -->
             <div class="flex flex-col gap-2">
-              <template x-for="room in adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter)" :key="room.room">
+              <template x-for="room in adminDmRooms.filter(r => adminDmFilter==='all' ? r.status!=='resolved' : r.status===adminDmFilter)" :key="room.room">
                 <div class="rounded-xl border overflow-hidden"
                   :style="room.status==='pending' ? 'border-color:#fca5a5' : room.status==='active' ? 'border-color:#93c5fd' : 'border-color:#86efac'">
 
@@ -3479,7 +3479,7 @@
                 </div>
               </template>
 
-              <div x-show="!adminDmLoading && adminDmRooms.filter(r => adminDmFilter==='all' || r.status===adminDmFilter).length===0"
+              <div x-show="!adminDmLoading && adminDmRooms.filter(r => adminDmFilter==='all' ? r.status!=='resolved' : r.status===adminDmFilter).length===0"
                    class="text-center py-8 text-gray-400 text-sm">
                 <p x-text="adminDmFilter==='resolved' ? 'Sin conversaciones archivadas.' : 'No hay conversaciones en esta categoría.'"></p>
               </div>
