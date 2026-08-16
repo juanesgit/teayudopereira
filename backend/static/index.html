@@ -3798,97 +3798,158 @@
       </div>
 
       <!-- ── Formulario de registro ── -->
-      <div x-show="censusForm" class="rounded-xl border border-blue-200 bg-blue-50 p-4 flex flex-col gap-3">
-        <p class="text-xs font-bold text-blue-800 mb-1">Nuevo registro</p>
+      <div x-show="censusForm" class="flex flex-col gap-3">
 
-        <!-- Nombre -->
-        <input x-model="censusNew.full_name" type="text" placeholder="Nombre completo *"
-          class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
-
-        <!-- Documento + edad -->
-        <div class="flex gap-2">
-          <input x-model="censusNew.document_number" type="text" placeholder="Documento (opcional)"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
-          <input x-model="censusNew.age" type="number" min="0" max="120" placeholder="Edad"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-20">
+        <!-- Sección: Datos personales -->
+        <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">👤 Datos personales</p>
+          </div>
+          <div class="p-4 flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">Nombre completo *</label>
+              <input x-model="censusNew.full_name" type="text" placeholder="Ej: María González"
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+            </div>
+            <div class="grid gap-3" style="grid-template-columns:1fr 80px">
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 font-medium">Documento</label>
+                <input x-model="censusNew.document_number" type="text" placeholder="Opcional"
+                  class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-xs text-gray-500 font-medium">Edad</label>
+                <input x-model="censusNew.age" type="number" min="0" max="120" placeholder="—"
+                  class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full text-center">
+              </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">Género</label>
+              <div class="flex gap-2">
+                <template x-for="g in [{v:'masculino',l:'♂ Masc.'},{v:'femenino',l:'♀ Fem.'},{v:'otro',l:'Otro'}]" :key="g.v">
+                  <button @click="censusNew.gender=g.v"
+                    class="text-xs rounded-xl py-2.5 border-none cursor-pointer font-semibold flex-1"
+                    :style="censusNew.gender===g.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                    x-text="g.l"></button>
+                </template>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Género -->
-        <div class="flex gap-2">
-          <template x-for="g in [{v:'masculino',l:'♂ Masculino'},{v:'femenino',l:'♀ Femenino'},{v:'otro',l:'Otro'}]" :key="g.v">
-            <button @click="censusNew.gender=g.v"
-              class="text-xs rounded-lg px-2.5 py-1.5 border-none cursor-pointer font-medium flex-1"
-              :style="censusNew.gender===g.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
-              x-text="g.l"></button>
-          </template>
+        <!-- Sección: Contacto -->
+        <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">📞 Contacto</p>
+          </div>
+          <div class="p-4 flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">Celular</label>
+              <input x-model="censusNew.phone" type="tel" placeholder="300 000 0000"
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">WhatsApp <span class="text-gray-400">(si es diferente)</span></label>
+              <input x-model="censusNew.whatsapp" type="tel" placeholder="300 000 0000"
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+            </div>
+          </div>
         </div>
 
-        <!-- Teléfono + WhatsApp -->
-        <div class="flex gap-2">
-          <input x-model="censusNew.phone" type="tel" placeholder="📞 Celular"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
-          <input x-model="censusNew.whatsapp" type="tel" placeholder="💬 WhatsApp"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
+        <!-- Sección: Ubicación -->
+        <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">📍 Ubicación</p>
+          </div>
+          <div class="p-4 flex flex-col gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">Dirección</label>
+              <input x-model="censusNew.address" type="text" placeholder="Calle, carrera, manzana..."
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">Barrio / Sector</label>
+              <input x-model="censusNew.neighborhood" type="text" placeholder="Ej: Cuba, El Jardín..."
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+            </div>
+            <button @click="getCensusGeo()"
+              class="flex items-center justify-center gap-2 rounded-xl py-2.5 border cursor-pointer font-semibold text-sm w-full"
+              :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'">
+              <span>🎯</span>
+              <span x-text="censusNew.lat ? '📌 Ubicación capturada · ' + censusNew.lat.toFixed(4) + ', ' + censusNew.lng.toFixed(4) : 'Usar mi ubicación actual'"></span>
+            </button>
+          </div>
         </div>
 
-        <!-- Dirección + geolocal -->
-        <div class="flex gap-2">
-          <input x-model="censusNew.address" type="text" placeholder="📍 Dirección"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
-          <button @click="getCensusGeo()" title="Usar mi ubicación"
-            class="text-sm rounded-xl px-3 py-2 border border-gray-200 bg-white cursor-pointer flex-shrink-0"
-            :style="censusNew.lat ? 'color:#16a34a;border-color:#86efac' : 'color:#6b7280'">
-            🎯
-          </button>
-        </div>
-        <p x-show="censusNew.lat" class="text-xs text-green-600" x-text="'📌 ' + censusNew.lat.toFixed(5) + ', ' + censusNew.lng.toFixed(5)"></p>
-        <input x-model="censusNew.neighborhood" type="text" placeholder="Barrio / Sector"
-          class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
-
-        <!-- Grupo familiar -->
-        <div class="flex gap-2 items-center">
-          <label class="text-xs text-gray-500 w-28 flex-shrink-0">👨‍👩‍👧 Personas total</label>
-          <input x-model="censusNew.people_count" type="number" min="1"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-20">
-        </div>
-        <div class="flex gap-2 items-center">
-          <label class="text-xs text-gray-500 w-28 flex-shrink-0">👶 Menores</label>
-          <input x-model="censusNew.children_count" type="number" min="0"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-20">
-          <label class="text-xs text-gray-500 w-28 flex-shrink-0">👴 Adultos mayores</label>
-          <input x-model="censusNew.elderly_count" type="number" min="0"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-20">
+        <!-- Sección: Grupo familiar -->
+        <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">👨‍👩‍👧 Grupo familiar</p>
+          </div>
+          <div class="p-4 grid gap-3" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="flex flex-col gap-1 items-center">
+              <label class="text-xs text-gray-500 font-medium text-center">Total personas</label>
+              <input x-model="censusNew.people_count" type="number" min="1"
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center font-bold">
+            </div>
+            <div class="flex flex-col gap-1 items-center">
+              <label class="text-xs text-gray-500 font-medium text-center">👶 Menores</label>
+              <input x-model="censusNew.children_count" type="number" min="0"
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
+            </div>
+            <div class="flex flex-col gap-1 items-center">
+              <label class="text-xs text-gray-500 font-medium text-center">👴 Mayores</label>
+              <input x-model="censusNew.elderly_count" type="number" min="0"
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
+            </div>
+          </div>
         </div>
 
-        <!-- Necesidades -->
-        <p class="text-xs font-semibold text-gray-600 mt-1">Necesidades</p>
-        <div class="flex flex-wrap gap-2">
-          <template x-for="n in [{v:'food',l:'🍱 Alimentos'},{v:'water',l:'💧 Agua'},{v:'shelter',l:'🏠 Refugio'},{v:'medical',l:'🏥 Médica'},{v:'medicine',l:'💊 Medicamentos'},{v:'clothing',l:'👕 Ropa'}]" :key="n.v">
-            <button @click="toggleCensusNeed(n.v)"
-              class="text-xs rounded-lg px-2.5 py-1 border-none cursor-pointer"
-              :style="censusNew.needs.includes(n.v) ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#374151'"
-              x-text="n.l"></button>
-          </template>
-        </div>
+        <!-- Sección: Necesidades -->
+        <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">🆘 Necesidades</p>
+          </div>
+          <div class="p-4 flex flex-col gap-4">
+            <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+              <template x-for="n in [{v:'food',l:'🍱 Alimentos'},{v:'water',l:'💧 Agua'},{v:'shelter',l:'🏠 Refugio'},{v:'medical',l:'🏥 Atención médica'},{v:'medicine',l:'💊 Medicamentos'},{v:'clothing',l:'👕 Ropa'}]" :key="n.v">
+                <button @click="toggleCensusNeed(n.v)"
+                  class="text-xs rounded-xl px-3 py-2.5 border-none cursor-pointer font-semibold text-left"
+                  :style="censusNew.needs.includes(n.v) ? 'background:#fef2f2;color:#dc2626;outline:2px solid #fca5a5' : 'background:#f3f4f6;color:#374151'"
+                  x-text="n.l"></button>
+              </template>
+            </div>
 
-        <!-- Estado de albergue -->
-        <p class="text-xs font-semibold text-gray-600 mt-1">Estado actual</p>
-        <div class="flex flex-wrap gap-2">
-          <template x-for="s in [{v:'home',l:'🏠 En casa'},{v:'evacuated',l:'🚶 Evacuado'},{v:'shelter',l:'🏕 En albergue'},{v:'street',l:'🚨 En calle'}]" :key="s.v">
-            <button @click="censusNew.shelter_status=censusNew.shelter_status===s.v?null:s.v"
-              class="text-xs rounded-lg px-2.5 py-1 border-none cursor-pointer"
-              :style="censusNew.shelter_status===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#374151'"
-              x-text="s.l"></button>
-          </template>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500 font-medium">Estado actual</label>
+              <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+                <template x-for="s in [{v:'home',l:'🏠 En casa'},{v:'evacuated',l:'🚶 Evacuado'},{v:'shelter',l:'🏕 En albergue'},{v:'street',l:'🚨 En calle'}]" :key="s.v">
+                  <button @click="censusNew.shelter_status=censusNew.shelter_status===s.v?null:s.v"
+                    class="text-xs rounded-xl px-3 py-2.5 border-none cursor-pointer font-semibold"
+                    :style="censusNew.shelter_status===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#374151'"
+                    x-text="s.l"></button>
+                </template>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Notas -->
-        <textarea x-model="censusNew.notes" placeholder="Notas adicionales (opcional)" rows="2"
-          class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full resize-none"></textarea>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 flex flex-col gap-1">
+          <label class="text-xs text-gray-500 font-medium">📝 Notas adicionales</label>
+          <textarea x-model="censusNew.notes" placeholder="Observaciones importantes..." rows="3"
+            class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full resize-none"></textarea>
+        </div>
 
+        <!-- Botón guardar -->
         <button @click="saveCensus()"
-          class="text-xs bg-gray-900 text-white rounded-xl py-2.5 border-none cursor-pointer font-bold">
-          Guardar registro
+          class="w-full bg-gray-900 text-white rounded-2xl py-3.5 border-none cursor-pointer font-bold text-sm">
+          ✓ Guardar registro
+        </button>
+
+        <button @click="censusForm=false"
+          class="w-full bg-transparent text-gray-400 border-none cursor-pointer text-xs py-1">
+          Cancelar
         </button>
       </div>
 
@@ -3897,62 +3958,101 @@
         class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
 
       <!-- ── Lista de registros ── -->
-      <div class="flex flex-col gap-3">
+      <div x-show="!censusForm" class="flex flex-col gap-3">
         <template x-for="r in censusRecords.filter(r =>
           !censusSearch ||
           r.full_name.toLowerCase().includes(censusSearch.toLowerCase()) ||
           (r.document_number||'').includes(censusSearch) ||
           (r.neighborhood||'').toLowerCase().includes(censusSearch.toLowerCase())
         )" :key="r.id">
-          <div class="rounded-xl border border-gray-200 overflow-hidden">
+          <div class="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm">
             <!-- Cabecera clickable -->
-            <div class="flex items-start gap-3 px-3 py-2.5 bg-white cursor-pointer"
+            <div class="flex items-center gap-3 px-4 py-3 cursor-pointer"
               @click="censusExpanded===r.id ? censusExpanded=null : censusExpanded=r.id">
-              <div class="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-base font-bold"
-                style="background:#fef2f2;color:#dc2626" x-text="r.full_name.charAt(0)"></div>
+              <!-- Avatar -->
+              <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-base font-bold"
+                style="background:#fef2f2;color:#dc2626" x-text="r.full_name.charAt(0).toUpperCase()"></div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900" x-text="r.full_name"></p>
-                <p class="text-xs text-gray-500" x-text="(r.age ? r.age+'a · ' : '') + (r.neighborhood||r.address||'Sin dirección')"></p>
-                <div class="flex flex-wrap gap-1 mt-1">
-                  <template x-for="n in r.needs" :key="n">
-                    <span class="text-xs bg-red-50 text-red-600 rounded px-1.5 py-0.5" x-text="{food:'🍱',water:'💧',shelter:'🏠',medical:'🏥',medicine:'💊',clothing:'👕'}[n]||n"></span>
-                  </template>
-                  <span x-show="r.shelter_status" class="text-xs bg-gray-100 text-gray-600 rounded px-1.5 py-0.5"
-                    x-text="{home:'🏠 En casa',evacuated:'🚶 Evacuado',shelter:'🏕 Albergue',street:'🚨 Calle'}[r.shelter_status]||r.shelter_status"></span>
-                </div>
+                <p class="text-sm font-bold text-gray-900 truncate" x-text="r.full_name"></p>
+                <p class="text-xs text-gray-500 truncate"
+                  x-text="[r.age ? r.age+' años' : null, r.neighborhood||r.address||null].filter(Boolean).join(' · ') || 'Sin datos de ubicación'"></p>
               </div>
-              <span class="text-gray-300 text-sm flex-shrink-0" x-text="censusExpanded===r.id?'▲':'▼'"></span>
+              <!-- Badge personas + chevron -->
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span x-show="r.people_count > 1"
+                  class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style="background:#f3f4f6;color:#374151"
+                  x-text="'👥 '+r.people_count"></span>
+                <span class="text-gray-300" x-text="censusExpanded===r.id ? '▲' : '▼'"></span>
+              </div>
+            </div>
+
+            <!-- Chips de necesidades -->
+            <div x-show="r.needs && r.needs.length > 0"
+              class="px-4 pb-3 flex flex-wrap gap-1.5">
+              <template x-for="n in r.needs" :key="n">
+                <span class="text-xs font-medium rounded-lg px-2.5 py-1"
+                  style="background:#fef2f2;color:#dc2626"
+                  x-text="{food:'🍱 Alimentos',water:'💧 Agua',shelter:'🏠 Refugio',medical:'🏥 Médica',medicine:'💊 Medicamentos',clothing:'👕 Ropa'}[n]||n"></span>
+              </template>
+              <span x-show="r.shelter_status"
+                class="text-xs font-medium rounded-lg px-2.5 py-1"
+                style="background:#f3f4f6;color:#374151"
+                x-text="{home:'🏠 En casa',evacuated:'🚶 Evacuado',shelter:'🏕 Albergue',street:'🚨 Calle'}[r.shelter_status]||''"></span>
             </div>
 
             <!-- Detalle expandible -->
-            <div x-show="censusExpanded===r.id" class="px-3 py-3 bg-gray-50 border-t border-gray-100 flex flex-col gap-1.5">
-              <div x-show="r.phone||r.whatsapp" class="flex gap-3 flex-wrap">
+            <div x-show="censusExpanded===r.id"
+              class="border-t border-gray-100 bg-gray-50 px-4 py-3 flex flex-col gap-3">
+
+              <!-- Contacto -->
+              <div x-show="r.phone||r.whatsapp" class="flex gap-2 flex-wrap">
                 <a x-show="r.phone" :href="'tel:'+r.phone"
-                  class="text-xs text-blue-600 no-underline" x-text="'📞 '+r.phone"></a>
+                  class="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 no-underline text-xs font-semibold"
+                  style="background:#eff6ff;color:#2563eb" x-text="'📞 '+r.phone"></a>
                 <a x-show="r.whatsapp" :href="'https://wa.me/57'+r.whatsapp.replace(/\D/g,'')" target="_blank"
-                  class="text-xs text-green-600 no-underline" x-text="'💬 '+r.whatsapp"></a>
+                  class="flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 no-underline text-xs font-semibold"
+                  style="background:#f0fdf4;color:#16a34a" x-text="'💬 '+r.whatsapp"></a>
               </div>
-              <p x-show="r.address" class="text-xs text-gray-600" x-text="'📍 '+r.address"></p>
-              <p x-show="r.document_number" class="text-xs text-gray-500" x-text="'🪪 '+r.document_number"></p>
-              <div class="flex gap-4 text-xs text-gray-500">
-                <span x-show="r.people_count>1" x-text="'👨‍👩‍👧 '+r.people_count+' personas'"></span>
-                <span x-show="r.children_count>0" x-text="'👶 '+r.children_count+' menores'"></span>
-                <span x-show="r.elderly_count>0" x-text="'👴 '+r.elderly_count+' adultos mayores'"></span>
+
+              <!-- Info -->
+              <div class="flex flex-col gap-1.5">
+                <p x-show="r.document_number" class="text-xs text-gray-500"
+                  x-text="'🪪 Doc: '+r.document_number"></p>
+                <p x-show="r.address" class="text-xs text-gray-600"
+                  x-text="'📍 '+r.address+(r.neighborhood?' · '+r.neighborhood:'')"></p>
+                <div x-show="r.children_count>0||r.elderly_count>0" class="flex gap-3 text-xs text-gray-500">
+                  <span x-show="r.children_count>0" x-text="'👶 '+r.children_count+' menor(es)'"></span>
+                  <span x-show="r.elderly_count>0" x-text="'👴 '+r.elderly_count+' adulto(s) mayor'"></span>
+                </div>
+                <p x-show="r.notes" class="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2"
+                  x-text="r.notes"></p>
+                <p class="text-xs text-gray-400"
+                  x-text="'Por: '+(r.registered_by_name||'desconocido')+' · '+new Date(r.created_at).toLocaleDateString('es-CO')"></p>
               </div>
-              <p x-show="r.notes" class="text-xs text-gray-500 italic" x-text="r.notes"></p>
-              <p class="text-xs text-gray-400" x-text="'Registrado por: '+(r.registered_by_name||'desconocido')+' · '+ new Date(r.created_at).toLocaleDateString('es-CO')"></p>
+
               <!-- Acciones -->
-              <div class="flex gap-2 mt-1">
+              <div class="flex gap-2">
                 <a x-show="r.lat" :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
-                  class="text-xs text-blue-500 no-underline bg-blue-50 rounded-lg px-3 py-1.5">🗺 Ver en mapa</a>
+                  class="flex-1 flex items-center justify-center gap-1 rounded-xl py-2 no-underline text-xs font-semibold"
+                  style="background:#eff6ff;color:#2563eb">🗺 Ver en mapa</a>
                 <button @click="deleteCensusRecord(r.id)"
-                  class="text-xs text-red-400 bg-transparent border-none cursor-pointer">🗑 Eliminar</button>
+                  class="rounded-xl py-2 px-4 text-xs font-semibold border-none cursor-pointer"
+                  style="background:#fef2f2;color:#dc2626">🗑 Eliminar</button>
               </div>
             </div>
           </div>
         </template>
-        <div x-show="censusRecords.length===0 && !censusForm"
-          class="text-center py-10 text-gray-400 text-sm">Sin registros. Pulsa "+ Registrar" para comenzar.</div>
+
+        <div x-show="censusRecords.length===0"
+          class="text-center py-12 text-gray-400 text-sm flex flex-col gap-2">
+          <span class="text-3xl">📋</span>
+          <span>Sin registros aún</span>
+          <button @click="censusForm=true"
+            class="text-xs text-white bg-gray-900 rounded-xl px-4 py-2 border-none cursor-pointer mx-auto mt-1">
+            + Crear primer registro
+          </button>
+        </div>
       </div>
     </div>
   </div>
