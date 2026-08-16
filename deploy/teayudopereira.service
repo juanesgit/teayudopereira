@@ -8,6 +8,8 @@ Group=www-data
 WorkingDirectory=/home/deploy/teayudopereira/backend
 EnvironmentFile=/home/deploy/teayudopereira/backend/.env
 ExecStart=/home/deploy/teayudopereira/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8002 --workers 2
+StandardOutput=journal
+StandardError=journal
 Restart=always
 RestartSec=3
 

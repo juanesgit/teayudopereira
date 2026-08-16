@@ -4085,6 +4085,7 @@
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;z-index:2000">
     <template x-for="item in navItems" :key="item.id">
       <button @click="navigateTo(item.id)"
+        x-show="!(item.id==='report' && page==='map')"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
         :class="(page===item.id || (item.id==='login' && (page==='panel'||page==='sysadmin')) || (item.id==='panel' && page==='panel') || (item.id==='sysadmin' && page==='sysadmin')) ? (item.id==='danger' ? 'text-orange-600 bg-orange-50' : item.id==='sysadmin' ? 'text-gray-900 bg-gray-100' : item.id==='chat' ? 'text-blue-600 bg-blue-50' : 'text-red-600 bg-red-50') : 'text-gray-500 bg-white'">
         <span class="relative" style="line-height:1">
