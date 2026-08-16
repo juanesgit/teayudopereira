@@ -6854,13 +6854,15 @@ function app() {
           this.user = await res.json()
           if (this.user.role === 'admin') {
             this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
-            this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+            this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
+            this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
             setTimeout(() => this.startGlobalAdminPoll(), 3500)
           } else if (this.user.role === 'victim') {
             this.navItems[4] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
           } else {
             this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-            this.navItems[5] = { id:'chat', emoji:'💬', label:'Chat' }
+            this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
+            this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
             // Mostrar modal de consentimiento SMS si aún no lo ha dado
             if (!this.user.sms_consent_at) {
               setTimeout(() => { this.smsConsentModal = true }, 1200)
