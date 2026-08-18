@@ -3550,8 +3550,7 @@
                     <span class="text-base">📦</span>
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-bold text-gray-900 truncate" x-text="s.name"></p>
-                      <p class="text-xs text-gray-500"
-                        x-text="s.quantity+' '+s.unit+(s.storage_location?' · '+s.storage_location:'')+(s.expiry_date?' · Vence: '+s.expiry_date:'')"></p>
+                      <p class="text-xs text-gray-500" x-text="s.quantity+' '+s.unit+(s.expiry_date?' · Vence: '+s.expiry_date:'')"></p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
                       <span class="text-sm font-black"
@@ -3599,9 +3598,17 @@
                       </button>
                     </div>
                   </div>
-                  <!-- Donante (cuando no está en edición) -->
-                  <div x-show="s.donated_by && medEditId!==s.id" class="px-3 py-1.5 bg-gray-50 border-t border-gray-100">
-                    <p class="text-xs text-gray-400" x-text="'Donado por: '+s.donated_by"></p>
+                  <!-- Acopio + donante (cuando no está en edición) -->
+                  <div x-show="(s.storage_location||s.donated_by) && medEditId!==s.id"
+                    class="px-3 py-2 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-1.5">
+                    <span x-show="s.storage_location"
+                      class="inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1 font-medium"
+                      style="background:#f0fdf4;color:#15803d"
+                      x-text="'🏪 '+s.storage_location"></span>
+                    <span x-show="s.donated_by"
+                      class="inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1 font-medium"
+                      style="background:#eff6ff;color:#1d4ed8"
+                      x-text="'🤝 '+s.donated_by"></span>
                   </div>
                 </div>
               </template>
@@ -6284,7 +6291,7 @@ function app() {
         if (res.ok) {
           const s = await res.json()
           this.medStock.unshift(s)
-          this.medStockNew = { name:'', quantity:0, unit:'tabletas', expiry_date:'', storage_location:'', donated_by:'' }
+          this.medStockNew = { name:'', quantity:0, unit:'tabletas', expiry_date:'', storage_location:'ACOPIO TE AYUDO PEREIRA', donated_by:'BENEFACTORES TE AYUDO PEREIRA' }
           this.medStockForm = false
         }
       } catch {}
