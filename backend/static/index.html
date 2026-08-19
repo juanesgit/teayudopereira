@@ -3333,7 +3333,7 @@
           <!-- Filtros + recarga -->
           <div class="flex items-center gap-2 mb-3 flex-wrap">
             <div class="flex gap-1 flex-1">
-              <template x-for="f in [{v:'all',l:'Todos'},{v:'pending',l:'🔴 Pendientes'},{v:'in_progress',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
+              <template x-for="f in [{v:'active_queue',l:'Cola activa'},{v:'pending',l:'🔴 Pendientes'},{v:'in_progress',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'},{v:'all',l:'Todos'}]" :key="f.v">
                 <button @click="adminReportFilter=f.v"
                   class="text-xs rounded-lg px-2.5 py-1.5 border-none cursor-pointer font-semibold transition-all"
                   :style="adminReportFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
@@ -3345,7 +3345,7 @@
 
           <!-- Contador -->
           <p class="text-xs text-gray-400 mb-3"
-            x-text="adminFilteredReports.length + ' reporte(s)'"></p>
+            x-text="adminFilteredReports.length + ' reporte(s)' + (adminReportFilter==='active_queue' ? ' sin resolver' : '')"></p>
 
           <!-- Lista de reportes -->
           <div class="flex flex-col gap-2">
@@ -3370,6 +3370,17 @@
                       x-text="r.status==='pending'?'Pendiente':r.status==='resolved'?'Resuelto':'En atención'"></span>
                     <span class="text-gray-400 text-xs" x-text="adminReportExpanded===r.id ? '▲' : '▼'"></span>
                   </div>
+                </div>
+
+                <!-- Info secundaria — siempre visible, igual que mensajes -->
+                <div class="px-3 py-2 bg-white border-t border-gray-100 flex items-center gap-3 flex-wrap">
+                  <span class="text-xs text-gray-400" x-text="fmtDatetime(r.created_at)"></span>
+                  <span x-show="r.reporter_phone"
+                    class="text-xs font-semibold" style="color:#059669"
+                    x-text="'📱 ' + r.reporter_phone"></span>
+                  <span x-show="r.reporter_name"
+                    class="text-xs text-gray-500"
+                    x-text="'👤 ' + r.reporter_name"></span>
                 </div>
 
                 <!-- Detalle expandible -->
@@ -3425,7 +3436,7 @@
               </div>
             </template>
             <div x-show="adminFilteredReports.length===0" class="text-center py-8 text-gray-400 text-sm">
-              No hay reportes con este filtro
+              <p x-text="adminReportFilter==='resolved' ? 'Sin reportes resueltos.' : adminReportFilter==='active_queue' ? '✅ Sin reportes activos pendientes.' : 'No hay reportes con este filtro.'"></p>
             </div>
           </div>
         </div>
@@ -4593,7 +4604,7 @@ function app() {
     aidCenterMsg: '',
     aidCenterError: false,
     adminAidPoints: [],
-    adminReportFilter: 'all',
+    adminReportFilter: 'active_queue',
     adminReportExpanded: null,
     // Módulo medicamentos
     medTab: 'requests',
@@ -6212,6 +6223,7 @@ function app() {
     },
 
     get adminFilteredReports() {
+      if (this.adminReportFilter === 'active_queue') return this.reports.filter(r => r.status !== 'resolved')
       if (this.adminReportFilter === 'all') return this.reports
       return this.reports.filter(r => r.status === this.adminReportFilter)
     },
