@@ -3330,24 +3330,22 @@
         <!-- TAB: REPORTES -->
         <div x-show="sysTab==='reports'" class="p-4">
 
-          <!-- Filtros + recarga -->
-          <div class="flex items-center gap-2 mb-3 flex-wrap">
-            <div class="flex gap-1 flex-1">
-              <template x-for="f in [{v:'active_queue',e:'📋',l:'Cola activa'},{v:'pending',e:'🔴',l:'Pendientes'},{v:'in_progress',e:'🔵',l:'En atención'},{v:'resolved',e:'✅',l:'Resueltos'},{v:'all',e:'📁',l:'Todos'}]" :key="f.v">
-                <button @click="adminReportFilter=f.v"
-                  class="flex-1 flex flex-col items-center gap-0.5 rounded-xl px-1 py-2 border-none cursor-pointer font-semibold transition-all"
-                  :style="adminReportFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'">
-                  <span style="font-size:14px;line-height:1" x-text="f.e"></span>
-                  <span style="font-size:10px;line-height:1.2;text-align:center" x-text="f.l"></span>
-                </button>
-              </template>
-            </div>
-            <button @click="loadData()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+          <!-- Filtros -->
+          <div class="hide-scroll mb-3" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+            <template x-for="f in [{v:'active_queue',l:'Cola activa'},{v:'pending',l:'🔴 Pendientes'},{v:'in_progress',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
+              <button @click="adminReportFilter=f.v"
+                class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                :style="adminReportFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                x-text="f.l"></button>
+            </template>
           </div>
 
-          <!-- Contador -->
-          <p class="text-xs text-gray-400 mb-3"
-            x-text="adminFilteredReports.length + ' reporte(s)' + (adminReportFilter==='active_queue' ? ' sin resolver' : '')"></p>
+          <!-- Contador + recarga -->
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs text-gray-400"
+              x-text="adminFilteredReports.length + ' reporte(s)' + (adminReportFilter==='active_queue' ? ' sin resolver' : '')"></p>
+            <button @click="loadData()" class="text-xs text-gray-400 bg-transparent border-none cursor-pointer px-1">🔄 Actualizar</button>
+          </div>
 
           <!-- Lista de reportes -->
           <div class="flex flex-col gap-2">
@@ -3790,24 +3788,22 @@
           <!-- Lista de conversaciones -->
           <div x-show="!adminActiveDm">
 
-            <!-- Filtros + recarga — mismo patrón que reportes -->
-            <div class="flex items-center gap-2 mb-3 flex-wrap">
-              <div class="flex gap-1 flex-1">
-                <template x-for="f in [{v:'all',e:'📋',l:'Cola activa'},{v:'pending',e:'🔴',l:'Pendientes'},{v:'active',e:'🔵',l:'En atención'},{v:'resolved',e:'✅',l:'Resueltos'}]" :key="f.v">
-                  <button @click="adminDmFilter=f.v"
-                    class="flex-1 flex flex-col items-center gap-0.5 rounded-xl px-1 py-2 border-none cursor-pointer font-semibold transition-all"
-                    :style="adminDmFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'">
-                    <span style="font-size:14px;line-height:1" x-text="f.e"></span>
-                    <span style="font-size:10px;line-height:1.2;text-align:center" x-text="f.l"></span>
-                  </button>
-                </template>
-              </div>
-              <button @click="loadAdminDmRooms()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
+            <!-- Filtros -->
+            <div class="hide-scroll mb-3" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <template x-for="f in [{v:'all',l:'Cola activa'},{v:'pending',l:'🔴 Pendientes'},{v:'active',l:'🔵 En atención'},{v:'resolved',l:'✅ Resueltos'}]" :key="f.v">
+                <button @click="adminDmFilter=f.v"
+                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  :style="adminDmFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                  x-text="f.l"></button>
+              </template>
             </div>
 
-            <!-- Contador -->
-            <p class="text-xs text-gray-400 mb-3"
-              x-text="adminDmRooms.filter(r => adminDmFilter==='all' ? r.status!=='resolved' : r.status===adminDmFilter).length + ' conversación(es)'"></p>
+            <!-- Contador + recarga -->
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs text-gray-400"
+                x-text="adminDmRooms.filter(r => adminDmFilter==='all' ? r.status!=='resolved' : r.status===adminDmFilter).length + ' conversación(es)'"></p>
+              <button @click="loadAdminDmRooms()" class="text-xs text-gray-400 bg-transparent border-none cursor-pointer px-1">🔄 Actualizar</button>
+            </div>
 
             <div x-show="adminDmLoading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
 
