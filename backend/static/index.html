@@ -6195,6 +6195,9 @@ function app() {
           localStorage.removeItem('pa_token')
         }
         if (this.user.role === 'admin') {
+          this.navItems[4] = undefined
+          this.navItems[5] = undefined
+          this.navItems[6] = undefined
           this.page = 'sysadmin'
           this.loadAdminStats()
           setTimeout(() => this.startGlobalAdminPoll(), 3000)
@@ -7099,6 +7102,9 @@ function app() {
           this.user = await res.json()
           if (this.user.role === 'admin') {
             setTimeout(() => this.startGlobalAdminPoll(), 3500)
+            this.navItems[4] = undefined
+            this.navItems[5] = undefined
+            this.navItems[6] = undefined
           } else if (this.user.role === 'victim') {
             this.navItems[4] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
           } else {
