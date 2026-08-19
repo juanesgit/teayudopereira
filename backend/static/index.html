@@ -207,14 +207,12 @@
   </header>
 
   <!-- DROPDOWN MENÚ USUARIO — fuera del header para evitar z-index/clipping -->
-  <div x-show="userMenuOpen && user"
-    @click="userMenuOpen=false"
-    style="position:fixed;inset:0;z-index:9990;background:transparent"
-    x-cloak>
-  </div>
-  <div x-show="userMenuOpen && user"
-    style="position:fixed;right:12px;top:56px;background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.22);min-width:210px;overflow:hidden;z-index:9991"
-    x-cloak>
+  <template x-if="userMenuOpen && user">
+  <div>
+    <div @click="userMenuOpen=false"
+      style="position:fixed;inset:0;z-index:9990;background:transparent"></div>
+    <div
+      style="position:fixed;right:12px;top:56px;background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.22);min-width:210px;overflow:hidden;z-index:9991">
 
     <!-- Cabecera usuario -->
     <div style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #f3f4f6">
@@ -264,7 +262,9 @@
         🚪 Cerrar sesión
       </button>
     </div>
-  </div>
+    </div><!-- /dropdown panel -->
+  </div><!-- /wrapper -->
+  </template><!-- /x-if userMenuOpen -->
 
   <!-- Banner: sin conexión (visible en todas las páginas) -->
   <div x-show="!isOnline"
