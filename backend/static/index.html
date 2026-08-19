@@ -3384,51 +3384,61 @@
                 </div>
 
                 <!-- Detalle expandible -->
-                <div x-show="adminReportExpanded===r.id" class="px-3 py-3 bg-white border-t border-gray-100">
+                <div x-show="adminReportExpanded===r.id" class="flex flex-col gap-0 bg-white border-t border-gray-100">
 
-                  <!-- Info del reporte -->
-                  <div class="bg-gray-50 rounded-xl p-3 mb-3 flex flex-col gap-1.5 text-xs">
-                    <p><span class="text-gray-400">Reportado por:</span> <span class="font-semibold" x-text="r.reporter_name||'Anónimo'"></span>
-                      <span x-show="r.reporter_phone" class="text-gray-400"> · </span>
-                      <a x-show="r.reporter_phone" :href="'tel:'+r.reporter_phone" class="text-blue-600 font-semibold" x-text="r.reporter_phone"></a>
-                    </p>
-                    <p><span class="text-gray-400">Personas:</span> <span class="font-semibold" x-text="r.people_count"></span></p>
-                    <p><span class="text-gray-400">Descripción:</span> <span x-text="r.description"></span></p>
-                    <p><span class="text-gray-400">Fecha:</span> <span x-text="fmtDatetime(r.created_at)"></span></p>
-                  </div>
-
-                  <!-- Asignar voluntario -->
-                  <div class="mb-3">
-                    <p class="text-xs text-gray-500 mb-1.5 font-semibold">Asignar a voluntario</p>
-                    <div class="flex gap-2">
-                      <select :id="'assign-'+r.id"
-                        class="flex-1 text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white">
-                        <option value="">— Sin asignar —</option>
-                        <template x-for="v in adminVolunteers.filter(u=>u.role!=='victim')" :key="v.id">
-                          <option :value="v.id" :selected="r.assigned_to===v.id"
-                            x-text="v.full_name+' ('+v.role+')'"></option>
-                        </template>
-                      </select>
-                      <button @click="adminAssignReport(r.id, document.getElementById('assign-'+r.id).value)"
-                        class="text-xs bg-gray-800 text-white rounded-xl px-3 py-2 border-none cursor-pointer flex-shrink-0">
-                        Asignar
-                      </button>
+                  <!-- Descripción + personas -->
+                  <div class="px-3 py-3 flex flex-col gap-2">
+                    <p class="text-xs text-gray-700 leading-relaxed" x-text="r.description"></p>
+                    <div class="flex flex-wrap gap-2">
+                      <span class="text-xs bg-gray-100 text-gray-600 rounded-full px-2.5 py-1 font-medium"
+                        x-text="'👥 '+r.people_count+' persona(s)'"></span>
+                      <a x-show="r.reporter_phone" :href="'tel:'+r.reporter_phone"
+                        class="text-xs rounded-full px-2.5 py-1 font-semibold no-underline"
+                        style="background:#f0fdf4;color:#15803d"
+                        x-text="'📞 '+r.reporter_phone"></a>
+                      <a x-show="r.lat" :href="'https://www.google.com/maps/dir/?api=1&destination='+r.lat+','+r.lng"
+                        target="_blank"
+                        class="text-xs rounded-full px-2.5 py-1 font-semibold no-underline"
+                        style="background:#eff6ff;color:#1d4ed8">🗺️ Cómo llegar</a>
                     </div>
                   </div>
 
+                  <!-- Asignar voluntario -->
+                  <div class="px-3 py-3 border-t border-gray-100 flex flex-col gap-2">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Asignar a voluntario</p>
+                    <select :id="'assign-'+r.id"
+                      class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white">
+                      <option value="">— Sin asignar —</option>
+                      <template x-for="v in adminVolunteers.filter(u=>u.role!=='victim')" :key="v.id">
+                        <option :value="v.id" :selected="r.assigned_to===v.id"
+                          x-text="v.full_name+' ('+v.role+')'"></option>
+                      </template>
+                    </select>
+                    <button @click="adminAssignReport(r.id, document.getElementById('assign-'+r.id).value)"
+                      class="w-full text-xs bg-gray-900 text-white rounded-xl py-2.5 border-none cursor-pointer font-bold">
+                      Confirmar asignación
+                    </button>
+                  </div>
+
                   <!-- Cambiar estado -->
-                  <div>
-                    <p class="text-xs text-gray-500 mb-1.5 font-semibold">Cambiar estado</p>
-                    <div class="flex gap-2">
+                  <div class="px-3 py-3 border-t border-gray-100 flex flex-col gap-2">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Cambiar estado</p>
+                    <div class="grid gap-2" style="grid-template-columns:1fr 1fr 1fr">
                       <button @click="adminChangeStatus(r.id,'pending')" :disabled="r.status==='pending'"
-                        class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
-                        style="background:#fee2e2;color:#991b1b">🔴 Pendiente</button>
+                        class="text-xs rounded-xl py-2.5 border-none cursor-pointer font-bold disabled:opacity-40 flex flex-col items-center gap-0.5"
+                        style="background:#fee2e2;color:#991b1b">
+                        <span>🔴</span><span>Pendiente</span>
+                      </button>
                       <button @click="adminChangeStatus(r.id,'in_progress')" :disabled="r.status==='in_progress'"
-                        class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
-                        style="background:#dbeafe;color:#1e40af">🔵 En atención</button>
+                        class="text-xs rounded-xl py-2.5 border-none cursor-pointer font-bold disabled:opacity-40 flex flex-col items-center gap-0.5"
+                        style="background:#dbeafe;color:#1e40af">
+                        <span>🔵</span><span>En atención</span>
+                      </button>
                       <button @click="adminChangeStatus(r.id,'resolved')" :disabled="r.status==='resolved'"
-                        class="flex-1 text-xs rounded-xl py-2 border-none cursor-pointer font-semibold disabled:opacity-40"
-                        style="background:#dcfce7;color:#166534">✅ Resuelto</button>
+                        class="text-xs rounded-xl py-2.5 border-none cursor-pointer font-bold disabled:opacity-40 flex flex-col items-center gap-0.5"
+                        style="background:#dcfce7;color:#166534">
+                        <span>✅</span><span>Resuelto</span>
+                      </button>
                     </div>
                   </div>
 
