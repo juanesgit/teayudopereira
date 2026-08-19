@@ -197,9 +197,77 @@
         </button>
       </template>
       <template x-if="user">
-        <button @click="logout()" class="text-xs text-red-100 bg-white/20 rounded-full px-3 h-9 border-none cursor-pointer">
-          <span x-text="user.full_name.split(' ')[0]"></span> · Salir
-        </button>
+        <div class="relative">
+          <button @click="userMenuOpen=!userMenuOpen"
+            class="flex items-center gap-1.5 text-xs text-red-100 bg-white/20 rounded-full px-3 h-9 border-none cursor-pointer">
+            <span x-text="user.full_name.split(' ')[0]"></span>
+            <span style="font-size:10px" x-text="userMenuOpen ? '▲' : '▼'"></span>
+          </button>
+          <!-- Dropdown -->
+          <div x-show="userMenuOpen" @click.outside="userMenuOpen=false"
+            style="position:absolute;right:0;top:calc(100% + 8px);background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.15);min-width:200px;overflow:hidden;z-index:9999">
+
+            <!-- Cabecera usuario -->
+            <div style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #f3f4f6">
+              <p class="text-xs font-bold text-gray-900" x-text="user.full_name"></p>
+              <p class="text-xs text-gray-400" x-text="user.role==='admin'?'⚙️ Administrador':user.role==='coordinator'?'🏛️ Coordinador':user.role==='volunteer'?'🙋 Voluntario':'👤 Usuario'"></p>
+            </div>
+
+            <!-- Opciones según rol -->
+            <div style="padding:6px">
+              <template x-if="user.role==='admin'">
+                <div class="flex flex-col gap-0.5">
+                  <button @click="navigateTo('sysadmin'); userMenuOpen=false"
+                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+                    :style="page==='sysadmin'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+                    ⚙️ Panel Admin
+                  </button>
+                  <button @click="navigateTo('census'); userMenuOpen=false"
+                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+                    :style="page==='census'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+                    📋 Censo
+                  </button>
+                  <button @click="navigateTo('chat'); userMenuOpen=false"
+                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold flex items-center gap-2"
+                    :style="page==='chat'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+                    <span>💬 Chat</span>
+                    <span x-show="chatUnread>0" class="text-xs font-bold rounded-full px-1.5 py-0.5" style="background:#dc2626;color:white" x-text="chatUnread"></span>
+                  </button>
+                </div>
+              </template>
+              <template x-if="user.role==='volunteer'||user.role==='coordinator'">
+                <div class="flex flex-col gap-0.5">
+                  <button @click="navigateTo('panel'); userMenuOpen=false"
+                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+                    :style="page==='panel'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+                    📋 Mi Panel
+                  </button>
+                  <button @click="navigateTo('census'); userMenuOpen=false"
+                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+                    :style="page==='census'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+                    📋 Censo
+                  </button>
+                  <button @click="navigateTo('chat'); userMenuOpen=false"
+                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold flex items-center gap-2"
+                    :style="page==='chat'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+                    <span>💬 Chat</span>
+                    <span x-show="chatUnread>0" class="text-xs font-bold rounded-full px-1.5 py-0.5" style="background:#dc2626;color:white" x-text="chatUnread"></span>
+                  </button>
+                </div>
+              </template>
+            </div>
+
+            <!-- Cerrar sesión -->
+            <div style="padding:6px;border-top:1px solid #f3f4f6">
+              <button @click="logout(); userMenuOpen=false"
+                class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+                style="color:#dc2626;background:transparent">
+                🚪 Cerrar sesión
+              </button>
+            </div>
+
+          </div>
+        </div>
       </template>
     </div>
   </header>
@@ -4514,7 +4582,7 @@
 
   <!-- BOTTOM NAV -->
   <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex" style="height:60px;z-index:2000">
-    <template x-for="item in navItems" :key="item.id">
+    <template x-for="item in navItems.filter(i=>i)" :key="item.id">
       <button @click="navigateTo(item.id)"
         x-show="!(item.id==='report' && page==='map')"
         class="flex-1 flex flex-col items-center justify-center gap-0.5 text-xs font-medium border-none cursor-pointer transition-colors bottom-nav-item"
@@ -4616,6 +4684,7 @@ function app() {
     reportMarker: null,
     reportModal: null,
 
+    userMenuOpen: false,
     panicModal: false,
     panicLoading: false,
     panicDone: false,
@@ -4750,7 +4819,7 @@ function app() {
       { id:'danger',     emoji:'⚠️', label:'Peligro' },
       { id:'volunteers', emoji:'🤝', label:'Voluntarios' },
       { id:'login',      emoji:'🧑‍🚒', label:'Unirme' },
-      { id:'victim-chat',emoji:'💬', label:'Contáctanos' },
+      { id:'victim-chat',emoji:'💬', label:'Ayuda' },
     ],
 
     needOptions: [
@@ -6122,9 +6191,6 @@ function app() {
           localStorage.removeItem('pa_token')
         }
         if (this.user.role === 'admin') {
-          this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
-          this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
-          this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'sysadmin'
           this.loadAdminStats()
           setTimeout(() => this.startGlobalAdminPoll(), 3000)
@@ -6132,9 +6198,6 @@ function app() {
           this.navItems[4] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
           this.page = 'map'
         } else {
-          this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-          this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
-          this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
           this.page = 'panel'
           this.$nextTick(() => this.initActionMap())
           if (!this.user.sms_consent_at) {
@@ -6201,10 +6264,6 @@ function app() {
             }
           }
           this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-          if (['volunteer','coordinator','admin'].includes(this.user.role)) {
-            this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
-            this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
-          }
           // Si aceptó consentimiento SMS, registrarlo en el backend
           if (this.registerForm.smsConsent) {
             try {
@@ -7025,6 +7084,7 @@ function app() {
       sessionStorage.removeItem('pa_token')
       this.navItems[4] = { id:'login', emoji:'🧑‍🚒', label:'Unirme' }
       this.navItems[5] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
+      this.navItems[6] = undefined
       this.page = 'map'
     },
 
@@ -7034,16 +7094,13 @@ function app() {
         if (res.ok) {
           this.user = await res.json()
           if (this.user.role === 'admin') {
-            this.navItems[4] = { id:'sysadmin', emoji:'⚙️', label:'Admin' }
-            this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
-            this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
             setTimeout(() => this.startGlobalAdminPoll(), 3500)
           } else if (this.user.role === 'victim') {
             this.navItems[4] = { id:'victim-chat', emoji:'💬', label:'Ayuda' }
           } else {
             this.navItems[4] = { id:'panel', emoji:'📋', label:'Mi panel' }
-            this.navItems[5] = { id:'census', emoji:'📋', label:'Censo' }
-            this.navItems[6] = { id:'chat', emoji:'💬', label:'Chat' }
+            this.navItems[5] = undefined
+            this.navItems[6] = undefined
             // Mostrar modal de consentimiento SMS si aún no lo ha dado
             if (!this.user.sms_consent_at) {
               setTimeout(() => { this.smsConsentModal = true }, 1200)
