@@ -306,7 +306,7 @@
   <!-- FAB PÁNICO — visible solo en el mapa, flota sobre el área Leaflet -->
   <div x-show="page==='map'"
     style="position:fixed; right:14px; bottom:calc(var(--nav-h) + 136px); z-index:1500; pointer-events:auto">
-    <button @click="panicModal=true"
+    <button @click="panicModal=true; panicPhone=user?.phone||''; panicName=user?.full_name||''; panicDone=false"
       title="Botón de pánico — emergencia inmediata"
       style="width:68px;height:68px;border-radius:50%;background:#dc2626;color:white;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0px;box-shadow:0 0 0 4px rgba(220,38,38,.25), 0 4px 20px rgba(220,38,38,.6);animation:panic-pulse 1.4s ease-in-out infinite;position:relative">
       <span style="font-size:16px;font-weight:900;letter-spacing:3px;line-height:1;color:white">SOS</span>
@@ -565,40 +565,113 @@
 
   <!-- MODAL PÁNICO -->
   <template x-if="panicModal">
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6000;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:6000;display:flex;align-items:center;justify-content:center;padding:24px"
+      @click.self="!panicLoading && (panicModal=false)">
 
-      <!-- Pantalla confirmación -->
-      <div x-show="!panicDone"
-        style="background:white;border-radius:24px;padding:32px 24px;width:100%;max-width:360px;text-align:center">
-        <div style="font-size:72px;margin-bottom:12px">🆘</div>
-        <h2 style="font-size:22px;font-weight:900;color:#dc2626;margin:0 0 8px">EMERGENCIA</h2>
-        <p style="color:#374151;font-size:15px;margin-bottom:6px">Se enviará tu <strong>ubicación actual</strong> y se alertará a los voluntarios más cercanos.</p>
-        <p style="color:#9ca3af;font-size:13px;margin-bottom:28px">Solo úsalo en caso real de emergencia.</p>
-        <button @click="sendPanic()" :disabled="panicLoading"
-          style="width:100%;background:#dc2626;color:white;border:none;border-radius:16px;font-size:17px;font-weight:900;height:58px;cursor:pointer;margin-bottom:12px;letter-spacing:.4px;opacity:1"
-          :style="panicLoading ? 'opacity:.6;cursor:default' : 'opacity:1'">
-          <span x-show="!panicLoading">🆘 ENVIAR EMERGENCIA</span>
-          <span x-show="panicLoading">Enviando...</span>
-        </button>
-        <button @click="panicModal=false" :disabled="panicLoading"
-          style="width:100%;background:transparent;color:#9ca3af;border:none;cursor:pointer;font-size:14px;padding:8px">
-          Cancelar — no es una emergencia
-        </button>
+      <!-- Modal centrado — mismo patrón que demás modales -->
+      <div style="background:white;border-radius:24px;width:100%;max-width:380px;overflow:hidden">
+
+        <!-- Header gradiente rojo -->
+        <div x-show="!panicDone"
+          style="background:linear-gradient(135deg,#dc2626,#991b1b);padding:28px 24px 20px;text-align:center">
+          <div style="font-size:48px;margin-bottom:8px">🆘</div>
+          <h2 style="color:white;font-size:20px;font-weight:900;margin:0 0 4px;letter-spacing:.3px">ALERTA DE EMERGENCIA</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0">Se notificará a los voluntarios más cercanos con tu ubicación</p>
+        </div>
+
+        <!-- Header éxito -->
+        <div x-show="panicDone"
+          style="background:linear-gradient(135deg,#16a34a,#15803d);padding:28px 24px 20px;text-align:center">
+          <div style="font-size:48px;margin-bottom:8px">✅</div>
+          <h2 style="color:white;font-size:20px;font-weight:900;margin:0 0 4px">¡Alerta enviada!</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0">Los voluntarios han sido notificados</p>
+        </div>
+
+        <!-- Cuerpo confirmación -->
+        <div x-show="!panicDone" style="padding:20px 24px 28px;display:flex;flex-direction:column;gap:14px">
+
+          <!-- Aviso solo emergencias reales -->
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px">⚠️</span>
+            <p style="font-size:12px;color:#991b1b;margin:0;font-weight:600">Solo úsalo en caso real de emergencia</p>
+          </div>
+
+          <!-- Nombre — solo anónimos -->
+          <template x-if="!user">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">👤 Tu nombre</label>
+              <input x-model="panicName" type="text" placeholder="¿Cómo te llamas?"
+                maxlength="80"
+                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s"
+                @focus="$el.style.borderColor='#dc2626'"
+                @blur="$el.style.borderColor=panicName?'#16a34a':'#e5e7eb'">
+            </div>
+          </template>
+
+          <!-- Nombre registrado -->
+          <template x-if="user">
+            <div style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">👤</span>
+              <div>
+                <p style="font-size:11px;color:#9ca3af;margin:0 0 1px;font-weight:600;text-transform:uppercase;letter-spacing:.4px">Identificado como</p>
+                <p style="font-size:15px;font-weight:700;color:#111827;margin:0" x-text="user.full_name"></p>
+              </div>
+            </div>
+          </template>
+
+          <!-- Teléfono -->
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">📞 Número de contacto</label>
+            <div style="display:flex;border:2px solid #e5e7eb;border-radius:14px;overflow:hidden;transition:border-color .2s"
+              @focusin="$el.style.borderColor='#dc2626'"
+              @focusout="$el.style.borderColor=panicPhone?'#16a34a':'#e5e7eb'">
+              <div style="display:flex;align-items:center;gap:6px;padding:0 12px;background:#f9fafb;border-right:1px solid #e5e7eb;flex-shrink:0">
+                <svg viewBox="0 0 30 20" style="width:24px;height:16px;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.15)" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="30" height="10" fill="#FCD116"/>
+                  <rect y="10" width="30" height="5" fill="#003087"/>
+                  <rect y="15" width="30" height="5" fill="#CE1126"/>
+                </svg>
+                <span style="font-size:13px;font-weight:700;color:#374151">+57</span>
+              </div>
+              <input x-model="panicPhone" type="tel" inputmode="numeric" placeholder="300 123 4567"
+                maxlength="12"
+                @input="let v=panicPhone.replace(/\D/g,'').slice(0,10); if(v.length>6) v=v.slice(0,3)+' '+v.slice(3,6)+' '+v.slice(6); else if(v.length>3) v=v.slice(0,3)+' '+v.slice(3); panicPhone=v"
+                style="flex:1;padding:13px 12px;font-size:15px;border:none;outline:none;background:white;font-weight:600">
+            </div>
+            <p style="font-size:11px;color:#9ca3af;margin:5px 0 0;text-align:center">Los voluntarios te llamarán a este número</p>
+          </div>
+
+          <!-- Botones -->
+          <button @click="sendPanic()" :disabled="panicLoading"
+            class="w-full text-white font-black rounded-2xl border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style="min-height:56px;font-size:17px;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px rgba(220,38,38,.45);letter-spacing:.5px;margin-top:4px">
+            <span x-show="!panicLoading">🆘 ENVIAR EMERGENCIA</span>
+            <span x-show="panicLoading">Enviando alerta...</span>
+          </button>
+
+          <button @click="panicModal=false" :disabled="panicLoading"
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer disabled:opacity-40"
+            style="min-height:48px;font-size:15px;background:#f3f4f6;color:#6b7280">
+            Cancelar — no es una emergencia
+          </button>
+        </div>
+
+        <!-- Cuerpo éxito -->
+        <div x-show="panicDone" style="padding:20px 24px 32px;text-align:center;display:flex;flex-direction:column;gap:12px">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:16px;padding:16px">
+            <p style="font-size:14px;color:#15803d;margin:0;font-weight:600;line-height:1.5">
+              📍 Tu ubicación fue compartida con los voluntarios más cercanos.<br>
+              <span style="font-weight:400;color:#166534">Quédate en un lugar seguro y mantén el celular encendido.</span>
+            </p>
+          </div>
+          <button @click="panicModal=false; panicDone=false"
+            class="w-full text-white font-bold rounded-2xl border-none cursor-pointer"
+            style="min-height:52px;font-size:16px;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 3px 10px rgba(220,38,38,.35)">
+            Ver mapa
+          </button>
+        </div>
+
       </div>
-
-      <!-- Pantalla éxito -->
-      <div x-show="panicDone"
-        style="background:white;border-radius:24px;padding:32px 24px;width:100%;max-width:360px;text-align:center">
-        <div class="animate-bounce" style="font-size:72px;margin-bottom:12px">✅</div>
-        <h2 style="font-size:22px;font-weight:900;color:#16a34a;margin:0 0 8px">¡Alerta enviada!</h2>
-        <p style="color:#374151;font-size:15px;margin-bottom:8px">Los voluntarios más cercanos han sido notificados.</p>
-        <p style="color:#6b7280;font-size:13px;margin-bottom:28px">Quédate en un lugar seguro y mantén el celular encendido.</p>
-        <button @click="panicModal=false; panicDone=false"
-          style="width:100%;background:#dc2626;color:white;border:none;border-radius:16px;font-size:16px;font-weight:700;height:52px;cursor:pointer">
-          Ver mapa
-        </button>
-      </div>
-
     </div>
   </template>
 
@@ -4485,6 +4558,8 @@ function app() {
     panicModal: false,
     panicLoading: false,
     panicDone: false,
+    panicPhone: '',
+    panicName: '',
 
     smsConsentModal: false,
     smsConsentLoading: false,
@@ -6600,8 +6675,8 @@ function app() {
           address,
           lat, lng,
           people_count: 1,
-          reporter_name: this.user?.full_name || 'Anónimo',
-          reporter_phone: this.user?.phone || '',
+          reporter_name: this.user?.full_name || this.panicName || 'Anónimo',
+          reporter_phone: this.panicPhone || this.user?.phone || '',
           extra_data: JSON.stringify({ panic: true })
         }
 
