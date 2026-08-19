@@ -3668,8 +3668,18 @@
 
           <!-- ══ STOCK ══ -->
           <div x-show="medTab==='stock'">
+
+            <!-- Buscador -->
+            <div class="relative mb-3">
+              <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
+              <input x-model="medStockSearch" type="search" placeholder="Buscar medicamento..."
+                class="w-full rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 focus:outline-none focus:border-red-400"
+                style="padding:9px 12px 9px 34px">
+            </div>
+
             <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-              <p class="text-xs text-gray-400" x-text="medStock.length+' ítem(s) en inventario'"></p>
+              <p class="text-xs text-gray-400"
+                x-text="(medStockSearch ? medStock.filter(s=>s.name.toLowerCase().includes(medStockSearch.toLowerCase())).length : medStock.length)+' ítem(s)'"></p>
               <div class="flex gap-2">
                 <a :href="'/medication/stock/export?token='+token" target="_blank"
                   class="text-xs font-semibold rounded-full px-3 py-1.5 border-none cursor-pointer no-underline"
@@ -3711,7 +3721,7 @@
 
             <!-- Lista stock -->
             <div class="flex flex-col gap-2">
-              <template x-for="s in medStock" :key="s.id">
+              <template x-for="s in medStock.filter(s=>!medStockSearch||s.name.toLowerCase().includes(medStockSearch.toLowerCase()))" :key="s.id">
                 <div class="rounded-xl border overflow-hidden"
                   :style="medEditId===s.id ? 'border-color:#93c5fd' : 'border-color:#e5e7eb'">
                   <!-- Fila principal -->
@@ -4725,6 +4735,7 @@ function app() {
     medExpanded: null,
     medLoading: false,
     medRequests: [],
+    medStockSearch: '',
     medStock: [],
     medDeliveries: [],
     medStockForm: false,
