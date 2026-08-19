@@ -625,6 +625,124 @@
     </div>
   </template>
 
+  <!-- MODAL ENTREGA DIRECTA -->
+  <template x-if="medDirectModal">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6500;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto"
+      @click.self="!medDirectLoading && (medDirectModal=false)">
+      <div style="background:white;border-radius:24px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.35)">
+
+        <!-- Header verde -->
+        <div style="background:linear-gradient(135deg,#059669,#047857);padding:24px 24px 20px;text-align:center">
+          <div style="font-size:44px;margin-bottom:8px">🤝</div>
+          <h2 style="color:white;font-size:19px;font-weight:900;margin:0 0 4px">Entrega directa</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0">Sin solicitud previa — campo, acopio o distribución</p>
+        </div>
+
+        <!-- Cuerpo -->
+        <div style="padding:22px 22px 26px;display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto">
+
+          <!-- Beneficiario -->
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">👤 Beneficiario *</label>
+            <input x-model="medDirect.delivered_to" type="text" placeholder="Nombre completo"
+              style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+              @focus="$el.style.borderColor='#059669'"
+              @blur="$el.style.borderColor=medDirect.delivered_to?'#059669':'#e5e7eb'">
+          </div>
+
+          <!-- Teléfono + Barrio -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">📞 Teléfono</label>
+              <input x-model="medDirect.recipient_phone" type="tel" placeholder="300 000 0000"
+                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 14px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                @focus="$el.style.borderColor='#059669'"
+                @blur="$el.style.borderColor='#e5e7eb'">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">📍 Barrio</label>
+              <input x-model="medDirect.recipient_address" type="text" placeholder="Barrio / dirección"
+                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 14px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                @focus="$el.style.borderColor='#059669'"
+                @blur="$el.style.borderColor='#e5e7eb'">
+            </div>
+          </div>
+
+          <!-- Separador -->
+          <div style="border-top:1px solid #f3f4f6;margin:0 -2px"></div>
+
+          <!-- Seleccionar del stock -->
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">💊 Desde el inventario (opcional)</label>
+            <div style="position:relative">
+              <select x-model="medDirect.stock_id"
+                @change="if(medDirect.stock_id){const s=medStock.find(x=>x.id==medDirect.stock_id);if(s){medDirect.medication_name=s.name;medDirect.unit=s.unit}}else{medDirect.medication_name='';medDirect.unit='tabletas'}"
+                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:14px;font-family:inherit;outline:none;appearance:none;background:white;transition:border-color .2s;cursor:pointer"
+                @focus="$el.style.borderColor='#059669'"
+                @blur="$el.style.borderColor='#e5e7eb'">
+                <option value="">— No está en el inventario —</option>
+                <template x-for="s in medStock.filter(s=>s.quantity>0)" :key="s.id">
+                  <option :value="s.id" x-text="s.name+' · '+s.quantity+' '+s.unit+' disp.'"></option>
+                </template>
+              </select>
+              <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:#9ca3af;font-size:12px">▼</span>
+            </div>
+          </div>
+
+          <!-- Nombre medicamento -->
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">💊 Medicamento *</label>
+            <input x-model="medDirect.medication_name" type="text" placeholder="ej: Metformina 500mg"
+              style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+              @focus="$el.style.borderColor='#059669'"
+              @blur="$el.style.borderColor=medDirect.medication_name?'#059669':'#e5e7eb'">
+          </div>
+
+          <!-- Cantidad + Unidad -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">🔢 Cantidad</label>
+              <input x-model.number="medDirect.quantity_delivered" type="number" min="1" placeholder="1"
+                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                @focus="$el.style.borderColor='#059669'"
+                @blur="$el.style.borderColor='#e5e7eb'">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">📦 Unidad</label>
+              <input x-model="medDirect.unit" type="text" placeholder="tabletas"
+                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                @focus="$el.style.borderColor='#059669'"
+                @blur="$el.style.borderColor='#e5e7eb'">
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">📝 Notas</label>
+            <textarea x-model="medDirect.delivery_notes" rows="2" placeholder="Observaciones de la entrega (opcional)"
+              style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:14px;font-family:inherit;outline:none;resize:none;transition:border-color .2s;background:white"
+              @focus="$el.style.borderColor='#059669'"
+              @blur="$el.style.borderColor='#e5e7eb'"></textarea>
+          </div>
+
+          <!-- Botones -->
+          <button @click="saveDirectDelivery()"
+            :disabled="medDirectLoading || !medDirect.delivered_to || !medDirect.medication_name"
+            style="width:100%;background:#059669;color:white;border:none;border-radius:16px;font-size:16px;font-weight:800;height:54px;cursor:pointer;transition:opacity .2s;font-family:inherit"
+            :style="(medDirectLoading||!medDirect.delivered_to||!medDirect.medication_name)?'opacity:.45;cursor:not-allowed':'opacity:1'">
+            <span x-show="!medDirectLoading">✅ Registrar entrega</span>
+            <span x-show="medDirectLoading">Guardando...</span>
+          </button>
+          <button @click="medDirectModal=false" :disabled="medDirectLoading"
+            style="width:100%;background:transparent;color:#9ca3af;border:none;font-size:13px;cursor:pointer;padding:4px;font-family:inherit">
+            Cancelar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </template>
+
   <!-- MODAL PÁNICO -->
   <template x-if="panicModal">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:6000;display:flex;align-items:center;justify-content:center;padding:24px"
@@ -3830,55 +3948,10 @@
               <p class="text-xs text-gray-400" x-text="medDeliveries.length+' entrega(s)'"></p>
               <div class="flex gap-2">
                 <button @click="loadMedDeliveries()" class="text-xs text-gray-400 bg-transparent border-none cursor-pointer px-1">🔄</button>
-                <button @click="medDirectForm=!medDirectForm"
+                <button @click="medDirectModal=true"
                   class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
-                  :style="medDirectForm?'background:#fee2e2;color:#991b1b':'background:#111827;color:white'"
-                  x-text="medDirectForm?'✕ Cancelar':'+ Entrega directa'"></button>
+                  style="background:#111827;color:white">🤝 Entrega directa</button>
               </div>
-            </div>
-
-            <!-- Formulario entrega directa -->
-            <div x-show="medDirectForm" class="rounded-xl border border-gray-200 p-3 mb-4 bg-gray-50 flex flex-col gap-2">
-              <p class="text-xs font-bold text-gray-700 uppercase tracking-wide">Registrar entrega directa</p>
-
-              <!-- Beneficiario -->
-              <input x-model="medDirect.delivered_to" type="text" placeholder="Nombre del beneficiario *"
-                class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-              <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
-                <input x-model="medDirect.recipient_phone" type="tel" placeholder="Teléfono"
-                  class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-                <input x-model="medDirect.recipient_address" type="text" placeholder="Barrio / dirección"
-                  class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-              </div>
-
-              <!-- Medicamento: del stock o libre -->
-              <select x-model="medDirect.stock_id"
-                @change="if(medDirect.stock_id){const s=medStock.find(x=>x.id==medDirect.stock_id);if(s){medDirect.medication_name=s.name;medDirect.unit=s.unit}}"
-                class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-                <option value="">— Seleccionar del stock (opcional) —</option>
-                <template x-for="s in medStock.filter(s=>s.quantity>0)" :key="s.id">
-                  <option :value="s.id" x-text="s.name+' ('+s.quantity+' '+s.unit+' disponibles)'"></option>
-                </template>
-              </select>
-              <input x-model="medDirect.medication_name" type="text" placeholder="Medicamento (si no está en stock) *"
-                class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-              <div class="grid gap-2" style="grid-template-columns:2fr 1fr">
-                <input x-model.number="medDirect.quantity_delivered" type="number" min="1" placeholder="Cantidad"
-                  class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-                <input x-model="medDirect.unit" type="text" placeholder="Unidad"
-                  class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-red-400">
-              </div>
-              <textarea x-model="medDirect.delivery_notes" placeholder="Notas (opcional)" rows="2"
-                class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:border-red-400 resize-none"></textarea>
-
-              <button @click="saveDirectDelivery()"
-                :disabled="medDirectLoading || !medDirect.delivered_to || !medDirect.medication_name"
-                class="w-full font-bold text-sm rounded-xl py-3 border-none cursor-pointer"
-                style="background:#111827;color:white"
-                :style="(medDirectLoading||!medDirect.delivered_to||!medDirect.medication_name)?'opacity:.5;cursor:not-allowed':''">
-                <span x-show="!medDirectLoading">✅ Registrar entrega</span>
-                <span x-show="medDirectLoading">Guardando...</span>
-              </button>
             </div>
 
             <!-- Lista entregas -->
@@ -4802,7 +4875,7 @@ function app() {
     medStockSearch: '',
     medStock: [],
     medDeliveries: [],
-    medDirectForm: false,
+    medDirectModal: false,
     medDirectLoading: false,
     medDirect: { delivered_to:'', recipient_phone:'', recipient_address:'', stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas', delivery_notes:'' },
     medStockForm: false,
@@ -6555,7 +6628,7 @@ function app() {
         })
         if (res.ok) {
           this.medDirect = { delivered_to:'', recipient_phone:'', recipient_address:'', stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas', delivery_notes:'' }
-          this.medDirectForm = false
+          this.medDirectModal = false
           await this.loadMedDeliveries()
           await this.loadMedStock()
         }
