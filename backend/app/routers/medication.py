@@ -51,11 +51,14 @@ def _delivery_payload(d: MedicationDelivery) -> dict:
     return {
         "id": d.id,
         "report_id": d.report_id,
+        "delivery_type": getattr(d, "delivery_type", "solicitude"),
         "stock_id": d.stock_id,
         "medication_name": d.medication_name,
         "quantity_delivered": d.quantity_delivered,
         "unit": d.unit,
         "delivered_to": d.delivered_to,
+        "recipient_phone": getattr(d, "recipient_phone", None),
+        "recipient_address": getattr(d, "recipient_address", None),
         "delivered_by": d.delivered_by,
         "delivery_notes": d.delivery_notes,
         "delivered_at": d.delivered_at.isoformat() + "Z",
@@ -278,17 +281,19 @@ async def create_delivery(
     """
     _require_admin(current_user)
 
-    report_id = body.get("report_id")
-    if not report_id:
-        raise HTTPException(400, "report_id es requerido")
+    report_id = body.get("report_id") or None
+    delivery_type = "direct" if not report_id else "solicitude"
+    qty = int(body.get("quantity_delivered", 1))
 
-    r = (await db.execute(select(Report).where(Report.id == report_id))).scalar_one_or_none()
-    if not r:
-        raise HTTPException(404, "Reporte no encontrado")
+    # Validar reporte si viene con report_id
+    r = None
+    if report_id:
+        r = (await db.execute(select(Report).where(Report.id == report_id))).scalar_one_or_none()
+        if not r:
+            raise HTTPException(404, "Reporte no encontrado")
 
     # Descontar del stock si se indicó
-    stock_id = body.get("stock_id")
-    qty = int(body.get("quantity_delivered", 1))
+    stock_id = body.get("stock_id") or None
     if stock_id:
         s = (await db.execute(select(MedicationStock).where(MedicationStock.id == stock_id))).scalar_one_or_none()
         if s:
@@ -299,13 +304,18 @@ async def create_delivery(
                 .values(quantity=new_qty, updated_at=datetime.utcnow())
             )
 
+    delivered_to = str(body.get("delivered_to", "") or (r.reporter_name if r else "")).strip() or "Sin nombre"
+
     d = MedicationDelivery(
         report_id=report_id,
+        delivery_type=delivery_type,
         stock_id=stock_id,
         medication_name=str(body.get("medication_name", "")).strip() or "Sin especificar",
         quantity_delivered=qty,
         unit=str(body.get("unit", "unidades")).strip(),
-        delivered_to=str(body.get("delivered_to", r.reporter_name)).strip(),
+        delivered_to=delivered_to,
+        recipient_phone=body.get("recipient_phone") or None,
+        recipient_address=body.get("recipient_address") or None,
         delivered_by=current_user.id,
         delivery_notes=body.get("delivery_notes"),
         delivered_at=datetime.utcnow(),
@@ -313,7 +323,7 @@ async def create_delivery(
     db.add(d)
 
     # Marcar reporte como resuelto si se solicita
-    if body.get("resolve_report"):
+    if body.get("resolve_report") and report_id:
         await db.execute(
             update(Report)
             .where(Report.id == report_id)

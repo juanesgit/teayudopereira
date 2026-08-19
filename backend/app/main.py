@@ -19,8 +19,70 @@ UPLOAD_DIR = STATIC_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
+async def _migrate_delivery_table():
+    """Migración: report_id nullable + nuevas columnas en medication_deliveries."""
+    import sqlite3, os
+    db_path = str(Path(__file__).resolve().parent.parent / "pereira_alerta.db")
+    if not os.path.exists(db_path):
+        return
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("PRAGMA table_info(medication_deliveries)")
+    rows = cur.fetchall()
+    if not rows:
+        conn.close()
+        return
+    cols = {r[1]: r for r in rows}
+    # Agregar columnas nuevas si faltan
+    for col, defn in [
+        ("delivery_type",     "TEXT NOT NULL DEFAULT 'solicitude'"),
+        ("recipient_phone",   "TEXT"),
+        ("recipient_address", "TEXT"),
+    ]:
+        if col not in cols:
+            cur.execute(f"ALTER TABLE medication_deliveries ADD COLUMN {col} {defn}")
+    # Recrear tabla si report_id sigue siendo NOT NULL
+    cur.execute("PRAGMA table_info(medication_deliveries)")
+    info = {r[1]: r for r in cur.fetchall()}
+    if info.get("report_id", (None,)*4)[3]:  # notnull=1
+        cur.execute("PRAGMA foreign_keys=OFF")
+        cur.executescript("""
+            CREATE TABLE IF NOT EXISTS med_del_new (
+                id INTEGER PRIMARY KEY,
+                report_id INTEGER REFERENCES reports(id) ON DELETE SET NULL,
+                delivery_type TEXT NOT NULL DEFAULT 'solicitude',
+                stock_id INTEGER REFERENCES medication_stock(id) ON DELETE SET NULL,
+                medication_name VARCHAR(200) NOT NULL,
+                quantity_delivered INTEGER NOT NULL DEFAULT 1,
+                unit VARCHAR(40) NOT NULL DEFAULT 'unidades',
+                delivered_to VARCHAR(150) NOT NULL,
+                recipient_phone TEXT,
+                recipient_address TEXT,
+                delivered_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                delivery_notes TEXT,
+                delivered_at DATETIME NOT NULL,
+                created_at DATETIME NOT NULL
+            );
+            INSERT OR IGNORE INTO med_del_new
+                (id,report_id,delivery_type,stock_id,medication_name,quantity_delivered,
+                 unit,delivered_to,recipient_phone,recipient_address,delivered_by,
+                 delivery_notes,delivered_at,created_at)
+            SELECT id,report_id,COALESCE(delivery_type,'solicitude'),stock_id,
+                   medication_name,quantity_delivered,unit,delivered_to,
+                   recipient_phone,recipient_address,delivered_by,
+                   delivery_notes,delivered_at,created_at
+            FROM medication_deliveries;
+            DROP TABLE medication_deliveries;
+            ALTER TABLE med_del_new RENAME TO medication_deliveries;
+        """)
+        cur.execute("PRAGMA foreign_keys=ON")
+    conn.commit()
+    conn.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _migrate_delivery_table()
     await init_db()
     await group_broadcaster.setup(settings.REDIS_URL)
     await room_broadcaster.setup(settings.REDIS_URL)
