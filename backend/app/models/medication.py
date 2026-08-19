@@ -33,11 +33,13 @@ class MedicationDelivery(Base):
     # Nullable: entregas directas no tienen reporte asociado
     report_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("reports.id", ondelete="SET NULL"), nullable=True, index=True)
     delivery_type: Mapped[str] = mapped_column(String(20), nullable=False, default="solicitude")  # solicitude | direct
+    delivery_group_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)  # UUID agrupa ítems de una misma entrega
     stock_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("medication_stock.id", ondelete="SET NULL"), nullable=True)
     medication_name: Mapped[str] = mapped_column(String(200), nullable=False)
     quantity_delivered: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     unit: Mapped[str] = mapped_column(String(40), nullable=False, default="unidades")
     delivered_to: Mapped[str] = mapped_column(String(150), nullable=False)       # nombre del beneficiario
+    recipient_id: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     recipient_phone: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     recipient_address: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     delivered_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

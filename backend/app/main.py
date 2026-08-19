@@ -36,8 +36,10 @@ async def _migrate_delivery_table():
     # Agregar columnas nuevas si faltan
     for col, defn in [
         ("delivery_type",     "TEXT NOT NULL DEFAULT 'solicitude'"),
+        ("recipient_id",      "TEXT"),
         ("recipient_phone",   "TEXT"),
         ("recipient_address", "TEXT"),
+        ("delivery_group_id", "TEXT"),
     ]:
         if col not in cols:
             cur.execute(f"ALTER TABLE medication_deliveries ADD COLUMN {col} {defn}")
@@ -51,6 +53,7 @@ async def _migrate_delivery_table():
                 id INTEGER PRIMARY KEY,
                 report_id INTEGER REFERENCES reports(id) ON DELETE SET NULL,
                 delivery_type TEXT NOT NULL DEFAULT 'solicitude',
+                delivery_group_id TEXT,
                 stock_id INTEGER REFERENCES medication_stock(id) ON DELETE SET NULL,
                 medication_name VARCHAR(200) NOT NULL,
                 quantity_delivered INTEGER NOT NULL DEFAULT 1,

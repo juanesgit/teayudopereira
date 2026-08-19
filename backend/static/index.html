@@ -650,6 +650,15 @@
               @blur="$el.style.borderColor=medDirect.delivered_to?'#dc2626':'#e5e7eb'">
           </div>
 
+          <!-- Número de identificación -->
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">🪪 Número de identificación</label>
+            <input x-model="medDirect.recipient_id" type="text" inputmode="numeric" placeholder="Cédula o documento"
+              style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+              @focus="$el.style.borderColor='#dc2626'"
+              @blur="$el.style.borderColor=medDirect.recipient_id?'#dc2626':'#e5e7eb'">
+          </div>
+
           <!-- Teléfono + Barrio -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div>
@@ -671,48 +680,53 @@
           <!-- Separador -->
           <div style="border-top:1px solid #f3f4f6;margin:0 -2px"></div>
 
-          <!-- Seleccionar del stock -->
+          <!-- Lista dinámica de medicamentos -->
           <div>
-            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">💊 Desde el inventario (opcional)</label>
-            <div style="position:relative">
-              <select x-model="medDirect.stock_id"
-                @change="if(medDirect.stock_id){const s=medStock.find(x=>x.id==medDirect.stock_id);if(s){medDirect.medication_name=s.name;medDirect.unit=s.unit}}else{medDirect.medication_name='';medDirect.unit='tabletas'}"
-                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:14px;font-family:inherit;outline:none;appearance:none;background:white;transition:border-color .2s;cursor:pointer"
-                @focus="$el.style.borderColor='#dc2626'"
-                @blur="$el.style.borderColor='#e5e7eb'">
-                <option value="">— No está en el inventario —</option>
-                <template x-for="s in medStock.filter(s=>s.quantity>0)" :key="s.id">
-                  <option :value="s.id" x-text="s.name+' · '+s.quantity+' '+s.unit+' disp.'"></option>
-                </template>
-              </select>
-              <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:#9ca3af;font-size:12px">▼</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px">💊 Medicamentos entregados *</label>
+              <button type="button" @click="medDirectItems.push({stock_id:'',medication_name:'',quantity_delivered:1,unit:'tabletas'})"
+                style="font-size:12px;font-weight:700;color:#dc2626;background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:5px 12px;cursor:pointer;font-family:inherit">
+                + Agregar
+              </button>
             </div>
-          </div>
 
-          <!-- Nombre medicamento -->
-          <div>
-            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">💊 Medicamento *</label>
-            <input x-model="medDirect.medication_name" type="text" placeholder="ej: Metformina 500mg"
-              style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
-              @focus="$el.style.borderColor='#059669'"
-              @blur="$el.style.borderColor=medDirect.medication_name?'#059669':'#e5e7eb'">
-          </div>
-
-          <!-- Cantidad + Unidad -->
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
-            <div>
-              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">🔢 Cantidad</label>
-              <input x-model.number="medDirect.quantity_delivered" type="number" min="1" placeholder="1"
-                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
-                @focus="$el.style.borderColor='#dc2626'"
-                @blur="$el.style.borderColor='#e5e7eb'">
-            </div>
-            <div>
-              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">📦 Unidad</label>
-              <input x-model="medDirect.unit" type="text" placeholder="tabletas"
-                style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
-                @focus="$el.style.borderColor='#dc2626'"
-                @blur="$el.style.borderColor='#e5e7eb'">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <template x-for="(item, idx) in medDirectItems" :key="idx">
+                <div style="background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:center;justify-content:space-between">
+                    <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px" x-text="'Ítem '+(idx+1)"></span>
+                    <button type="button" x-show="medDirectItems.length>1" @click="medDirectItems.splice(idx,1)"
+                      style="font-size:12px;color:#9ca3af;background:transparent;border:none;cursor:pointer;padding:2px 8px;border-radius:8px;font-family:inherit"
+                      @mouseenter="$el.style.color='#dc2626'" @mouseleave="$el.style.color='#9ca3af'">✕ quitar</button>
+                  </div>
+                  <!-- Stock selector -->
+                  <div style="position:relative">
+                    <select x-model="item.stock_id"
+                      @change="if(item.stock_id){const s=medStock.find(x=>x.id==item.stock_id);if(s){item.medication_name=s.name;item.unit=s.unit}}else{item.medication_name='';item.unit='tabletas'}"
+                      style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:10px 32px 10px 12px;font-size:13px;font-family:inherit;outline:none;appearance:none;background:white;transition:border-color .2s;cursor:pointer"
+                      @focus="$el.style.borderColor='#dc2626'" @blur="$el.style.borderColor='#e5e7eb'">
+                      <option value="">— Del inventario (opcional) —</option>
+                      <template x-for="s in medStock.filter(s=>s.quantity>0)" :key="s.id">
+                        <option :value="s.id" x-text="s.name+' · '+s.quantity+' '+s.unit"></option>
+                      </template>
+                    </select>
+                    <span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:#9ca3af;font-size:10px">▼</span>
+                  </div>
+                  <!-- Nombre -->
+                  <input x-model="item.medication_name" type="text" placeholder="Nombre del medicamento *"
+                    style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                    @focus="$el.style.borderColor='#dc2626'" @blur="$el.style.borderColor=item.medication_name?'#dc2626':'#e5e7eb'">
+                  <!-- Cantidad + Unidad -->
+                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+                    <input x-model.number="item.quantity_delivered" type="number" min="1" placeholder="Cantidad"
+                      style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                      @focus="$el.style.borderColor='#dc2626'" @blur="$el.style.borderColor='#e5e7eb'">
+                    <input x-model="item.unit" type="text" placeholder="Unidad"
+                      style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:12px;padding:10px 8px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;background:white"
+                      @focus="$el.style.borderColor='#dc2626'" @blur="$el.style.borderColor='#e5e7eb'">
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -721,22 +735,20 @@
             <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:7px">📝 Notas</label>
             <textarea x-model="medDirect.delivery_notes" rows="2" placeholder="Observaciones de la entrega (opcional)"
               style="width:100%;box-sizing:border-box;border:2px solid #e5e7eb;border-radius:14px;padding:13px 16px;font-size:14px;font-family:inherit;outline:none;resize:none;transition:border-color .2s;background:white"
-              @focus="$el.style.borderColor='#059669'"
+              @focus="$el.style.borderColor='#dc2626'"
               @blur="$el.style.borderColor='#e5e7eb'"></textarea>
           </div>
 
           <!-- Botones -->
-          <button @click="saveDirectDelivery()"
-            :disabled="medDirectLoading || !medDirect.delivered_to || !medDirect.medication_name"
-            style="width:100%;background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:16px;font-size:16px;font-weight:800;height:54px;cursor:pointer;transition:opacity .2s;font-family:inherit;box-shadow:0 4px 14px rgba(220,38,38,.35)"
-            :style="(medDirectLoading||!medDirect.delivered_to||!medDirect.medication_name)?'opacity:.45;cursor:not-allowed;box-shadow:none':''">
+          <button @click="saveDirectDelivery()" :disabled="medDirectLoading || !medDirect.delivered_to || !medDirectItems.some(i=>i.medication_name.trim())"
+            class="w-full text-white font-black rounded-2xl border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style="min-height:56px;font-size:17px;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px rgba(220,38,38,.45);letter-spacing:.3px;margin-top:4px">
             <span x-show="!medDirectLoading">✅ Registrar entrega</span>
-            <span x-show="medDirectLoading">⏳ Guardando...</span>
+            <span x-show="medDirectLoading">Guardando...</span>
           </button>
           <button @click="medDirectModal=false" :disabled="medDirectLoading"
-            style="width:100%;background:#f3f4f6;color:#6b7280;border:none;border-radius:14px;font-size:14px;font-weight:600;height:46px;cursor:pointer;font-family:inherit;transition:background .15s"
-            @mouseenter="$el.style.background='#e5e7eb'"
-            @mouseleave="$el.style.background='#f3f4f6'">
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer disabled:opacity-40"
+            style="min-height:48px;font-size:15px;background:#f3f4f6;color:#6b7280">
             Cancelar
           </button>
         </div>
@@ -3947,7 +3959,7 @@
 
             <!-- Header contador + botón entrega directa -->
             <div class="flex items-center justify-between mb-3 gap-2">
-              <p class="text-xs text-gray-400" x-text="medDeliveries.length+' entrega(s)'"></p>
+              <p class="text-xs text-gray-400" x-text="groupedDeliveries().length+' entrega(s)'"></p>
               <div class="flex gap-2">
                 <button @click="loadMedDeliveries()" class="text-xs text-gray-400 bg-transparent border-none cursor-pointer px-1">🔄</button>
                 <button @click="medDirectModal=true"
@@ -3956,33 +3968,46 @@
               </div>
             </div>
 
-            <!-- Lista entregas -->
+            <!-- Lista entregas agrupadas -->
             <div class="flex flex-col gap-2">
-              <template x-for="d in medDeliveries" :key="d.id">
+              <template x-for="g in groupedDeliveries()" :key="g.key">
                 <div class="rounded-xl border overflow-hidden"
-                  :style="d.delivery_type==='direct'?'border-color:#a7f3d0':'border-color:#bbf7d0'">
-                  <!-- Header -->
+                  :style="g.delivery_type==='direct'?'border-color:#d1d5db':'border-color:#d1fae5'">
+
+                  <!-- Header: beneficiario + fecha + badge -->
                   <div class="flex items-start gap-2 px-3 py-2.5"
-                    :style="d.delivery_type==='direct'?'background:#ecfdf5':'background:#f0fdf4'">
-                    <span class="text-base mt-0.5" x-text="d.delivery_type==='direct'?'🤝':'✅'"></span>
+                    :style="g.delivery_type==='direct'?'background:#f9fafb':'background:#f0fdf4'">
+                    <span class="text-base mt-0.5" x-text="g.delivery_type==='direct'?'🤝':'✅'"></span>
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-1.5 flex-wrap">
-                        <p class="text-sm font-bold text-gray-900 leading-tight"
-                          x-text="d.medication_name+' · '+d.quantity_delivered+' '+d.unit"></p>
+                      <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <p class="text-sm font-bold text-gray-900 leading-tight" x-text="g.delivered_to"></p>
                         <span class="text-xs rounded-full px-2 py-0.5 font-semibold"
-                          :style="d.delivery_type==='direct'?'background:#d1fae5;color:#065f46':'background:#dcfce7;color:#166534'"
-                          x-text="d.delivery_type==='direct'?'Directa':'Solicitud #'+d.report_id"></span>
+                          :style="g.delivery_type==='direct'?'background:#f3f4f6;color:#374151':'background:#d1fae5;color:#065f46'"
+                          x-text="g.delivery_type==='direct'?'Directa':'Solicitud #'+g.report_id"></span>
                       </div>
-                      <p class="text-xs text-gray-600 mt-0.5" x-text="'👤 '+d.delivered_to"></p>
-                      <div class="flex gap-3 mt-0.5">
-                        <p x-show="d.recipient_phone" class="text-xs text-gray-400" x-text="'📞 '+d.recipient_phone"></p>
-                        <p x-show="d.recipient_address" class="text-xs text-gray-400" x-text="'📍 '+d.recipient_address"></p>
+                      <div class="flex gap-3 flex-wrap">
+                        <p x-show="g.recipient_id" class="text-xs text-gray-400" x-text="'🪪 '+g.recipient_id"></p>
+                        <p x-show="g.recipient_phone" class="text-xs text-gray-400" x-text="'📞 '+g.recipient_phone"></p>
+                        <p x-show="g.recipient_address" class="text-xs text-gray-400" x-text="'📍 '+g.recipient_address"></p>
                       </div>
                     </div>
-                    <span class="text-xs text-gray-400 flex-shrink-0 mt-0.5" x-text="fmtDate(d.delivered_at)"></span>
+                    <span class="text-xs text-gray-400 flex-shrink-0 mt-0.5" x-text="fmtDate(g.delivered_at)"></span>
                   </div>
-                  <div x-show="d.delivery_notes" class="px-3 py-1.5 bg-white border-t border-gray-100">
-                    <p class="text-xs text-gray-500" x-text="d.delivery_notes"></p>
+
+                  <!-- Ítems de medicamentos -->
+                  <div class="bg-white px-3 py-2 flex flex-col gap-1 border-t border-gray-100">
+                    <template x-for="(item, i) in g.items" :key="i">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-xs text-gray-400" x-text="'•'"></span>
+                        <span class="text-xs text-gray-700 font-medium"
+                          x-text="item.medication_name+' — '+item.quantity_delivered+' '+item.unit"></span>
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- Notas -->
+                  <div x-show="g.delivery_notes" class="px-3 py-1.5 bg-gray-50 border-t border-gray-100">
+                    <p class="text-xs text-gray-400 italic" x-text="g.delivery_notes"></p>
                   </div>
                 </div>
               </template>
@@ -4879,7 +4904,8 @@ function app() {
     medDeliveries: [],
     medDirectModal: false,
     medDirectLoading: false,
-    medDirect: { delivered_to:'', recipient_phone:'', recipient_address:'', stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas', delivery_notes:'' },
+    medDirect: { delivered_to:'', recipient_id:'', recipient_phone:'', recipient_address:'', delivery_notes:'' },
+    medDirectItems: [{ stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas' }],
     medStockForm: false,
     medStockNew: { name:'', quantity:0, unit:'tabletas', expiry_date:'', storage_location:'ACOPIO TE AYUDO PEREIRA', donated_by:'BENEFACTORES TE AYUDO PEREIRA' },
     medEditId: null,
@@ -6609,31 +6635,54 @@ function app() {
       } catch {}
     },
 
+    groupedDeliveries() {
+      const groups = []
+      const seen = {}
+      for (const d of this.medDeliveries) {
+        const key = d.delivery_group_id || ('solo_' + d.id)
+        if (!seen[key]) {
+          seen[key] = { key, delivery_type: d.delivery_type, report_id: d.report_id,
+            delivered_to: d.delivered_to, recipient_id: d.recipient_id,
+            recipient_phone: d.recipient_phone,
+            recipient_address: d.recipient_address, delivered_at: d.delivered_at,
+            delivery_notes: d.delivery_notes, items: [] }
+          groups.push(seen[key])
+        }
+        seen[key].items.push({ medication_name: d.medication_name, quantity_delivered: d.quantity_delivered, unit: d.unit })
+      }
+      return groups
+    },
+
     async saveDirectDelivery() {
-      if (!this.medDirect.delivered_to || !this.medDirect.medication_name) return
+      if (!this.medDirect.delivered_to) return
+      const validItems = this.medDirectItems.filter(i => i.medication_name.trim())
+      if (!validItems.length) return
       this.medDirectLoading = true
       try {
-        const body = {
-          medication_name: this.medDirect.medication_name,
-          quantity_delivered: this.medDirect.quantity_delivered || 1,
-          unit: this.medDirect.unit || 'unidades',
-          delivered_to: this.medDirect.delivered_to,
-          recipient_phone: this.medDirect.recipient_phone || null,
-          recipient_address: this.medDirect.recipient_address || null,
-          stock_id: this.medDirect.stock_id || null,
-          delivery_notes: this.medDirect.delivery_notes || null,
-        }
-        const res = await fetch('/medication/deliveries', {
-          method: 'POST',
-          headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-        if (res.ok) {
-          this.medDirect = { delivered_to:'', recipient_phone:'', recipient_address:'', stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas', delivery_notes:'' }
-          this.medDirectModal = false
-          await this.loadMedDeliveries()
-          await this.loadMedStock()
-        }
+        const groupId = crypto.randomUUID()
+        await Promise.all(validItems.map(item =>
+          fetch('/medication/deliveries', {
+            method: 'POST',
+            headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              delivery_group_id: groupId,
+              medication_name: item.medication_name.trim(),
+              quantity_delivered: item.quantity_delivered || 1,
+              unit: item.unit || 'unidades',
+              delivered_to: this.medDirect.delivered_to,
+              recipient_id: this.medDirect.recipient_id || null,
+              recipient_phone: this.medDirect.recipient_phone || null,
+              recipient_address: this.medDirect.recipient_address || null,
+              stock_id: item.stock_id || null,
+              delivery_notes: this.medDirect.delivery_notes || null,
+            }),
+          })
+        ))
+        this.medDirect = { delivered_to:'', recipient_id:'', recipient_phone:'', recipient_address:'', delivery_notes:'' }
+        this.medDirectItems = [{ stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas' }]
+        this.medDirectModal = false
+        await this.loadMedDeliveries()
+        await this.loadMedStock()
       } catch {} finally {
         this.medDirectLoading = false
       }
