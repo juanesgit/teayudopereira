@@ -197,80 +197,84 @@
         </button>
       </template>
       <template x-if="user">
-        <div class="relative">
-          <button @click="userMenuOpen=!userMenuOpen"
-            class="flex items-center gap-1.5 text-xs text-red-100 bg-white/20 rounded-full px-3 h-9 border-none cursor-pointer">
-            <span x-text="user.full_name.split(' ')[0]"></span>
-            <span style="font-size:10px" x-text="userMenuOpen ? '▲' : '▼'"></span>
-          </button>
-          <!-- Dropdown -->
-          <div x-show="userMenuOpen" @click.outside="userMenuOpen=false"
-            style="position:fixed;right:12px;top:60px;background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.2);min-width:210px;overflow:hidden;z-index:9999">
-
-            <!-- Cabecera usuario -->
-            <div style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #f3f4f6">
-              <p class="text-xs font-bold text-gray-900" x-text="user.full_name"></p>
-              <p class="text-xs text-gray-400" x-text="user.role==='admin'?'⚙️ Administrador':user.role==='coordinator'?'🏛️ Coordinador':user.role==='volunteer'?'🙋 Voluntario':'👤 Usuario'"></p>
-            </div>
-
-            <!-- Opciones según rol -->
-            <div style="padding:6px">
-              <template x-if="user.role==='admin'">
-                <div class="flex flex-col gap-0.5">
-                  <button @click="navigateTo('sysadmin'); userMenuOpen=false"
-                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
-                    :style="page==='sysadmin'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
-                    ⚙️ Panel Admin
-                  </button>
-                  <button @click="navigateTo('census'); userMenuOpen=false"
-                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
-                    :style="page==='census'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
-                    📋 Censo
-                  </button>
-                  <button @click="navigateTo('chat'); userMenuOpen=false"
-                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold flex items-center gap-2"
-                    :style="page==='chat'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
-                    <span>💬 Chat</span>
-                    <span x-show="chatUnread>0" class="text-xs font-bold rounded-full px-1.5 py-0.5" style="background:#dc2626;color:white" x-text="chatUnread"></span>
-                  </button>
-                </div>
-              </template>
-              <template x-if="user.role==='volunteer'||user.role==='coordinator'">
-                <div class="flex flex-col gap-0.5">
-                  <button @click="navigateTo('panel'); userMenuOpen=false"
-                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
-                    :style="page==='panel'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
-                    📋 Mi Panel
-                  </button>
-                  <button @click="navigateTo('census'); userMenuOpen=false"
-                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
-                    :style="page==='census'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
-                    📋 Censo
-                  </button>
-                  <button @click="navigateTo('chat'); userMenuOpen=false"
-                    class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold flex items-center gap-2"
-                    :style="page==='chat'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
-                    <span>💬 Chat</span>
-                    <span x-show="chatUnread>0" class="text-xs font-bold rounded-full px-1.5 py-0.5" style="background:#dc2626;color:white" x-text="chatUnread"></span>
-                  </button>
-                </div>
-              </template>
-            </div>
-
-            <!-- Cerrar sesión -->
-            <div style="padding:6px;border-top:1px solid #f3f4f6">
-              <button @click="logout(); userMenuOpen=false"
-                class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
-                style="color:#dc2626;background:transparent">
-                🚪 Cerrar sesión
-              </button>
-            </div>
-
-          </div>
-        </div>
+        <button @click="userMenuOpen=!userMenuOpen"
+          class="flex items-center gap-1.5 text-xs text-red-100 bg-white/20 rounded-full px-3 h-9 border-none cursor-pointer">
+          <span x-text="user.full_name.split(' ')[0]"></span>
+          <span style="font-size:10px" x-text="userMenuOpen ? '▲' : '▼'"></span>
+        </button>
       </template>
     </div>
   </header>
+
+  <!-- DROPDOWN MENÚ USUARIO — fuera del header para evitar z-index/clipping -->
+  <div x-show="userMenuOpen && user"
+    @click="userMenuOpen=false"
+    style="position:fixed;inset:0;z-index:9990;background:transparent"
+    x-cloak>
+  </div>
+  <div x-show="userMenuOpen && user"
+    style="position:fixed;right:12px;top:56px;background:white;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.22);min-width:210px;overflow:hidden;z-index:9991"
+    x-cloak>
+
+    <!-- Cabecera usuario -->
+    <div style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #f3f4f6">
+      <p class="text-xs font-bold text-gray-900" x-text="user?.full_name"></p>
+      <p class="text-xs text-gray-400" x-text="user?.role==='admin'?'⚙️ Administrador':user?.role==='coordinator'?'🏛️ Coordinador':user?.role==='volunteer'?'🙋 Voluntario':'👤 Usuario'"></p>
+    </div>
+
+    <!-- Opciones según rol -->
+    <div style="padding:6px">
+      <template x-if="user?.role==='admin'">
+        <div class="flex flex-col gap-0.5">
+          <button @click="navigateTo('sysadmin'); userMenuOpen=false"
+            class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+            :style="page==='sysadmin'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+            ⚙️ Panel Admin
+          </button>
+          <button @click="navigateTo('census'); userMenuOpen=false"
+            class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+            :style="page==='census'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+            📋 Censo
+          </button>
+          <button @click="navigateTo('chat'); userMenuOpen=false"
+            class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold flex items-center gap-2"
+            :style="page==='chat'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+            <span>💬 Chat</span>
+            <span x-show="chatUnread>0" class="text-xs font-bold rounded-full px-1.5 py-0.5" style="background:#dc2626;color:white" x-text="chatUnread"></span>
+          </button>
+        </div>
+      </template>
+      <template x-if="user?.role==='volunteer'||user?.role==='coordinator'">
+        <div class="flex flex-col gap-0.5">
+          <button @click="navigateTo('panel'); userMenuOpen=false"
+            class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+            :style="page==='panel'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+            📋 Mi Panel
+          </button>
+          <button @click="navigateTo('census'); userMenuOpen=false"
+            class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+            :style="page==='census'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+            📋 Censo
+          </button>
+          <button @click="navigateTo('chat'); userMenuOpen=false"
+            class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold flex items-center gap-2"
+            :style="page==='chat'?'background:#f3f4f6;color:#111827':'background:transparent;color:#374151'">
+            <span>💬 Chat</span>
+            <span x-show="chatUnread>0" class="text-xs font-bold rounded-full px-1.5 py-0.5" style="background:#dc2626;color:white" x-text="chatUnread"></span>
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Cerrar sesión -->
+    <div style="padding:6px;border-top:1px solid #f3f4f6">
+      <button @click="logout(); userMenuOpen=false"
+        class="w-full text-left text-sm px-3 py-2.5 rounded-xl border-none cursor-pointer font-semibold"
+        style="color:#dc2626;background:transparent">
+        🚪 Cerrar sesión
+      </button>
+    </div>
+  </div>
 
   <!-- Banner: sin conexión (visible en todas las páginas) -->
   <div x-show="!isOnline"
