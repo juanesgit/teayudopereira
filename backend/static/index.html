@@ -3675,36 +3675,6 @@
                         class="text-xs text-red-400 bg-transparent border-none cursor-pointer px-1">🗑</button>
                     </div>
                   </div>
-                  <!-- Panel de edición inline -->
-                  <div x-show="medEditId===s.id" class="px-3 py-3 bg-blue-50 border-t border-blue-100 flex flex-col gap-2">
-                    <input x-model="medEditForm.name" type="text" placeholder="Nombre del medicamento"
-                      class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
-                    <div class="flex gap-2">
-                      <input x-model="medEditForm.quantity" type="number" min="0" placeholder="Cantidad"
-                        class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
-                      <input x-model="medEditForm.unit" type="text" placeholder="Unidad"
-                        class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white flex-1">
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label class="text-xs text-gray-500 font-medium px-1">📅 Fecha de vencimiento (opcional)</label>
-                      <input x-model="medEditForm.expiry_date" type="date"
-                        class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
-                    </div>
-                    <input x-model="medEditForm.storage_location" type="text" placeholder="Lugar de almacenamiento"
-                      class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
-                    <input x-model="medEditForm.donated_by" type="text" placeholder="Donado por (opcional)"
-                      class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
-                    <div class="flex gap-2 pt-1">
-                      <button @click="saveMedStockEdit(s.id)"
-                        class="text-xs bg-gray-900 text-white rounded-xl px-4 py-2 border-none cursor-pointer font-semibold flex-1">
-                        Guardar cambios
-                      </button>
-                      <button @click="medEditId=null"
-                        class="text-xs bg-gray-100 text-gray-600 rounded-xl px-4 py-2 border-none cursor-pointer">
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
                   <!-- Acopio + donante (cuando no está en edición) -->
                   <div x-show="(s.storage_location||s.donated_by) && medEditId!==s.id"
                     class="px-3 py-2 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-1.5">
@@ -3716,6 +3686,63 @@
                       class="inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-1 font-medium"
                       style="background:#eff6ff;color:#1d4ed8"
                       x-text="'🤝 '+s.donated_by"></span>
+                  </div>
+
+                  <!-- Panel de edición inline — mismo patrón de secciones que reportes -->
+                  <div x-show="medEditId===s.id" class="flex flex-col gap-0 bg-white border-t border-blue-100">
+
+                    <!-- Nombre + cantidad/unidad -->
+                    <div class="px-3 py-3 flex flex-col gap-2">
+                      <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Datos del medicamento</p>
+                      <input x-model="medEditForm.name" type="text" placeholder="Nombre del medicamento"
+                        class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white">
+                      <div class="flex gap-2">
+                        <div class="flex-1 flex flex-col gap-1">
+                          <label class="text-xs text-gray-400 px-1">Cantidad</label>
+                          <input x-model="medEditForm.quantity" type="number" min="0"
+                            class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white text-center font-bold">
+                        </div>
+                        <div class="flex-1 flex flex-col gap-1">
+                          <label class="text-xs text-gray-400 px-1">Unidad</label>
+                          <input x-model="medEditForm.unit" type="text" placeholder="tabletas..."
+                            class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white">
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Vencimiento + almacenamiento + donante -->
+                    <div class="px-3 py-3 border-t border-gray-100 flex flex-col gap-2">
+                      <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">Detalles adicionales</p>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-400 px-1">📅 Fecha de vencimiento</label>
+                        <input x-model="medEditForm.expiry_date" type="date"
+                          class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-400 px-1">🏪 Lugar de almacenamiento</label>
+                        <input x-model="medEditForm.storage_location" type="text"
+                          class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white">
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs text-gray-400 px-1">🤝 Donado por</label>
+                        <input x-model="medEditForm.donated_by" type="text"
+                          class="w-full text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white">
+                      </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="px-3 py-3 border-t border-gray-100 flex flex-col gap-2">
+                      <button @click="saveMedStockEdit(s.id)"
+                        class="w-full text-xs bg-gray-900 text-white rounded-xl py-2.5 border-none cursor-pointer font-bold">
+                        Guardar cambios
+                      </button>
+                      <button @click="medEditId=null"
+                        class="w-full text-xs rounded-xl py-2.5 border-none cursor-pointer font-semibold"
+                        style="background:#f3f4f6;color:#6b7280">
+                        Cancelar
+                      </button>
+                    </div>
+
                   </div>
                 </div>
               </template>
