@@ -3401,6 +3401,106 @@
               :style="adminSms.error?'color:#991b1b':'color:#166534'"></p>
           </div>
 
+          <!-- ALERTA MASIVA DESDE EXCEL -->
+          <div class="rounded-2xl border border-red-200 overflow-hidden mb-4" style="background:#fff5f5">
+            <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:14px 16px;display:flex;align-items:center;gap:10px">
+              <span style="font-size:22px">🚨</span>
+              <div>
+                <p style="color:white;font-weight:800;font-size:14px;margin:0">Alerta masiva desde Excel</p>
+                <p style="color:rgba(255,255,255,.75);font-size:11px;margin:0">Carga tu base de datos externa y envía a toda la población</p>
+              </div>
+            </div>
+            <div class="p-4 flex flex-col gap-3">
+
+              <!-- Upload archivo -->
+              <div>
+                <label class="text-xs font-bold text-gray-600 uppercase tracking-wide block mb-1.5">📂 Archivo Excel (.xlsx)</label>
+                <input type="file" accept=".xlsx,.xls" @change="smsBlast.file=$event.target.files[0]; smsBlast.comunas=[]; smsBlast.total=0; smsBlast.comuna=''; smsBlast.result=''"
+                  class="w-full text-sm text-gray-600 border border-gray-200 rounded-xl px-3 py-2 bg-white cursor-pointer">
+              </div>
+
+              <!-- Botón preview -->
+              <button @click="smsBlastPreview()" :disabled="!smsBlast.file || smsBlast.loading"
+                class="w-full text-sm font-bold rounded-xl py-2.5 border-none cursor-pointer disabled:opacity-40"
+                style="background:#111827;color:white">
+                <span x-show="!smsBlast.loading">🔍 Analizar archivo</span>
+                <span x-show="smsBlast.loading && smsBlast.previewing">Analizando...</span>
+              </button>
+
+              <!-- Resultado preview -->
+              <template x-if="smsBlast.total > 0">
+                <div class="bg-white rounded-xl border border-gray-200 p-3 flex flex-col gap-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Destinatarios detectados</span>
+                    <span class="text-lg font-black text-red-600" x-text="smsBlast.total"></span>
+                  </div>
+
+                  <!-- Filtro por comuna -->
+                  <div x-show="smsBlast.comunas.length > 0">
+                    <label class="text-xs font-bold text-gray-600 uppercase tracking-wide block mb-1">📍 Filtrar por comuna</label>
+                    <div style="position:relative">
+                      <select x-model="smsBlast.comuna" @change="smsBlastPreview()"
+                        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none appearance-none">
+                        <option value="">— Todas las comunas —</option>
+                        <template x-for="c in smsBlast.comunas" :key="c">
+                          <option :value="c" x-text="c"></option>
+                        </template>
+                      </select>
+                      <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:10px;color:#9ca3af">▼</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Mensaje -->
+              <div x-show="smsBlast.total > 0">
+                <label class="text-xs font-bold text-gray-600 uppercase tracking-wide block mb-1.5">✍️ Mensaje</label>
+                <textarea x-model="smsBlast.message" rows="3" maxlength="160"
+                  placeholder="Ej: [TeAyudoPereira] ALERTA TERREMOTO: Si resultó afectado en su zona comuníquese al 3XX o visítenos en el punto de ayuda más cercano."
+                  class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none resize-none"></textarea>
+                <p class="text-xs text-right mt-1"
+                  :style="(smsBlast.message||'').length>140?'color:#dc2626':'color:#9ca3af'"
+                  x-text="(smsBlast.message||'').length+'/160 caracteres'"></p>
+              </div>
+
+              <!-- Botón enviar con confirmación -->
+              <template x-if="smsBlast.total > 0 && smsBlast.message">
+                <div>
+                  <template x-if="!smsBlast.confirm">
+                    <button @click="smsBlast.confirm=true"
+                      class="w-full text-white font-black rounded-2xl border-none cursor-pointer"
+                      style="min-height:52px;font-size:15px;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px rgba(220,38,38,.4)">
+                      🚨 Enviar a <span x-text="smsBlast.total"></span> personas
+                    </button>
+                  </template>
+                  <template x-if="smsBlast.confirm">
+                    <div class="bg-red-50 border border-red-300 rounded-xl p-3 flex flex-col gap-2">
+                      <p class="text-sm font-bold text-red-800 text-center">⚠️ ¿Confirmas el envío masivo?</p>
+                      <p class="text-xs text-red-600 text-center"
+                        x-text="'Se enviarán '+smsBlast.total+' SMS. Esta acción no se puede deshacer.'"></p>
+                      <div class="flex gap-2">
+                        <button @click="smsBlast.confirm=false"
+                          class="flex-1 font-semibold rounded-xl border-none cursor-pointer py-2.5 text-sm"
+                          style="background:#f3f4f6;color:#6b7280">Cancelar</button>
+                        <button @click="smsBlastSend()" :disabled="smsBlast.loading"
+                          class="flex-1 font-black rounded-xl border-none cursor-pointer py-2.5 text-sm disabled:opacity-50"
+                          style="background:#dc2626;color:white">
+                          <span x-show="!smsBlast.loading">✅ Confirmar</span>
+                          <span x-show="smsBlast.loading">Enviando...</span>
+                        </button>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+
+              <!-- Resultado envío -->
+              <div x-show="smsBlast.result" x-text="smsBlast.result"
+                class="text-xs text-center rounded-xl py-2.5 px-3 font-semibold"
+                :style="smsBlast.error?'background:#fef2f2;color:#991b1b':'background:#f0fdf4;color:#166534'"></div>
+            </div>
+          </div>
+
           <!-- Consentimientos SMS -->
           <div class="bg-green-50 border border-green-200 rounded-2xl p-4">
             <h3 class="font-bold text-sm text-gray-900 mb-1">📋 Registro de consentimientos</h3>
@@ -5048,6 +5148,7 @@ function app() {
     zoneAddressResults: [],
     zoneAddressLoading: false,
     adminSms: { phones:'', message:'', loading:false, result:'', error:false },
+    smsBlast: { file:null, loading:false, previewing:false, total:0, comunas:[], comuna:'', message:'', confirm:false, result:'', error:false },
     adminBroadcast: { target:'all', message:'', loading:false, result:'', error:false },
     adminTemplates: [
       { label:'🆘 Activación de emergencia', text:'[TeAyudoPereira] ACTIVACIÓN: Se requiere presencia de voluntarios de inmediato. Ingresa a teayudopereira.com y revisa los casos asignados.' },
@@ -7601,6 +7702,61 @@ function app() {
           if (idx >= 0) this.adminVolunteers[idx].is_active = active
         }
       } catch(e) { console.warn(e) }
+    },
+
+    async smsBlastPreview() {
+      if (!this.smsBlast.file) return
+      this.smsBlast.loading = true
+      this.smsBlast.previewing = true
+      this.smsBlast.result = ''
+      this.smsBlast.error = false
+      try {
+        const fd = new FormData()
+        fd.append('file', this.smsBlast.file)
+        fd.append('message', 'preview')
+        fd.append('comuna', this.smsBlast.comuna || '')
+        fd.append('preview', 'true')
+        const res = await fetch('/admin/sms/blast-excel', {
+          method: 'POST', headers: this.authHeaders(), body: fd
+        })
+        const data = await res.json()
+        if (res.ok) {
+          this.smsBlast.total = data.total
+          if (data.comunas?.length) this.smsBlast.comunas = data.comunas
+        } else {
+          this.smsBlast.error = true
+          this.smsBlast.result = '❌ ' + (data.detail || 'Error al analizar el archivo')
+        }
+      } catch { this.smsBlast.error = true; this.smsBlast.result = '❌ Error de conexión' }
+      finally { this.smsBlast.loading = false; this.smsBlast.previewing = false }
+    },
+
+    async smsBlastSend() {
+      if (!this.smsBlast.file || !this.smsBlast.message) return
+      this.smsBlast.loading = true
+      this.smsBlast.confirm = false
+      this.smsBlast.result = ''
+      this.smsBlast.error = false
+      try {
+        const fd = new FormData()
+        fd.append('file', this.smsBlast.file)
+        fd.append('message', this.smsBlast.message)
+        fd.append('comuna', this.smsBlast.comuna || '')
+        fd.append('preview', 'false')
+        const res = await fetch('/admin/sms/blast-excel', {
+          method: 'POST', headers: this.authHeaders(), body: fd
+        })
+        const data = await res.json()
+        if (res.ok && data.ok) {
+          this.smsBlast.result = `✅ ${data.message}`
+          this.smsBlast.error = false
+          this.smsBlast.message = ''
+        } else {
+          this.smsBlast.error = true
+          this.smsBlast.result = '❌ ' + (data.detail || data.message || 'Error al enviar')
+        }
+      } catch { this.smsBlast.error = true; this.smsBlast.result = '❌ Error de conexión' }
+      finally { this.smsBlast.loading = false }
     },
 
     async sendAdminSms() {

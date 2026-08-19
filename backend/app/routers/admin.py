@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import csv
 import io
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -128,6 +128,109 @@ async def export_sms_consents(current_user: User = Depends(_require_admin)):
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=consentimientos_sms.csv"},
     )
+
+
+@router.post("/sms/blast-excel")
+async def sms_blast_excel(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    message: str = Form(...),
+    comuna: str = Form(""),          # vacío = todas las comunas
+    preview: bool = Form(False),     # True = solo devuelve conteo, no envía
+    current_user: User = Depends(_require_admin),
+):
+    """
+    Carga un Excel con columnas CEL / TELEFONO_1 / NODOS_COMUNAS_nombre,
+    extrae números móviles válidos, filtra por comuna si se indica,
+    y dispara el SMS masivo via Inalambria.
+    Con preview=True solo devuelve el conteo y lista de comunas sin enviar.
+    """
+    import re
+    try:
+        from openpyxl import load_workbook
+    except ImportError:
+        raise HTTPException(500, "openpyxl no instalado")
+
+    content = await file.read()
+    wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    ws = wb.active
+
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        raise HTTPException(400, "El archivo está vacío")
+
+    # Detectar cabeceras
+    headers = [str(h).strip().upper() if h else "" for h in rows[0]]
+
+    def col(names):
+        for n in names:
+            if n in headers:
+                return headers.index(n)
+        return None
+
+    idx_cel     = col(["CEL"])
+    idx_tel1    = col(["TELEFONO_1", "TELEFONO1"])
+    idx_comuna  = col(["NODOS_COMUNAS_NOMBRE", "NODOS_COMUNAS_nombre".upper(), "COMUNA"])
+    idx_nombre  = col(["DATA CLIENTES_NOMBRE", "NOMBRE", "DATA CLIENTES_nombre".upper()])
+
+    if idx_cel is None and idx_tel1 is None:
+        raise HTTPException(400, "No se encontró columna CEL ni TELEFONO_1 en el archivo")
+
+    def valid_mobile(v) -> str | None:
+        if not v:
+            return None
+        digits = re.sub(r"\D", "", str(v))
+        if len(digits) == 10 and digits.startswith("3"):
+            return f"+57{digits}"
+        if len(digits) == 12 and digits.startswith("573"):
+            return f"+{digits}"
+        return None
+
+    comunas_set = set()
+    phones = []
+    seen = set()
+
+    for row in rows[1:]:
+        # Filtro de comuna
+        row_comuna = str(row[idx_comuna]).strip() if idx_comuna is not None and row[idx_comuna] else ""
+        if row_comuna:
+            comunas_set.add(row_comuna)
+        if comuna and row_comuna.lower() != comuna.lower():
+            continue
+
+        # Número: prioridad CEL, fallback TELEFONO_1
+        raw = None
+        if idx_cel is not None:
+            raw = row[idx_cel]
+        if not valid_mobile(raw) and idx_tel1 is not None:
+            raw = row[idx_tel1]
+
+        num = valid_mobile(raw)
+        if num and num not in seen:
+            seen.add(num)
+            phones.append(num)
+
+    wb.close()
+
+    if preview:
+        return {
+            "total": len(phones),
+            "comunas": sorted(comunas_set),
+            "preview": True,
+        }
+
+    if not phones:
+        raise HTTPException(400, "No se encontraron números móviles válidos con el filtro aplicado")
+
+    if not message.strip():
+        raise HTTPException(400, "El mensaje no puede estar vacío")
+
+    background_tasks.add_task(sms.send_sms, phones, message.strip())
+    return {
+        "ok": True,
+        "recipients": len(phones),
+        "message": f"SMS en cola para {len(phones)} número(s). Filtro comuna: '{comuna or 'todas'}'.",
+    }
 
 
 @router.get("/sms/balance")
