@@ -625,6 +625,58 @@
     </div>
   </template>
 
+  <!-- MODAL CONFIRMACIÓN ANULAR ENTREGA -->
+  <template x-if="cancelDeliveryConfirm && cancelDeliveryTarget">
+    <div style="position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:white;border-radius:24px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:28px 24px;text-align:center">
+          <div style="font-size:44px;margin-bottom:10px">🚫</div>
+          <h2 style="color:white;font-size:17px;font-weight:800;margin:0 0 4px">Anular entrega</h2>
+          <p style="color:rgba(255,255,255,.8);font-size:13px;margin:0" x-text="cancelDeliveryTarget.delivered_to"></p>
+        </div>
+
+        <!-- Cuerpo -->
+        <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
+
+          <!-- Info medicamentos -->
+          <div style="background:#f9fafb;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+            <template x-for="(item, i) in cancelDeliveryTarget.items" :key="i">
+              <div style="display:flex;align-items:center;gap-6px">
+                <span style="font-size:12px;color:#6b7280">•</span>
+                <span style="font-size:13px;color:#374151;font-weight:600;margin-left:6px"
+                  x-text="item.medication_name+' — '+item.quantity_delivered+' '+item.unit"></span>
+              </div>
+            </template>
+          </div>
+
+          <!-- Advertencia -->
+          <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:18px;flex-shrink:0">⚠️</span>
+            <p style="font-size:12px;color:#92400e;font-weight:600;margin:0;line-height:1.5">
+              Esta acción no puede deshacerse. El stock de los medicamentos vinculados será restaurado automáticamente.
+            </p>
+          </div>
+
+          <!-- Botones -->
+          <button @click="doCancelDelivery()" :disabled="cancelDeliveryLoading"
+            class="w-full text-white font-black rounded-2xl border-none cursor-pointer disabled:opacity-50"
+            style="min-height:54px;font-size:16px;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px rgba(220,38,38,.4)">
+            <span x-show="!cancelDeliveryLoading">🚫 Sí, anular entrega</span>
+            <span x-show="cancelDeliveryLoading">Anulando...</span>
+          </button>
+          <button @click="cancelDeliveryConfirm=false;cancelDeliveryTarget=null" :disabled="cancelDeliveryLoading"
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer disabled:opacity-40"
+            style="min-height:48px;font-size:15px;background:#f3f4f6;color:#6b7280">
+            Cancelar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </template>
+
   <!-- MODAL ENTREGA DIRECTA -->
   <template x-if="medDirectModal">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6500;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto"
@@ -5019,6 +5071,9 @@ function app() {
     medDirectModal: false,
     medDirectLoading: false,
     medDirectError: '',
+    cancelDeliveryConfirm: false,
+    cancelDeliveryLoading: false,
+    cancelDeliveryTarget: null,
     medDirect: { delivered_to:'', recipient_id:'', recipient_phone:'', recipient_address:'', delivery_notes:'' },
     medDirectItems: [{ stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas' }],
     medStockForm: false,
@@ -6772,8 +6827,15 @@ function app() {
       return groups
     },
 
-    async cancelDeliveryGroup(g) {
-      if (!confirm(`¿Anular entrega de ${g.delivered_to}? Se restaurará el stock.`)) return
+    cancelDeliveryGroup(g) {
+      this.cancelDeliveryTarget = g
+      this.cancelDeliveryConfirm = true
+    },
+
+    async doCancelDelivery() {
+      const g = this.cancelDeliveryTarget
+      if (!g) return
+      this.cancelDeliveryLoading = true
       try {
         await Promise.all(g.ids.map(id =>
           fetch(`/medication/deliveries/${id}`, {
@@ -6781,9 +6843,15 @@ function app() {
             headers: this.authHeaders(),
           })
         ))
+        this.cancelDeliveryConfirm = false
+        this.cancelDeliveryTarget = null
         await this.loadMedDeliveries()
         await this.loadMedStock()
-      } catch(e) { alert('Error al anular: ' + e.message) }
+      } catch(e) {
+        this.cancelDeliveryConfirm = false
+      } finally {
+        this.cancelDeliveryLoading = false
+      }
     },
 
     async saveDirectDelivery() {
