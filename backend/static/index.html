@@ -4076,16 +4076,20 @@
             <div class="flex flex-col gap-2">
               <template x-for="g in groupedDeliveries()" :key="g.key">
                 <div class="rounded-xl border overflow-hidden"
-                  :style="g.delivery_type==='direct'?'border-color:#d1d5db':'border-color:#d1fae5'">
+                  :style="g.is_cancelled ? 'border-color:#e5e7eb;opacity:.6' : g.delivery_type==='direct' ? 'border-color:#d1d5db' : 'border-color:#d1fae5'">
 
                   <!-- Header: beneficiario + fecha + badge -->
                   <div class="flex items-start gap-2 px-3 py-2.5"
-                    :style="g.delivery_type==='direct'?'background:#f9fafb':'background:#f0fdf4'">
-                    <span class="text-base mt-0.5" x-text="g.delivery_type==='direct'?'🤝':'✅'"></span>
+                    :style="g.is_cancelled ? 'background:#f3f4f6' : g.delivery_type==='direct' ? 'background:#f9fafb' : 'background:#f0fdf4'">
+                    <span class="text-base mt-0.5" x-text="g.is_cancelled ? '🚫' : g.delivery_type==='direct' ? '🤝' : '✅'"></span>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <p class="text-sm font-bold text-gray-900 leading-tight" x-text="g.delivered_to"></p>
-                        <span class="text-xs rounded-full px-2 py-0.5 font-semibold"
+                        <p class="text-sm font-bold leading-tight"
+                          :style="g.is_cancelled ? 'color:#9ca3af;text-decoration:line-through' : 'color:#111827'"
+                          x-text="g.delivered_to"></p>
+                        <span x-show="g.is_cancelled" class="text-xs rounded-full px-2 py-0.5 font-bold"
+                          style="background:#fee2e2;color:#dc2626">Anulada</span>
+                        <span x-show="!g.is_cancelled" class="text-xs rounded-full px-2 py-0.5 font-semibold"
                           :style="g.delivery_type==='direct'?'background:#f3f4f6;color:#374151':'background:#d1fae5;color:#065f46'"
                           x-text="g.delivery_type==='direct'?'Directa':'Solicitud #'+g.report_id"></span>
                       </div>
@@ -4095,15 +4099,21 @@
                         <p x-show="g.recipient_address" class="text-xs text-gray-400" x-text="'📍 '+g.recipient_address"></p>
                       </div>
                     </div>
-                    <span class="text-xs text-gray-400 flex-shrink-0 mt-0.5" x-text="fmtDate(g.delivered_at)"></span>
+                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span class="text-xs text-gray-400" x-text="fmtDate(g.delivered_at)"></span>
+                      <button x-show="!g.is_cancelled" @click="cancelDeliveryGroup(g)"
+                        class="text-xs border-none cursor-pointer rounded-lg px-2 py-0.5 font-semibold"
+                        style="background:#fee2e2;color:#dc2626">Anular</button>
+                    </div>
                   </div>
 
                   <!-- Ítems de medicamentos -->
                   <div class="bg-white px-3 py-2 flex flex-col gap-1 border-t border-gray-100">
                     <template x-for="(item, i) in g.items" :key="i">
                       <div class="flex items-center gap-1.5">
-                        <span class="text-xs text-gray-400" x-text="'•'"></span>
-                        <span class="text-xs text-gray-700 font-medium"
+                        <span class="text-xs text-gray-400">•</span>
+                        <span class="text-xs font-medium"
+                          :style="g.is_cancelled ? 'color:#9ca3af;text-decoration:line-through' : 'color:#374151'"
                           x-text="item.medication_name+' — '+item.quantity_delivered+' '+item.unit"></span>
                       </div>
                     </template>
@@ -6749,14 +6759,31 @@ function app() {
         if (!seen[key]) {
           seen[key] = { key, delivery_type: d.delivery_type, report_id: d.report_id,
             delivered_to: d.delivered_to, recipient_id: d.recipient_id,
-            recipient_phone: d.recipient_phone,
-            recipient_address: d.recipient_address, delivered_at: d.delivered_at,
-            delivery_notes: d.delivery_notes, items: [] }
+            recipient_phone: d.recipient_phone, recipient_address: d.recipient_address,
+            delivered_at: d.delivered_at, delivery_notes: d.delivery_notes,
+            is_cancelled: d.is_cancelled, cancelled_at: d.cancelled_at,
+            ids: [], items: [] }
           groups.push(seen[key])
         }
+        seen[key].ids.push(d.id)
         seen[key].items.push({ medication_name: d.medication_name, quantity_delivered: d.quantity_delivered, unit: d.unit })
+        if (d.is_cancelled) seen[key].is_cancelled = true
       }
       return groups
+    },
+
+    async cancelDeliveryGroup(g) {
+      if (!confirm(`¿Anular entrega de ${g.delivered_to}? Se restaurará el stock.`)) return
+      try {
+        await Promise.all(g.ids.map(id =>
+          fetch(`/medication/deliveries/${id}`, {
+            method: 'DELETE',
+            headers: this.authHeaders(),
+          })
+        ))
+        await this.loadMedDeliveries()
+        await this.loadMedStock()
+      } catch(e) { alert('Error al anular: ' + e.message) }
     },
 
     async saveDirectDelivery() {

@@ -63,6 +63,8 @@ def _delivery_payload(d: MedicationDelivery) -> dict:
         "recipient_address": getattr(d, "recipient_address", None),
         "delivered_by": d.delivered_by,
         "delivery_notes": d.delivery_notes,
+        "is_cancelled": getattr(d, "is_cancelled", False),
+        "cancelled_at": (d.cancelled_at.isoformat() + "Z") if getattr(d, "cancelled_at", None) else None,
         "delivered_at": d.delivered_at.isoformat() + "Z",
         "created_at": d.created_at.isoformat() + "Z",
     }
@@ -343,6 +345,47 @@ async def create_delivery(
         raise HTTPException(500, f"Error al guardar entrega: {exc}")
 
     return _delivery_payload(d)
+
+
+@router.delete("/deliveries/{delivery_id}")
+async def cancel_delivery(
+    delivery_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Anula una entrega (soft cancel). Restaura el stock si había stock_id.
+    No elimina el registro — queda como trazabilidad.
+    """
+    _require_admin(current_user)
+
+    d = (await db.execute(
+        select(MedicationDelivery).where(MedicationDelivery.id == delivery_id)
+    )).scalar_one_or_none()
+
+    if not d:
+        raise HTTPException(404, "Entrega no encontrada")
+    if getattr(d, "is_cancelled", False):
+        raise HTTPException(400, "La entrega ya está anulada")
+
+    # Restaurar stock
+    if d.stock_id:
+        await db.execute(
+            update(MedicationStock)
+            .where(MedicationStock.id == d.stock_id)
+            .values(
+                quantity=MedicationStock.quantity + d.quantity_delivered,
+                updated_at=datetime.utcnow(),
+            )
+        )
+
+    await db.execute(
+        update(MedicationDelivery)
+        .where(MedicationDelivery.id == delivery_id)
+        .values(is_cancelled=True, cancelled_at=datetime.utcnow())
+    )
+    await db.commit()
+    return {"ok": True, "message": "Entrega anulada y stock restaurado"}
 
 
 # ── Exportación Excel ─────────────────────────────────────────────────────────

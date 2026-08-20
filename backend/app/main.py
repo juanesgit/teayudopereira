@@ -51,6 +51,8 @@ async def _migrate_delivery_table():
             ("recipient_phone",   "TEXT"),
             ("recipient_address", "TEXT"),
             ("delivery_group_id", "TEXT"),
+            ("is_cancelled",      "INTEGER NOT NULL DEFAULT 0"),
+            ("cancelled_at",      "DATETIME"),
         ]
         for col, defn in new_cols:
             if col not in cols:

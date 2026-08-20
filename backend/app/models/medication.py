@@ -44,5 +44,7 @@ class MedicationDelivery(Base):
     recipient_address: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     delivered_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     delivery_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_cancelled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     delivered_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
