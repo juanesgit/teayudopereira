@@ -4613,45 +4613,42 @@
           <!-- Atención -->
           <div class="flex flex-col gap-1.5">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Atención</p>
-            <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
               <template x-for="f in [{k:'all',l:'Todos'},{k:'pend',l:'⏳ Pendientes'},{k:'att',l:'✅ Atendidos'}]" :key="f.k">
                 <button
                   @click="f.k==='all' ? censusFilter.attended='' : (censusFilter.attended=censusFilter.attended===(f.k==='pend'?'false':'true') ? '' : (f.k==='pend'?'false':'true'))"
-                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                   :style="(f.k==='all'&&!censusFilter.attended)||(f.k==='pend'&&censusFilter.attended==='false')||(f.k==='att'&&censusFilter.attended==='true') ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
-              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
           </div>
 
           <!-- Situación -->
           <div class="flex flex-col gap-1.5">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Situación</p>
-            <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
               <template x-for="f in [{k:'',l:'Todos'},{k:'street',l:'🚨 En calle'},{k:'shelter',l:'🏕 Albergue'},{k:'evacuated',l:'🚶 Evacuado'},{k:'home',l:'🏠 En casa'}]" :key="f.k">
                 <button
                   @click="censusFilter.shelter = censusFilter.shelter===f.k ? '' : f.k"
-                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                   :style="censusFilter.shelter===f.k ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
-              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
           </div>
 
           <!-- Necesidad -->
           <div class="flex flex-col gap-1.5">
             <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Necesidad</p>
-            <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
               <template x-for="f in [{k:'',l:'Todas'},{k:'food',l:'🍱 Alimentos'},{k:'water',l:'💧 Agua'},{k:'medical',l:'🏥 Médico'},{k:'medicine',l:'💊 Medicamentos'},{k:'clothing',l:'👕 Ropa'}]" :key="f.k">
                 <button
                   @click="censusFilter.need = censusFilter.need===f.k ? '' : f.k"
-                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                   :style="censusFilter.need===f.k ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
-              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
           </div>
 
