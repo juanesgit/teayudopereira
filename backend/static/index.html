@@ -6788,7 +6788,10 @@ function app() {
         const failed = responses.find(r => !r.ok)
         if (failed) {
           let errMsg = `Error ${failed.status}`
-          try { const d = await failed.json(); errMsg = d.detail || errMsg } catch {}
+          try {
+            const d = await failed.json()
+            errMsg = typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail)
+          } catch {}
           this.medDirectError = errMsg
           return
         }
