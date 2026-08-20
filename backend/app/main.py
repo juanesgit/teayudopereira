@@ -129,8 +129,9 @@ async def _migrate_census_table():
             return
         cols = {r[1] for r in rows}
         for col, defn in [
-            ("is_attended", "INTEGER NOT NULL DEFAULT 0"),
+            ("is_attended",  "INTEGER NOT NULL DEFAULT 0"),
             ("attended_at",  "DATETIME"),
+            ("adults_count", "INTEGER NOT NULL DEFAULT 0"),
         ]:
             if col not in cols:
                 log.info("_migrate_census_table: agregando columna %s", col)

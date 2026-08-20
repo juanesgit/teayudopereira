@@ -41,6 +41,7 @@ def _payload(r: CensusRecord, registered_by_name: str = None) -> dict:
         "lng": r.lng,
         "people_count": r.people_count,
         "children_count": r.children_count,
+        "adults_count": getattr(r, "adults_count", 0),
         "elderly_count": r.elderly_count,
         "needs": json.loads(r.needs) if r.needs else [],
         "vulnerable": json.loads(r.vulnerable) if r.vulnerable else [],
@@ -118,6 +119,7 @@ async def create_census(
         lng=body.get("lng"),
         people_count=int(body.get("people_count", 1)),
         children_count=int(body.get("children_count", 0)),
+        adults_count=int(body.get("adults_count", 0)),
         elderly_count=int(body.get("elderly_count", 0)),
         needs=json.dumps(needs) if needs else None,
         vulnerable=json.dumps(vulnerable) if vulnerable else None,
@@ -146,7 +148,7 @@ async def update_census(
 
     allowed = {"full_name", "document_number", "age", "gender", "phone", "whatsapp",
                "address", "neighborhood", "lat", "lng", "people_count", "children_count",
-               "elderly_count", "shelter_status", "notes"}
+               "adults_count", "elderly_count", "shelter_status", "notes"}
     vals: dict = {"updated_at": datetime.utcnow()}
     for k, v in body.items():
         if k in allowed:
@@ -245,7 +247,7 @@ async def export_census_xlsx(
     ws = wb.active
     ws.title = "Censo Afectados"
 
-    COLS = 12
+    COLS = 19
     thin = Side(style="thin", color="D1D5DB")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
@@ -269,7 +271,7 @@ async def export_census_xlsx(
     headers = [
         "Nombre completo", "Documento", "Edad", "Género",
         "Teléfono", "WhatsApp", "Dirección", "Barrio",
-        "Personas", "Menores", "Adultos mayores",
+        "Personas", "Menores", "Adultos", "Adultos mayores",
         "Alojamiento", "Necesidades", "Vulnerabilidad", "Notas",
         "Atendido", "Registrado por", "Fecha registro",
     ]
@@ -312,7 +314,7 @@ async def export_census_xlsx(
         row_data = [
             r.full_name, r.document_number, r.age, r.gender,
             r.phone, r.whatsapp, r.address, r.neighborhood,
-            r.people_count, r.children_count, r.elderly_count,
+            r.people_count, r.children_count, getattr(r, "adults_count", 0), r.elderly_count,
             shelter, needs_str, vuln_str, r.notes,
             atendido, vol_name, fecha,
         ]
@@ -327,7 +329,7 @@ async def export_census_xlsx(
         ws.row_dimensions[i].height = 16
 
     # Anchos de columna
-    col_widths = [28, 16, 8, 12, 14, 14, 30, 18, 10, 10, 14, 16, 32, 24, 28, 10, 22, 18]
+    col_widths = [28, 16, 8, 12, 14, 14, 30, 18, 10, 10, 10, 14, 16, 32, 24, 28, 10, 22, 18]
     for i, w in enumerate(col_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 

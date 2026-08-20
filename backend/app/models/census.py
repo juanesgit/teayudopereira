@@ -31,6 +31,7 @@ class CensusRecord(Base):
     # ── Grupo familiar ────────────────────────────────────────────────────
     people_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     children_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    adults_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     elderly_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # ── Necesidades y condición ───────────────────────────────────────────

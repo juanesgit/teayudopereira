@@ -4505,21 +4505,29 @@
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">👨‍👩‍👧 Grupo familiar</p>
           </div>
-          <div class="p-4" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-            <div class="flex flex-col gap-1.5 items-center">
-              <label class="text-xs text-gray-400">Total</label>
-              <input x-model="censusNew.people_count" type="number" min="1"
-                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center font-bold">
-            </div>
+          <div class="p-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
             <div class="flex flex-col gap-1.5 items-center">
               <label class="text-xs text-gray-400">👶 Menores</label>
               <input x-model="censusNew.children_count" type="number" min="0"
+                @input="censusNew.people_count=(parseInt(censusNew.children_count)||0)+(parseInt(censusNew.adults_count)||0)+(parseInt(censusNew.elderly_count)||0)||1"
                 class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
             </div>
             <div class="flex flex-col gap-1.5 items-center">
-              <label class="text-xs text-gray-400">👴 Adultos</label>
-              <input x-model="censusNew.elderly_count" type="number" min="0"
+              <label class="text-xs text-gray-400">🧑 Adultos</label>
+              <input x-model="censusNew.adults_count" type="number" min="0"
+                @input="censusNew.people_count=(parseInt(censusNew.children_count)||0)+(parseInt(censusNew.adults_count)||0)+(parseInt(censusNew.elderly_count)||0)||1"
                 class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
+            </div>
+            <div class="flex flex-col gap-1.5 items-center">
+              <label class="text-xs text-gray-400">👴 Ad. mayores</label>
+              <input x-model="censusNew.elderly_count" type="number" min="0"
+                @input="censusNew.people_count=(parseInt(censusNew.children_count)||0)+(parseInt(censusNew.adults_count)||0)+(parseInt(censusNew.elderly_count)||0)||1"
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
+            </div>
+            <div class="flex flex-col gap-1.5 items-center">
+              <label class="text-xs text-gray-400 font-bold">Total</label>
+              <input :value="censusNew.people_count" type="number" readonly
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-100 w-full text-center font-bold text-gray-700 cursor-default">
             </div>
           </div>
         </div>
@@ -6950,7 +6958,7 @@ function app() {
         address: r.address||'', neighborhood: r.neighborhood||'',
         lat: r.lat, lng: r.lng,
         people_count: r.people_count||1, children_count: r.children_count||0,
-        elderly_count: r.elderly_count||0,
+        adults_count: r.adults_count||0, elderly_count: r.elderly_count||0,
         needs: [...(r.needs||[])], vulnerable: [...(r.vulnerable||[])],
         shelter_status: r.shelter_status||null, notes: r.notes||''
       }
@@ -6977,9 +6985,10 @@ function app() {
       const body = {
         ...this.censusNew,
         age: this.censusNew.age ? parseInt(this.censusNew.age) : null,
-        people_count: parseInt(this.censusNew.people_count) || 1,
         children_count: parseInt(this.censusNew.children_count) || 0,
+        adults_count: parseInt(this.censusNew.adults_count) || 0,
         elderly_count: parseInt(this.censusNew.elderly_count) || 0,
+        people_count: (parseInt(this.censusNew.children_count)||0) + (parseInt(this.censusNew.adults_count)||0) + (parseInt(this.censusNew.elderly_count)||0) || 1,
       }
       try {
         const isEdit = !!this.censusEditId
@@ -7003,7 +7012,7 @@ function app() {
         full_name:'', document_number:'', age:'', gender:'',
         phone:'', whatsapp:'', address:'', neighborhood:'',
         lat:null, lng:null, people_count:1, children_count:0,
-        elderly_count:0, needs:[], vulnerable:[], shelter_status:null, notes:''
+        adults_count:0, elderly_count:0, needs:[], vulnerable:[], shelter_status:null, notes:''
       }
       this.censusEditId = null
       this.censusDupWarning = ''
