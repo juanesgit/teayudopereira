@@ -4429,7 +4429,7 @@
             x-text="censusEditId ? 'Editando registro #'+censusEditId : 'Nuevo registro'"></p>
         </div>
 
-        <!-- Datos personales -->
+        <!-- Datos personales + Contacto -->
         <div class="rounded-xl border border-gray-200 bg-white overflow-hidden">
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">👤 Datos personales</p>
@@ -4447,7 +4447,7 @@
               </div>
               <input x-model="censusNew.age" type="number" min="0" max="120" placeholder="Edad"
                 class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-center"
-                style="width:70px">
+                style="width:68px">
             </div>
             <div style="display:flex;gap:6px">
               <template x-for="g in [{v:'masculino',l:'♂ Masc.'},{v:'femenino',l:'♀ Fem.'},{v:'otro',l:'Otro'}]" :key="g.v">
@@ -4457,19 +4457,13 @@
                   x-text="g.l"></button>
               </template>
             </div>
-          </div>
-        </div>
-
-        <!-- Contacto -->
-        <div class="rounded-xl border border-gray-200 bg-white overflow-hidden">
-          <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
-            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">📞 Contacto</p>
-          </div>
-          <div class="p-3 flex flex-col gap-2.5">
-            <input x-model="censusNew.phone" type="tel" placeholder="Celular"
-              class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
-            <input x-model="censusNew.whatsapp" type="tel" placeholder="WhatsApp (si es diferente)"
-              class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+            <!-- Contacto inline -->
+            <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+              <input x-model="censusNew.phone" type="tel" placeholder="📞 Celular"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+              <input x-model="censusNew.whatsapp" type="tel" placeholder="💬 WhatsApp"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+            </div>
           </div>
         </div>
 
@@ -4478,11 +4472,13 @@
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">📍 Ubicación</p>
           </div>
-          <div class="p-3 flex flex-col gap-2.5">
-            <input x-model="censusNew.address" type="text" placeholder="Dirección"
-              class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
-            <input x-model="censusNew.neighborhood" type="text" placeholder="Barrio / Sector"
-              class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+          <div class="p-3 flex flex-col gap-2">
+            <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+              <input x-model="censusNew.address" type="text" placeholder="Dirección"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+              <input x-model="censusNew.neighborhood" type="text" placeholder="Barrio / Sector"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+            </div>
             <button @click="getCensusGeo()"
               class="text-xs rounded-xl py-2 border cursor-pointer font-semibold w-full"
               :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'"
@@ -4556,10 +4552,18 @@
           </div>
         </div>
 
-        <!-- Notas -->
-        <div class="rounded-xl border border-gray-200 bg-white p-3">
-          <textarea x-model="censusNew.notes" placeholder="📝 Notas adicionales..." rows="3"
-            class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full resize-none"></textarea>
+        <!-- Notas (colapsable) -->
+        <div x-data="{open: false}" class="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <button @click="open=!open"
+            class="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 border-none cursor-pointer text-left"
+            :class="open ? 'border-b border-gray-100' : ''">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">📝 Notas adicionales</p>
+            <span class="text-gray-400 text-xs" x-text="open ? '▲' : '▼'"></span>
+          </button>
+          <div x-show="open" class="p-3">
+            <textarea x-model="censusNew.notes" placeholder="Observaciones, contexto adicional..." rows="3"
+              class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full resize-none"></textarea>
+          </div>
         </div>
 
         <button @click="saveCensus()" :disabled="!censusNew.full_name.trim()"
