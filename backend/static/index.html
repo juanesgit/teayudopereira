@@ -3735,6 +3735,7 @@
                 :style="adminReportFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                 x-text="f.l"></button>
             </template>
+            <span style="min-width:4px;flex-shrink:0"></span>
           </div>
 
           <!-- Contador + recarga -->
@@ -3859,6 +3860,7 @@
                 :style="medTab===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                 x-text="s.e+' '+s.l"></button>
             </template>
+            <span style="min-width:4px;flex-shrink:0"></span>
           </div>
 
           <!-- ══ SOLICITUDES ══ -->
@@ -3872,6 +3874,7 @@
                   :style="medReqFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
+              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
 
             <!-- Contador + recarga -->
@@ -4295,6 +4298,7 @@
                   :style="adminDmFilter===f.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
+              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
 
             <!-- Contador + recarga -->
@@ -4435,33 +4439,41 @@
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">👤 Datos personales</p>
           </div>
           <div class="p-4 flex flex-col gap-3">
-            <input x-model="censusNew.full_name" type="text" placeholder="Nombre completo *"
-              class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+            <input x-model="censusNew.full_name" @input="censusValidErrors=censusValidErrors.filter(e=>e!=='Nombre completo')" type="text" placeholder="Nombre completo *"
+              class="text-sm border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
+              :class="censusValidErrors.includes('Nombre completo') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
             <div class="flex gap-2">
               <div class="flex-1 flex flex-col gap-1">
-                <input x-model="censusNew.document_number" type="text" placeholder="N° documento"
-                  @input="checkCensusDuplicate()"
-                  class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+                <input x-model="censusNew.document_number" type="text" placeholder="N° documento *"
+                  @input="checkCensusDuplicate(); censusValidErrors=censusValidErrors.filter(e=>e!=='Número de documento')"
+                  class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
+                  :class="censusValidErrors.includes('Número de documento') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
                 <p x-show="censusDupWarning" x-text="censusDupWarning"
                   class="text-xs font-semibold px-1" style="color:#dc2626"></p>
               </div>
-              <input x-model="censusNew.age" type="number" min="0" max="120" placeholder="Edad"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 text-center"
+              <input x-model="censusNew.age" @input="censusValidErrors=censusValidErrors.filter(e=>e!=='Edad')" type="number" min="0" max="120" placeholder="Edad *"
+                class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 text-center"
+                :class="censusValidErrors.includes('Edad') ? 'border-red-400 bg-red-50' : 'border-gray-200'"
                 style="width:68px">
             </div>
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:6px"
+              :style="censusValidErrors.includes('Género') ? 'outline:2px solid #f87171;border-radius:12px;padding:4px' : ''">
               <template x-for="g in [{v:'masculino',l:'♂ Masc.'},{v:'femenino',l:'♀ Fem.'},{v:'otro',l:'Otro'}]" :key="g.v">
-                <button @click="censusNew.gender=g.v"
+                <button @click="censusNew.gender=g.v; censusValidErrors=censusValidErrors.filter(e=>e!=='Género')"
                   class="flex-1 text-xs rounded-full py-2 border-none cursor-pointer font-semibold"
                   :style="censusNew.gender===g.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="g.l"></button>
               </template>
             </div>
             <div class="grid gap-3" style="grid-template-columns:1fr 1fr">
-              <input x-model="censusNew.phone" type="tel" placeholder="📞 Celular"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
-              <input x-model="censusNew.whatsapp" type="tel" placeholder="💬 WhatsApp"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+              <input x-model="censusNew.phone" type="tel" placeholder="📞 Celular *"
+                @input="censusValidErrors=censusValidErrors.filter(e=>e!=='Celular')"
+                class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
+                :class="censusValidErrors.includes('Celular') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
+              <input x-model="censusNew.whatsapp" type="tel" placeholder="💬 WhatsApp *"
+                @input="censusValidErrors=censusValidErrors.filter(e=>e!=='WhatsApp')"
+                class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
+                :class="censusValidErrors.includes('WhatsApp') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
             </div>
           </div>
         </div>
@@ -4473,10 +4485,14 @@
           </div>
           <div class="p-4 flex flex-col gap-3">
             <div class="grid gap-3" style="grid-template-columns:1fr 1fr">
-              <input x-model="censusNew.address" type="text" placeholder="Dirección"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
-              <input x-model="censusNew.neighborhood" type="text" placeholder="Barrio / Sector"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+              <input x-model="censusNew.address" type="text" placeholder="Dirección *"
+                @input="censusValidErrors=censusValidErrors.filter(e=>e!=='Dirección')"
+                class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
+                :class="censusValidErrors.includes('Dirección') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
+              <input x-model="censusNew.neighborhood" type="text" placeholder="Barrio / Sector *"
+                @input="censusValidErrors=censusValidErrors.filter(e=>e!=='Barrio / Sector')"
+                class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
+                :class="censusValidErrors.includes('Barrio / Sector') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
             </div>
             <button @click="getCensusGeo()"
               class="text-xs rounded-xl py-2.5 border cursor-pointer font-semibold w-full"
@@ -4516,10 +4532,12 @@
           </div>
           <div class="p-4 flex flex-col gap-3">
             <div>
-              <p class="text-xs text-gray-400 mb-1.5 font-medium">¿Qué necesita?</p>
-              <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <p class="text-xs font-medium mb-1.5"
+                :class="censusValidErrors.includes('Al menos una necesidad') ? 'text-red-500' : 'text-gray-400'">¿Qué necesita? *</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px"
+                :style="censusValidErrors.includes('Al menos una necesidad') ? 'outline:2px solid #f87171;border-radius:12px;padding:6px' : ''">
                 <template x-for="n in [{v:'food',l:'🍱 Alimentos'},{v:'water',l:'💧 Agua'},{v:'shelter',l:'🏠 Refugio'},{v:'medical',l:'🏥 Médico'},{v:'medicine',l:'💊 Medicamentos'},{v:'clothing',l:'👕 Ropa'}]" :key="n.v">
-                  <button @click="toggleCensusNeed(n.v)"
+                  <button @click="toggleCensusNeed(n.v); censusValidErrors=censusValidErrors.filter(e=>e!=='Al menos una necesidad')"
                     class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                     :style="censusNew.needs.includes(n.v) ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#374151'"
                     x-text="n.l"></button>
@@ -4527,10 +4545,12 @@
               </div>
             </div>
             <div>
-              <p class="text-xs text-gray-400 mb-1.5 font-medium">Alojamiento actual</p>
-              <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <p class="text-xs font-medium mb-1.5"
+                :class="censusValidErrors.includes('Estado de alojamiento') ? 'text-red-500' : 'text-gray-400'">Alojamiento actual *</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px"
+                :style="censusValidErrors.includes('Estado de alojamiento') ? 'outline:2px solid #f87171;border-radius:12px;padding:6px' : ''">
                 <template x-for="s in [{v:'home',l:'🏠 En casa'},{v:'evacuated',l:'🚶 Evacuado'},{v:'shelter',l:'🏕 Albergue'},{v:'street',l:'🚨 En calle'}]" :key="s.v">
-                  <button @click="censusNew.shelter_status=censusNew.shelter_status===s.v?null:s.v"
+                  <button @click="censusNew.shelter_status=censusNew.shelter_status===s.v?null:s.v; censusValidErrors=censusValidErrors.filter(e=>e!=='Estado de alojamiento')"
                     class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                     :style="censusNew.shelter_status===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#374151'"
                     x-text="s.l"></button>
@@ -4565,8 +4585,16 @@
           </div>
         </div>
 
-        <button @click="saveCensus()" :disabled="!censusNew.full_name.trim()"
-          class="w-full text-white rounded-xl border-none cursor-pointer font-bold disabled:opacity-40"
+        <!-- Errores de validación -->
+        <div x-show="censusValidErrors.length > 0"
+          class="rounded-xl px-4 py-3"
+          style="background:#fef2f2;border:1px solid #fca5a5">
+          <p class="text-xs font-bold mb-1.5" style="color:#dc2626">⚠️ Faltan campos obligatorios:</p>
+          <p class="text-xs" style="color:#991b1b" x-text="censusValidErrors.join(' · ')"></p>
+        </div>
+
+        <button @click="saveCensus()"
+          class="w-full text-white rounded-xl border-none cursor-pointer font-bold"
           style="background:#111827;min-height:48px;font-size:14px"
           x-text="censusEditId ? '✓ Guardar cambios' : '✓ Guardar registro'"></button>
         <button @click="_resetCensusForm()"
@@ -4591,11 +4619,12 @@
             <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
               <template x-for="f in [{k:'all',l:'Todos'},{k:'pend',l:'⏳ Pendientes'},{k:'att',l:'✅ Atendidos'}]" :key="f.k">
                 <button
-                  @click="f.k==='all' ? censusFilter.attended='' : (censusFilter.attended=censusFilter.attended===( f.k==='pend'?'false':'true') ? '' : (f.k==='pend'?'false':'true'))"
+                  @click="f.k==='all' ? censusFilter.attended='' : (censusFilter.attended=censusFilter.attended===(f.k==='pend'?'false':'true') ? '' : (f.k==='pend'?'false':'true'))"
                   class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                   :style="(f.k==='all'&&!censusFilter.attended)||(f.k==='pend'&&censusFilter.attended==='false')||(f.k==='att'&&censusFilter.attended==='true') ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
+              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
           </div>
 
@@ -4610,6 +4639,7 @@
                   :style="censusFilter.shelter===f.k ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
+              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
           </div>
 
@@ -4624,6 +4654,7 @@
                   :style="censusFilter.need===f.k ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="f.l"></button>
               </template>
+              <span style="min-width:4px;flex-shrink:0"></span>
             </div>
           </div>
 
@@ -5218,6 +5249,7 @@ function app() {
     censusExpanded: null,
     censusEditId: null,
     censusDupWarning: '',
+    censusValidErrors: [],
     censusFilter: { need:'', shelter:'', attended:'' },
     censusDeleteConfirm: false,
     censusDeleteTarget: null,
@@ -6935,7 +6967,19 @@ function app() {
     },
 
     async saveCensus() {
-      if (!this.censusNew.full_name.trim()) return
+      const errs = []
+      if (!this.censusNew.full_name.trim()) errs.push('Nombre completo')
+      if (!this.censusNew.document_number.trim()) errs.push('Número de documento')
+      if (!this.censusNew.age) errs.push('Edad')
+      if (!this.censusNew.gender) errs.push('Género')
+      if (!this.censusNew.phone.trim()) errs.push('Celular')
+      if (!this.censusNew.whatsapp.trim()) errs.push('WhatsApp')
+      if (!this.censusNew.address.trim()) errs.push('Dirección')
+      if (!this.censusNew.neighborhood.trim()) errs.push('Barrio / Sector')
+      if (!this.censusNew.shelter_status) errs.push('Estado de alojamiento')
+      if (!this.censusNew.needs.length) errs.push('Al menos una necesidad')
+      if (errs.length) { this.censusValidErrors = errs; return }
+      this.censusValidErrors = []
       const body = {
         ...this.censusNew,
         age: this.censusNew.age ? parseInt(this.censusNew.age) : null,
@@ -6969,6 +7013,7 @@ function app() {
       }
       this.censusEditId = null
       this.censusDupWarning = ''
+      this.censusValidErrors = []
       this.censusForm = false
     },
 
