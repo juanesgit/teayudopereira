@@ -4522,10 +4522,10 @@
           <div class="p-3 flex flex-col gap-3">
             <div>
               <p class="text-xs text-gray-400 mb-1.5 font-medium">¿Qué necesita?</p>
-              <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <template x-for="n in [{v:'food',l:'🍱 Alimentos'},{v:'water',l:'💧 Agua'},{v:'shelter',l:'🏠 Refugio'},{v:'medical',l:'🏥 Médico'},{v:'medicine',l:'💊 Medicamentos'},{v:'clothing',l:'👕 Ropa'}]" :key="n.v">
                   <button @click="toggleCensusNeed(n.v)"
-                    class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                    class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                     :style="censusNew.needs.includes(n.v) ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#374151'"
                     x-text="n.l"></button>
                 </template>
@@ -4533,10 +4533,10 @@
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-1.5 font-medium">Alojamiento actual</p>
-              <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <template x-for="s in [{v:'home',l:'🏠 En casa'},{v:'evacuated',l:'🚶 Evacuado'},{v:'shelter',l:'🏕 Albergue'},{v:'street',l:'🚨 En calle'}]" :key="s.v">
                   <button @click="censusNew.shelter_status=censusNew.shelter_status===s.v?null:s.v"
-                    class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                    class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                     :style="censusNew.shelter_status===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#374151'"
                     x-text="s.l"></button>
                 </template>
@@ -4544,10 +4544,10 @@
             </div>
             <div>
               <p class="text-xs text-gray-400 mb-1.5 font-medium">Condición de vulnerabilidad</p>
-              <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <template x-for="v in [{v:'pregnant',l:'🤰 Embarazada'},{v:'disability',l:'♿ Discapacidad'},{v:'chronic_illness',l:'💉 Enf. crónica'},{v:'mental_health',l:'🧠 Salud mental'}]" :key="v.v">
                   <button @click="toggleCensusVulnerable(v.v)"
-                    class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                    class="text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
                     :style="censusNew.vulnerable.includes(v.v) ? 'background:#7c3aed;color:white' : 'background:#f3f4f6;color:#374151'"
                     x-text="v.l"></button>
                 </template>
