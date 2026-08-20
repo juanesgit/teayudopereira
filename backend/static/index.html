@@ -4434,35 +4434,34 @@
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">👤 Datos personales</p>
           </div>
-          <div class="p-3 flex flex-col gap-2.5">
+          <div class="p-4 flex flex-col gap-3">
             <input x-model="censusNew.full_name" type="text" placeholder="Nombre completo *"
               class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
             <div class="flex gap-2">
               <div class="flex-1 flex flex-col gap-1">
                 <input x-model="censusNew.document_number" type="text" placeholder="N° documento"
                   @input="checkCensusDuplicate()"
-                  class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+                  class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
                 <p x-show="censusDupWarning" x-text="censusDupWarning"
                   class="text-xs font-semibold px-1" style="color:#dc2626"></p>
               </div>
               <input x-model="censusNew.age" type="number" min="0" max="120" placeholder="Edad"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-center"
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 text-center"
                 style="width:68px">
             </div>
             <div style="display:flex;gap:6px">
               <template x-for="g in [{v:'masculino',l:'♂ Masc.'},{v:'femenino',l:'♀ Fem.'},{v:'otro',l:'Otro'}]" :key="g.v">
                 <button @click="censusNew.gender=g.v"
-                  class="flex-1 text-xs rounded-full py-1.5 border-none cursor-pointer font-semibold"
+                  class="flex-1 text-xs rounded-full py-2 border-none cursor-pointer font-semibold"
                   :style="censusNew.gender===g.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
                   x-text="g.l"></button>
               </template>
             </div>
-            <!-- Contacto inline -->
-            <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+            <div class="grid gap-3" style="grid-template-columns:1fr 1fr">
               <input x-model="censusNew.phone" type="tel" placeholder="📞 Celular"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
               <input x-model="censusNew.whatsapp" type="tel" placeholder="💬 WhatsApp"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
             </div>
           </div>
         </div>
@@ -4472,15 +4471,15 @@
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">📍 Ubicación</p>
           </div>
-          <div class="p-3 flex flex-col gap-2">
-            <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+          <div class="p-4 flex flex-col gap-3">
+            <div class="grid gap-3" style="grid-template-columns:1fr 1fr">
               <input x-model="censusNew.address" type="text" placeholder="Dirección"
-                class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
+                class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
               <input x-model="censusNew.neighborhood" type="text" placeholder="Barrio / Sector"
                 class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
             </div>
             <button @click="getCensusGeo()"
-              class="text-xs rounded-xl py-2 border cursor-pointer font-semibold w-full"
+              class="text-xs rounded-xl py-2.5 border cursor-pointer font-semibold w-full"
               :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'"
               x-text="censusNew.lat ? '📌 '+censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4) : '🎯 Usar mi ubicación'"></button>
           </div>
@@ -4491,21 +4490,21 @@
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">👨‍👩‍👧 Grupo familiar</p>
           </div>
-          <div class="p-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <div class="flex flex-col gap-1 items-center">
+          <div class="p-4" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div class="flex flex-col gap-1.5 items-center">
               <label class="text-xs text-gray-400">Total</label>
               <input x-model="censusNew.people_count" type="number" min="1"
-                class="text-sm border border-gray-200 rounded-xl px-2 py-2 bg-gray-50 w-full text-center font-bold">
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center font-bold">
             </div>
-            <div class="flex flex-col gap-1 items-center">
+            <div class="flex flex-col gap-1.5 items-center">
               <label class="text-xs text-gray-400">👶 Menores</label>
               <input x-model="censusNew.children_count" type="number" min="0"
-                class="text-sm border border-gray-200 rounded-xl px-2 py-2 bg-gray-50 w-full text-center">
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
             </div>
-            <div class="flex flex-col gap-1 items-center">
+            <div class="flex flex-col gap-1.5 items-center">
               <label class="text-xs text-gray-400">👴 Adultos</label>
               <input x-model="censusNew.elderly_count" type="number" min="0"
-                class="text-sm border border-gray-200 rounded-xl px-2 py-2 bg-gray-50 w-full text-center">
+                class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center">
             </div>
           </div>
         </div>
@@ -4515,7 +4514,7 @@
           <div class="px-3 py-2 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">🆘 Necesidades y situación</p>
           </div>
-          <div class="p-3 flex flex-col gap-3">
+          <div class="p-4 flex flex-col gap-3">
             <div>
               <p class="text-xs text-gray-400 mb-1.5 font-medium">¿Qué necesita?</p>
               <div style="display:flex;flex-wrap:wrap;gap:6px">
