@@ -345,27 +345,6 @@ async def create_delivery(
     return _delivery_payload(d)
 
 
-@router.get("/db-schema-check")
-async def db_schema_check(current_user: User = Depends(get_current_user)):
-    """Diagnóstico temporal: muestra columnas actuales de medication_deliveries."""
-    _require_admin(current_user)
-    import sqlite3
-    from pathlib import Path as P
-    db_path = str(P(__file__).resolve().parent.parent.parent / "pereira_alerta.db")
-    try:
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-        cur.execute("PRAGMA table_info(medication_deliveries)")
-        rows = cur.fetchall()
-        conn.close()
-        return {
-            "db_path": db_path,
-            "columns": [{"name": r[1], "type": r[2], "notnull": bool(r[3]), "default": r[4]} for r in rows],
-        }
-    except Exception as exc:
-        return {"error": str(exc), "db_path": db_path}
-
-
 # ── Exportación Excel ─────────────────────────────────────────────────────────
 
 @router.get("/stock/export")

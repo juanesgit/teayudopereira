@@ -23,7 +23,13 @@ async def _migrate_delivery_table():
     """Migración: report_id nullable + nuevas columnas en medication_deliveries."""
     import sqlite3, os, logging
     log = logging.getLogger(__name__)
-    db_path = str(Path(__file__).resolve().parent.parent / "pereira_alerta.db")
+    # Derivar path desde DATABASE_URL configurado (soporta teayudopereira.db u otro nombre)
+    db_url = settings.DATABASE_URL  # e.g. sqlite+aiosqlite:////root/.../teayudopereira.db
+    db_path = db_url.replace("sqlite+aiosqlite:///", "").replace("sqlite:///", "")
+    if not db_path.startswith("/"):
+        # Path relativo — resolver desde directorio del backend
+        db_path = str(Path(__file__).resolve().parent.parent / db_path)
+    log.info("_migrate_delivery_table: usando DB → %s", db_path)
     if not os.path.exists(db_path):
         log.info("_migrate_delivery_table: DB no existe aún, se omite.")
         return
