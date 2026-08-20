@@ -354,7 +354,7 @@ async def update_delivery(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Edita campos de beneficiario/notas de una entrega (no cancela ni mueve stock)."""
+    """Edita campos de beneficiario, medicamento y cantidad. Ajusta stock si cambia la cantidad."""
     _require_admin(current_user)
 
     d = (await db.execute(
@@ -366,11 +366,33 @@ async def update_delivery(
     if getattr(d, "is_cancelled", False):
         raise HTTPException(400, "No se puede editar una entrega anulada")
 
-    allowed = {"delivered_to", "recipient_id", "recipient_phone", "recipient_address", "delivery_notes"}
     vals: dict = {}
-    for k, v in body.items():
-        if k in allowed:
-            vals[k] = v or None
+
+    # Campos de beneficiario / notas
+    for k in ("delivered_to", "recipient_id", "recipient_phone", "recipient_address", "delivery_notes"):
+        if k in body:
+            vals[k] = body[k] or None
+
+    # Nombre de medicamento y unidad (sin afectar stock)
+    if "medication_name" in body:
+        vals["medication_name"] = str(body["medication_name"]).strip() or d.medication_name
+    if "unit" in body:
+        vals["unit"] = str(body["unit"]).strip() or d.unit
+
+    # Cantidad — ajusta stock si hay stock_id
+    if "quantity_delivered" in body:
+        new_qty = int(body["quantity_delivered"]) if body["quantity_delivered"] else d.quantity_delivered
+        if new_qty != d.quantity_delivered and d.stock_id:
+            diff = d.quantity_delivered - new_qty  # positivo = devuelve al stock, negativo = descuenta
+            await db.execute(
+                update(MedicationStock)
+                .where(MedicationStock.id == d.stock_id)
+                .values(
+                    quantity=MedicationStock.quantity + diff,
+                    updated_at=datetime.utcnow(),
+                )
+            )
+        vals["quantity_delivered"] = new_qty
 
     if not vals:
         raise HTTPException(400, "Sin campos válidos para actualizar")
