@@ -677,6 +677,53 @@
     </div>
   </template>
 
+  <!-- MODAL CONFIRMACIÓN ELIMINAR REGISTRO CENSO -->
+  <template x-if="censusDeleteConfirm && censusDeleteTarget">
+    <div style="position:fixed;inset:0;z-index:7100;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:white;border-radius:24px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 25px 50px rgba(0,0,0,.35)">
+        <!-- Header rojo -->
+        <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:20px 20px 16px;color:white">
+          <div class="flex items-center gap-3">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🗑</div>
+            <div>
+              <p style="font-size:17px;font-weight:800;margin:0">Eliminar registro</p>
+              <p style="font-size:13px;opacity:.85;margin:2px 0 0" x-text="censusDeleteTarget.full_name"></p>
+            </div>
+          </div>
+        </div>
+        <!-- Body -->
+        <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
+          <p style="font-size:13px;color:#4b5563;text-align:center;line-height:1.5">
+            Este registro será <strong>eliminado permanentemente</strong> del censo. Esta acción no se puede deshacer.
+          </p>
+          <!-- Info del registro -->
+          <div style="background:#fef2f2;border-radius:14px;padding:12px 16px;display:flex;flex-direction:column;gap:6px">
+            <div class="flex items-center gap-2">
+              <span style="font-size:13px;font-weight:700;color:#dc2626" x-text="censusDeleteTarget.full_name"></span>
+            </div>
+            <p x-show="censusDeleteTarget.document_number" style="font-size:12px;color:#6b7280;margin:0"
+              x-text="'🪪 Doc: '+censusDeleteTarget.document_number"></p>
+            <p x-show="censusDeleteTarget.neighborhood||censusDeleteTarget.address" style="font-size:12px;color:#6b7280;margin:0"
+              x-text="'📍 '+(censusDeleteTarget.neighborhood||censusDeleteTarget.address)"></p>
+            <p x-show="censusDeleteTarget.people_count>1" style="font-size:12px;color:#6b7280;margin:0"
+              x-text="'👥 '+censusDeleteTarget.people_count+' personas en el grupo'"></p>
+          </div>
+          <!-- Botones -->
+          <button @click="deleteCensusRecord()"
+            class="w-full font-black rounded-2xl border-none cursor-pointer text-white"
+            style="min-height:52px;font-size:15px;background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 4px 12px rgba(220,38,38,.4)">
+            🗑 Sí, eliminar registro
+          </button>
+          <button @click="censusDeleteConfirm=false;censusDeleteTarget=null"
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer"
+            style="min-height:48px;font-size:15px;background:#f3f4f6;color:#6b7280">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <!-- MODAL ENTREGA DIRECTA -->
   <template x-if="medDirectModal">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6500;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto"
@@ -4326,28 +4373,56 @@
   <div x-show="page==='census'" class="overflow-auto pb-20" style="height:calc(100vh - var(--header-h) - var(--nav-h))">
     <div class="p-4 flex flex-col gap-4 max-w-lg mx-auto">
 
-      <!-- Encabezado + botón nuevo -->
+      <!-- ── Header ── -->
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-lg font-bold text-gray-900">📋 Censo de afectados</h2>
-          <p class="text-xs text-gray-400" x-text="censusRecords.length + ' registro(s)'"></p>
+          <p class="text-xs text-gray-400" x-text="censusFiltered().length+' de '+censusRecords.length+' registro(s)'"></p>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
           <button @click="loadCensus()" class="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1.5 border-none cursor-pointer">🔄</button>
-          <a x-show="user?.role==='admin'" :href="'/census/export?token='+token" target="_blank"
+          <a x-show="user?.role==='admin'" :href="censusExportUrl()" target="_blank"
             class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer no-underline"
             style="background:#16a34a;color:white">⬇ Excel</a>
-          <button @click="censusForm=!censusForm"
+          <button @click="censusForm ? _resetCensusForm() : (censusForm=true, censusEditId=null)"
             class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
             :style="censusForm ? 'background:#fee2e2;color:#991b1b' : 'background:#111827;color:white'"
             x-text="censusForm ? '✕ Cancelar' : '+ Registrar'"></button>
         </div>
       </div>
 
-      <!-- ── Formulario de registro ── -->
-      <div x-show="censusForm" class="flex flex-col gap-3">
+      <!-- ── Dashboard stats ── -->
+      <template x-if="censusRecords.length > 0 && !censusForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+          <div class="rounded-2xl p-3 text-center" style="background:#f9fafb;border:1.5px solid #e5e7eb">
+            <p class="text-lg font-black text-gray-900" x-text="censusStats().families"></p>
+            <p class="text-xs text-gray-400 font-medium">Familias</p>
+          </div>
+          <div class="rounded-2xl p-3 text-center" style="background:#eff6ff;border:1.5px solid #bfdbfe">
+            <p class="text-lg font-black" style="color:#1d4ed8" x-text="censusStats().totalPeople"></p>
+            <p class="text-xs font-medium" style="color:#3b82f6">Personas</p>
+          </div>
+          <div class="rounded-2xl p-3 text-center" style="background:#f0fdf4;border:1.5px solid #86efac">
+            <p class="text-lg font-black" style="color:#16a34a" x-text="censusStats().attended"></p>
+            <p class="text-xs font-medium" style="color:#16a34a">Atendidos</p>
+          </div>
+          <div class="rounded-2xl p-3 text-center" style="background:#fef2f2;border:1.5px solid #fca5a5">
+            <p class="text-lg font-black" style="color:#dc2626" x-text="censusStats().pending"></p>
+            <p class="text-xs font-medium" style="color:#dc2626">Pendientes</p>
+          </div>
+        </div>
+      </template>
 
-        <!-- Sección: Datos personales -->
+      <!-- ── Formulario de registro / edición ── -->
+      <div x-show="censusForm" data-census-form class="flex flex-col gap-3">
+        <div class="rounded-2xl px-4 py-3 flex items-center gap-2"
+          :style="censusEditId ? 'background:#eff6ff;border:1.5px solid #bfdbfe' : 'background:#f9fafb;border:1.5px solid #e5e7eb'">
+          <span x-text="censusEditId ? '✏️' : '➕'" style="font-size:18px"></span>
+          <p class="text-sm font-bold" :style="censusEditId ? 'color:#1d4ed8' : 'color:#111827'"
+            x-text="censusEditId ? 'Editando registro #'+censusEditId : 'Nuevo registro'"></p>
+        </div>
+
+        <!-- Datos personales -->
         <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
           <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">👤 Datos personales</p>
@@ -4362,7 +4437,10 @@
               <div class="flex flex-col gap-1">
                 <label class="text-xs text-gray-500 font-medium">Documento</label>
                 <input x-model="censusNew.document_number" type="text" placeholder="Opcional"
+                  @input="checkCensusDuplicate()"
                   class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full">
+                <p x-show="censusDupWarning" x-text="censusDupWarning"
+                  class="text-xs font-semibold" style="color:#dc2626"></p>
               </div>
               <div class="flex flex-col gap-1">
                 <label class="text-xs text-gray-500 font-medium">Edad</label>
@@ -4384,7 +4462,7 @@
           </div>
         </div>
 
-        <!-- Sección: Contacto -->
+        <!-- Contacto -->
         <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
           <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">📞 Contacto</p>
@@ -4403,7 +4481,7 @@
           </div>
         </div>
 
-        <!-- Sección: Ubicación -->
+        <!-- Ubicación -->
         <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
           <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">📍 Ubicación</p>
@@ -4423,19 +4501,19 @@
               class="flex items-center justify-center gap-2 rounded-xl py-2.5 border cursor-pointer font-semibold text-sm w-full"
               :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'">
               <span>🎯</span>
-              <span x-text="censusNew.lat ? '📌 Ubicación capturada · ' + censusNew.lat.toFixed(4) + ', ' + censusNew.lng.toFixed(4) : 'Usar mi ubicación actual'"></span>
+              <span x-text="censusNew.lat ? '📌 '+censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4) : 'Usar mi ubicación'"></span>
             </button>
           </div>
         </div>
 
-        <!-- Sección: Grupo familiar -->
+        <!-- Grupo familiar -->
         <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
           <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
             <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">👨‍👩‍👧 Grupo familiar</p>
           </div>
           <div class="p-4 grid gap-3" style="grid-template-columns:1fr 1fr 1fr">
             <div class="flex flex-col gap-1 items-center">
-              <label class="text-xs text-gray-500 font-medium text-center">Total personas</label>
+              <label class="text-xs text-gray-500 font-medium text-center">Total</label>
               <input x-model="censusNew.people_count" type="number" min="1"
                 class="text-sm border border-gray-200 rounded-xl px-2 py-2.5 bg-gray-50 w-full text-center font-bold">
             </div>
@@ -4452,29 +4530,42 @@
           </div>
         </div>
 
-        <!-- Sección: Necesidades -->
+        <!-- Necesidades + Alojamiento + Vulnerabilidad -->
         <div class="rounded-2xl border border-gray-200 bg-white overflow-hidden">
           <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">🆘 Necesidades</p>
+            <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">🆘 Necesidades y situación</p>
           </div>
           <div class="p-4 flex flex-col gap-4">
-            <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
-              <template x-for="n in [{v:'food',l:'🍱 Alimentos'},{v:'water',l:'💧 Agua'},{v:'shelter',l:'🏠 Refugio'},{v:'medical',l:'🏥 Atención médica'},{v:'medicine',l:'💊 Medicamentos'},{v:'clothing',l:'👕 Ropa'}]" :key="n.v">
-                <button @click="toggleCensusNeed(n.v)"
-                  class="text-xs rounded-xl px-3 py-2.5 border-none cursor-pointer font-semibold text-left"
-                  :style="censusNew.needs.includes(n.v) ? 'background:#fef2f2;color:#dc2626;outline:2px solid #fca5a5' : 'background:#f3f4f6;color:#374151'"
-                  x-text="n.l"></button>
-              </template>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-500 font-medium">Estado actual</label>
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-2">¿Qué necesita?</p>
               <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
-                <template x-for="s in [{v:'home',l:'🏠 En casa'},{v:'evacuated',l:'🚶 Evacuado'},{v:'shelter',l:'🏕 En albergue'},{v:'street',l:'🚨 En calle'}]" :key="s.v">
+                <template x-for="n in [{v:'food',l:'🍱 Alimentos'},{v:'water',l:'💧 Agua'},{v:'shelter',l:'🏠 Refugio'},{v:'medical',l:'🏥 Atención médica'},{v:'medicine',l:'💊 Medicamentos'},{v:'clothing',l:'👕 Ropa'}]" :key="n.v">
+                  <button @click="toggleCensusNeed(n.v)"
+                    class="text-xs rounded-xl px-3 py-2.5 border-none cursor-pointer font-semibold text-left"
+                    :style="censusNew.needs.includes(n.v) ? 'background:#fef2f2;color:#dc2626;outline:2px solid #fca5a5' : 'background:#f3f4f6;color:#374151'"
+                    x-text="n.l"></button>
+                </template>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-2">Estado de alojamiento</p>
+              <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+                <template x-for="s in [{v:'home',l:'🏠 En casa'},{v:'evacuated',l:'🚶 Evacuado'},{v:'shelter',l:'🏕 Albergue'},{v:'street',l:'🚨 En calle'}]" :key="s.v">
                   <button @click="censusNew.shelter_status=censusNew.shelter_status===s.v?null:s.v"
                     class="text-xs rounded-xl px-3 py-2.5 border-none cursor-pointer font-semibold"
                     :style="censusNew.shelter_status===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#374151'"
                     x-text="s.l"></button>
+                </template>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-2">Condición de vulnerabilidad</p>
+              <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+                <template x-for="v in [{v:'pregnant',l:'🤰 Embarazada'},{v:'disability',l:'♿ Discapacidad'},{v:'chronic_illness',l:'💉 Enf. crónica'},{v:'mental_health',l:'🧠 Salud mental'}]" :key="v.v">
+                  <button @click="toggleCensusVulnerable(v.v)"
+                    class="text-xs rounded-xl px-3 py-2.5 border-none cursor-pointer font-semibold text-left"
+                    :style="censusNew.vulnerable.includes(v.v) ? 'background:#fdf4ff;color:#7c3aed;outline:2px solid #c4b5fd' : 'background:#f3f4f6;color:#374151'"
+                    x-text="v.l"></button>
                 </template>
               </div>
             </div>
@@ -4488,64 +4579,94 @@
             class="text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 w-full resize-none"></textarea>
         </div>
 
-        <!-- Botón guardar -->
-        <button @click="saveCensus()"
-          class="w-full bg-gray-900 text-white rounded-2xl py-3.5 border-none cursor-pointer font-bold text-sm">
-          ✓ Guardar registro
-        </button>
-
-        <button @click="censusForm=false"
-          class="w-full bg-transparent text-gray-400 border-none cursor-pointer text-xs py-1">
-          Cancelar
-        </button>
+        <button @click="saveCensus()" :disabled="!censusNew.full_name.trim()"
+          class="w-full text-white rounded-2xl border-none cursor-pointer font-black disabled:opacity-40"
+          style="min-height:54px;font-size:16px;background:linear-gradient(135deg,#111827,#374151);box-shadow:0 4px 14px rgba(0,0,0,.25)"
+          x-text="censusEditId ? '✓ Guardar cambios' : '✓ Guardar registro'"></button>
+        <button @click="_resetCensusForm()"
+          class="w-full bg-transparent text-gray-400 border-none cursor-pointer text-xs py-1">Cancelar</button>
       </div>
 
-      <!-- ── Buscador ── -->
-      <input x-model="censusSearch" type="text" placeholder="🔍 Buscar por nombre, documento o barrio..."
-        class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-white w-full">
+      <!-- ── Filtros + buscador ── -->
+      <div x-show="!censusForm" class="flex flex-col gap-2">
+        <input x-model="censusSearch" type="text" placeholder="🔍 Buscar por nombre, documento, dirección o barrio..."
+          class="text-xs border border-gray-200 rounded-xl px-3 py-2.5 bg-white w-full">
+
+        <!-- Filtros rápidos -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1" style="scrollbar-width:none">
+          <!-- Necesidades -->
+          <template x-for="n in [{v:'food',l:'🍱'},{v:'water',l:'💧'},{v:'shelter',l:'🏠'},{v:'medical',l:'🏥'},{v:'medicine',l:'💊'},{v:'clothing',l:'👕'}]" :key="n.v">
+            <button @click="censusFilter.need = censusFilter.need===n.v ? '' : n.v"
+              class="flex-shrink-0 text-xs rounded-full px-2.5 py-1 border-none cursor-pointer font-bold"
+              :style="censusFilter.need===n.v ? 'background:#dc2626;color:white' : 'background:#fef2f2;color:#dc2626'"
+              x-text="n.l"></button>
+          </template>
+          <div style="width:1px;background:#e5e7eb;flex-shrink:0;margin:0 2px"></div>
+          <!-- Alojamiento -->
+          <template x-for="s in [{v:'street',l:'🚨 Calle'},{v:'shelter',l:'🏕 Albergue'},{v:'evacuated',l:'🚶 Evacuado'}]" :key="s.v">
+            <button @click="censusFilter.shelter = censusFilter.shelter===s.v ? '' : s.v"
+              class="flex-shrink-0 text-xs rounded-full px-2.5 py-1 border-none cursor-pointer font-semibold"
+              :style="censusFilter.shelter===s.v ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#374151'"
+              x-text="s.l"></button>
+          </template>
+          <div style="width:1px;background:#e5e7eb;flex-shrink:0;margin:0 2px"></div>
+          <!-- Atención -->
+          <button @click="censusFilter.attended = censusFilter.attended==='false' ? '' : 'false'"
+            class="flex-shrink-0 text-xs rounded-full px-2.5 py-1 border-none cursor-pointer font-semibold"
+            :style="censusFilter.attended==='false' ? 'background:#dc2626;color:white' : 'background:#fef2f2;color:#dc2626'">⏳ Pendientes</button>
+          <button @click="censusFilter.attended = censusFilter.attended==='true' ? '' : 'true'"
+            class="flex-shrink-0 text-xs rounded-full px-2.5 py-1 border-none cursor-pointer font-semibold"
+            :style="censusFilter.attended==='true' ? 'background:#16a34a;color:white' : 'background:#f0fdf4;color:#16a34a'">✅ Atendidos</button>
+        </div>
+        <!-- Indicador filtros activos -->
+        <div x-show="censusFilter.need||censusFilter.shelter||censusFilter.attended" class="flex items-center gap-2">
+          <p class="text-xs text-gray-400">Filtros activos</p>
+          <button @click="censusFilter={need:'',shelter:'',attended:''}"
+            class="text-xs border-none cursor-pointer rounded-full px-2 py-0.5 font-semibold"
+            style="background:#fee2e2;color:#dc2626">✕ Limpiar</button>
+        </div>
+      </div>
 
       <!-- ── Lista de registros ── -->
       <div x-show="!censusForm" class="flex flex-col gap-3">
-        <template x-for="r in censusRecords.filter(r =>
-          !censusSearch ||
-          r.full_name.toLowerCase().includes(censusSearch.toLowerCase()) ||
-          (r.document_number||'').includes(censusSearch) ||
-          (r.neighborhood||'').toLowerCase().includes(censusSearch.toLowerCase())
-        )" :key="r.id">
-          <div class="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+        <template x-for="r in censusFiltered()" :key="r.id">
+          <div class="rounded-2xl border overflow-hidden bg-white shadow-sm"
+            :style="r.is_attended ? 'border-color:#86efac;opacity:.85' : 'border-color:#e5e7eb'">
+
             <!-- Cabecera clickable -->
             <div class="flex items-center gap-3 px-4 py-3 cursor-pointer"
               @click="censusExpanded===r.id ? censusExpanded=null : censusExpanded=r.id">
-              <!-- Avatar -->
               <div class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-base font-bold"
-                style="background:#fef2f2;color:#dc2626" x-text="r.full_name.charAt(0).toUpperCase()"></div>
+                :style="r.is_attended ? 'background:#f0fdf4;color:#16a34a' : 'background:#fef2f2;color:#dc2626'"
+                x-text="r.is_attended ? '✓' : r.full_name.charAt(0).toUpperCase()"></div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold text-gray-900 truncate" x-text="r.full_name"></p>
                 <p class="text-xs text-gray-500 truncate"
                   x-text="[r.age ? r.age+' años' : null, r.neighborhood||r.address||null].filter(Boolean).join(' · ') || 'Sin datos de ubicación'"></p>
               </div>
-              <!-- Badge personas + chevron -->
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <span x-show="r.people_count > 1"
-                  class="text-xs font-bold px-2 py-0.5 rounded-full"
-                  style="background:#f3f4f6;color:#374151"
-                  x-text="'👥 '+r.people_count"></span>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <span x-show="r.people_count > 1" class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style="background:#f3f4f6;color:#374151" x-text="'👥 '+r.people_count"></span>
+                <span x-show="r.is_attended" class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style="background:#f0fdf4;color:#16a34a">Atendido</span>
                 <span class="text-gray-300" x-text="censusExpanded===r.id ? '▲' : '▼'"></span>
               </div>
             </div>
 
-            <!-- Chips de necesidades -->
-            <div x-show="r.needs && r.needs.length > 0"
-              class="px-4 pb-3 flex flex-wrap gap-1.5">
-              <template x-for="n in r.needs" :key="n">
-                <span class="text-xs font-medium rounded-lg px-2.5 py-1"
-                  style="background:#fef2f2;color:#dc2626"
+            <!-- Chips necesidades + vulnerabilidad -->
+            <div x-show="(r.needs&&r.needs.length>0)||(r.vulnerable&&r.vulnerable.length>0)||r.shelter_status"
+              class="px-4 pb-2.5 flex flex-wrap gap-1.5">
+              <template x-for="n in (r.needs||[])" :key="n">
+                <span class="text-xs font-medium rounded-lg px-2.5 py-1" style="background:#fef2f2;color:#dc2626"
                   x-text="{food:'🍱 Alimentos',water:'💧 Agua',shelter:'🏠 Refugio',medical:'🏥 Médica',medicine:'💊 Medicamentos',clothing:'👕 Ropa'}[n]||n"></span>
               </template>
-              <span x-show="r.shelter_status"
-                class="text-xs font-medium rounded-lg px-2.5 py-1"
+              <span x-show="r.shelter_status" class="text-xs font-medium rounded-lg px-2.5 py-1"
                 style="background:#f3f4f6;color:#374151"
-                x-text="{home:'🏠 En casa',evacuated:'🚶 Evacuado',shelter:'🏕 Albergue',street:'🚨 Calle'}[r.shelter_status]||''"></span>
+                x-text="{home:'🏠 Casa',evacuated:'🚶 Evacuado',shelter:'🏕 Albergue',street:'🚨 Calle'}[r.shelter_status]||''"></span>
+              <template x-for="v in (r.vulnerable||[])" :key="v">
+                <span class="text-xs font-medium rounded-lg px-2.5 py-1" style="background:#fdf4ff;color:#7c3aed"
+                  x-text="{pregnant:'🤰 Embarazada',disability:'♿ Discapacidad',chronic_illness:'💉 Enf. crónica',mental_health:'🧠 Salud mental'}[v]||v"></span>
+              </template>
             </div>
 
             <!-- Detalle expandible -->
@@ -4564,16 +4685,14 @@
 
               <!-- Info -->
               <div class="flex flex-col gap-1.5">
-                <p x-show="r.document_number" class="text-xs text-gray-500"
-                  x-text="'🪪 Doc: '+r.document_number"></p>
+                <p x-show="r.document_number" class="text-xs text-gray-500" x-text="'🪪 '+r.document_number"></p>
                 <p x-show="r.address" class="text-xs text-gray-600"
                   x-text="'📍 '+r.address+(r.neighborhood?' · '+r.neighborhood:'')"></p>
                 <div x-show="r.children_count>0||r.elderly_count>0" class="flex gap-3 text-xs text-gray-500">
                   <span x-show="r.children_count>0" x-text="'👶 '+r.children_count+' menor(es)'"></span>
                   <span x-show="r.elderly_count>0" x-text="'👴 '+r.elderly_count+' adulto(s) mayor'"></span>
                 </div>
-                <p x-show="r.notes" class="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2"
-                  x-text="r.notes"></p>
+                <p x-show="r.notes" class="text-xs text-gray-500 italic border-l-2 border-gray-200 pl-2" x-text="r.notes"></p>
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="inline-flex items-center gap-1 text-xs font-semibold rounded-full px-2.5 py-1"
                     style="background:#eff6ff;color:#1d4ed8">
@@ -4584,23 +4703,29 @@
               </div>
 
               <!-- Acciones -->
-              <div class="flex gap-2">
+              <div class="grid gap-2" style="grid-template-columns:1fr 1fr">
+                <button @click="toggleCensusAttended(r)"
+                  class="flex items-center justify-center gap-1 rounded-xl py-2 text-xs font-semibold border-none cursor-pointer"
+                  :style="r.is_attended ? 'background:#f3f4f6;color:#6b7280' : 'background:#f0fdf4;color:#16a34a'"
+                  x-text="r.is_attended ? '↩ Marcar pendiente' : '✅ Marcar atendido'"></button>
+                <button @click="openCensusEdit(r)"
+                  class="flex items-center justify-center gap-1 rounded-xl py-2 text-xs font-semibold border-none cursor-pointer"
+                  style="background:#eff6ff;color:#2563eb">✏️ Editar</button>
                 <a x-show="r.lat" :href="'https://maps.google.com/?q='+r.lat+','+r.lng" target="_blank"
-                  class="flex-1 flex items-center justify-center gap-1 rounded-xl py-2 no-underline text-xs font-semibold"
-                  style="background:#eff6ff;color:#2563eb">🗺 Ver en mapa</a>
-                <button @click="deleteCensusRecord(r.id)"
-                  class="rounded-xl py-2 px-4 text-xs font-semibold border-none cursor-pointer"
+                  class="flex items-center justify-center gap-1 rounded-xl py-2 no-underline text-xs font-semibold"
+                  style="background:#f3f4f6;color:#374151">🗺 Mapa</a>
+                <button @click="confirmDeleteCensus(r)"
+                  class="flex items-center justify-center gap-1 rounded-xl py-2 text-xs font-semibold border-none cursor-pointer"
                   style="background:#fef2f2;color:#dc2626">🗑 Eliminar</button>
               </div>
             </div>
           </div>
         </template>
 
-        <div x-show="censusRecords.length===0"
-          class="text-center py-12 text-gray-400 text-sm flex flex-col gap-2">
+        <div x-show="censusFiltered().length===0" class="text-center py-12 text-gray-400 text-sm flex flex-col gap-2">
           <span class="text-3xl">📋</span>
-          <span>Sin registros aún</span>
-          <button @click="censusForm=true"
+          <span x-text="censusRecords.length===0 ? 'Sin registros aún' : 'Sin resultados con los filtros actuales'"></span>
+          <button x-show="censusRecords.length===0" @click="censusForm=true"
             class="text-xs text-white bg-gray-900 rounded-xl px-4 py-2 border-none cursor-pointer mx-auto mt-1">
             + Crear primer registro
           </button>
@@ -5085,6 +5210,11 @@ function app() {
     censusForm: false,
     censusSearch: '',
     censusExpanded: null,
+    censusEditId: null,
+    censusDupWarning: '',
+    censusFilter: { need:'', shelter:'', attended:'' },
+    censusDeleteConfirm: false,
+    censusDeleteTarget: null,
     censusNew: {
       full_name:'', document_number:'', age:'', gender:'',
       phone:'', whatsapp:'',
@@ -6725,10 +6855,50 @@ function app() {
       } catch {}
     },
 
+    censusFiltered() {
+      return this.censusRecords.filter(r => {
+        if (this.censusFilter.need && !(r.needs||[]).includes(this.censusFilter.need)) return false
+        if (this.censusFilter.shelter && r.shelter_status !== this.censusFilter.shelter) return false
+        if (this.censusFilter.attended === 'true' && !r.is_attended) return false
+        if (this.censusFilter.attended === 'false' && r.is_attended) return false
+        if (this.censusSearch) {
+          const s = this.censusSearch.toLowerCase()
+          return r.full_name.toLowerCase().includes(s) ||
+            (r.document_number||'').includes(s) ||
+            (r.neighborhood||'').toLowerCase().includes(s) ||
+            (r.address||'').toLowerCase().includes(s)
+        }
+        return true
+      })
+    },
+
+    censusStats() {
+      const r = this.censusRecords
+      const totalPeople = r.reduce((s, x) => s + (x.people_count||1), 0)
+      const attended = r.filter(x => x.is_attended).length
+      const needCounts = {}
+      r.forEach(x => (x.needs||[]).forEach(n => { needCounts[n] = (needCounts[n]||0)+1 }))
+      const topNeed = Object.entries(needCounts).sort((a,b)=>b[1]-a[1])[0]
+      return { families: r.length, totalPeople, attended, pending: r.length - attended, topNeed }
+    },
+
     toggleCensusNeed(val) {
       const idx = this.censusNew.needs.indexOf(val)
       if (idx === -1) this.censusNew.needs.push(val)
       else this.censusNew.needs.splice(idx, 1)
+    },
+
+    toggleCensusVulnerable(val) {
+      const idx = this.censusNew.vulnerable.indexOf(val)
+      if (idx === -1) this.censusNew.vulnerable.push(val)
+      else this.censusNew.vulnerable.splice(idx, 1)
+    },
+
+    checkCensusDuplicate() {
+      const doc = (this.censusNew.document_number||'').trim()
+      if (!doc) { this.censusDupWarning = ''; return }
+      const existing = this.censusRecords.find(r => r.document_number === doc && r.id !== this.censusEditId)
+      this.censusDupWarning = existing ? `⚠️ Ya existe un registro con este documento: ${existing.full_name}` : ''
     },
 
     getCensusGeo() {
@@ -6736,45 +6906,106 @@ function app() {
       navigator.geolocation.getCurrentPosition(pos => {
         this.censusNew.lat = pos.coords.latitude
         this.censusNew.lng = pos.coords.longitude
-      }, () => alert('No se pudo obtener la ubicación'))
+      }, () => {})
+    },
+
+    openCensusEdit(r) {
+      this.censusEditId = r.id
+      this.censusNew = {
+        full_name: r.full_name, document_number: r.document_number||'',
+        age: r.age||'', gender: r.gender||'',
+        phone: r.phone||'', whatsapp: r.whatsapp||'',
+        address: r.address||'', neighborhood: r.neighborhood||'',
+        lat: r.lat, lng: r.lng,
+        people_count: r.people_count||1, children_count: r.children_count||0,
+        elderly_count: r.elderly_count||0,
+        needs: [...(r.needs||[])], vulnerable: [...(r.vulnerable||[])],
+        shelter_status: r.shelter_status||null, notes: r.notes||''
+      }
+      this.censusDupWarning = ''
+      this.censusExpanded = null
+      this.censusForm = true
+      setTimeout(() => document.querySelector('[data-census-form]')?.scrollIntoView({behavior:'smooth'}), 100)
     },
 
     async saveCensus() {
-      if (!this.censusNew.full_name.trim()) { alert('El nombre es requerido'); return }
+      if (!this.censusNew.full_name.trim()) return
+      const body = {
+        ...this.censusNew,
+        age: this.censusNew.age ? parseInt(this.censusNew.age) : null,
+        people_count: parseInt(this.censusNew.people_count) || 1,
+        children_count: parseInt(this.censusNew.children_count) || 0,
+        elderly_count: parseInt(this.censusNew.elderly_count) || 0,
+      }
       try {
-        const body = {
-          ...this.censusNew,
-          age: this.censusNew.age ? parseInt(this.censusNew.age) : null,
-          people_count: parseInt(this.censusNew.people_count) || 1,
-          children_count: parseInt(this.censusNew.children_count) || 0,
-          elderly_count: parseInt(this.censusNew.elderly_count) || 0,
-        }
-        const res = await fetch('/census', {
-          method: 'POST',
+        const isEdit = !!this.censusEditId
+        const res = await fetch(isEdit ? `/census/${this.censusEditId}` : '/census', {
+          method: isEdit ? 'PATCH' : 'POST',
           headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
         if (res.ok) {
-          const record = await res.json()
-          this.censusRecords.unshift(record)
-          this.censusNew = {
-            full_name:'', document_number:'', age:'', gender:'',
-            phone:'', whatsapp:'',
-            address:'', neighborhood:'', lat:null, lng:null,
-            people_count:1, children_count:0, elderly_count:0,
-            needs:[], vulnerable:[], shelter_status:null, notes:''
-          }
-          this.censusForm = false
+          await this.loadCensus()
+          this._resetCensusForm()
+        } else {
+          const d = await res.json()
+          this.censusDupWarning = d.detail || 'Error al guardar'
         }
       } catch {}
     },
 
-    async deleteCensusRecord(id) {
-      if (!confirm('¿Eliminar este registro del censo?')) return
+    _resetCensusForm() {
+      this.censusNew = {
+        full_name:'', document_number:'', age:'', gender:'',
+        phone:'', whatsapp:'', address:'', neighborhood:'',
+        lat:null, lng:null, people_count:1, children_count:0,
+        elderly_count:0, needs:[], vulnerable:[], shelter_status:null, notes:''
+      }
+      this.censusEditId = null
+      this.censusDupWarning = ''
+      this.censusForm = false
+    },
+
+    confirmDeleteCensus(r) {
+      this.censusDeleteTarget = r
+      this.censusDeleteConfirm = true
+    },
+
+    async deleteCensusRecord() {
+      const r = this.censusDeleteTarget
+      if (!r) return
       try {
-        const res = await fetch(`/census/${id}`, { method: 'DELETE', headers: this.authHeaders() })
-        if (res.ok) this.censusRecords = this.censusRecords.filter(r => r.id !== id)
+        const res = await fetch(`/census/${r.id}`, { method: 'DELETE', headers: this.authHeaders() })
+        if (res.ok) {
+          this.censusRecords = this.censusRecords.filter(x => x.id !== r.id)
+          this.censusDeleteConfirm = false
+          this.censusDeleteTarget = null
+        }
       } catch {}
+    },
+
+    async toggleCensusAttended(r) {
+      try {
+        const res = await fetch(`/census/${r.id}/attend`, {
+          method: 'PATCH', headers: this.authHeaders()
+        })
+        if (res.ok) {
+          const d = await res.json()
+          const idx = this.censusRecords.findIndex(x => x.id === r.id)
+          if (idx !== -1) {
+            this.censusRecords[idx] = { ...this.censusRecords[idx], is_attended: d.is_attended }
+          }
+        }
+      } catch {}
+    },
+
+    censusExportUrl() {
+      const p = new URLSearchParams({ token: this.token })
+      if (this.censusFilter.need) p.set('need', this.censusFilter.need)
+      if (this.censusFilter.shelter) p.set('shelter', this.censusFilter.shelter)
+      if (this.censusFilter.attended) p.set('attended', this.censusFilter.attended)
+      if (this.censusSearch) p.set('search', this.censusSearch)
+      return `/census/export?${p}`
     },
     // ─────────────────────────────────────────────────────────────────────────
 

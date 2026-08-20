@@ -46,6 +46,8 @@ def _payload(r: CensusRecord, registered_by_name: str = None) -> dict:
         "vulnerable": json.loads(r.vulnerable) if r.vulnerable else [],
         "shelter_status": r.shelter_status,
         "notes": r.notes,
+        "is_attended": getattr(r, "is_attended", False),
+        "attended_at": (r.attended_at.isoformat() + "Z") if getattr(r, "attended_at", None) else None,
         "registered_by": r.registered_by,
         "registered_by_name": registered_by_name,
         "created_at": r.created_at.isoformat() + "Z",
@@ -89,6 +91,16 @@ async def create_census(
     name = str(body.get("full_name", "")).strip()
     if not name:
         raise HTTPException(400, "El nombre es requerido")
+
+    # Detección de duplicados por documento
+    doc = str(body.get("document_number", "") or "").strip()
+    if doc:
+        existing = (await db.execute(
+            select(CensusRecord)
+            .where(CensusRecord.document_number == doc, CensusRecord.is_active == True)  # noqa
+        )).scalar_one_or_none()
+        if existing:
+            raise HTTPException(409, f"Ya existe un registro con el documento {doc} (ID #{existing.id}: {existing.full_name})")
 
     needs = body.get("needs", [])
     vulnerable = body.get("vulnerable", [])
@@ -150,10 +162,37 @@ async def update_census(
     return {"ok": True}
 
 
+@router.patch("/{record_id}/attend")
+async def toggle_attended(
+    record_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Alterna el estado de atención de un registro."""
+    _require_census_access(current_user)
+    r = (await db.execute(select(CensusRecord).where(CensusRecord.id == record_id))).scalar_one_or_none()
+    if not r:
+        raise HTTPException(404, "Registro no encontrado")
+    new_val = not getattr(r, "is_attended", False)
+    await db.execute(
+        update(CensusRecord).where(CensusRecord.id == record_id).values(
+            is_attended=new_val,
+            attended_at=datetime.utcnow() if new_val else None,
+            updated_at=datetime.utcnow(),
+        )
+    )
+    await db.commit()
+    return {"ok": True, "is_attended": new_val}
+
+
 # ── Exportación Excel ─────────────────────────────────────────────────────────
 
 @router.get("/export")
 async def export_census_xlsx(
+    need: Optional[str] = None,
+    shelter: Optional[str] = None,
+    attended: Optional[str] = None,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user_from_query),
 ):
@@ -170,7 +209,29 @@ async def export_census_xlsx(
         .where(CensusRecord.is_active == True)  # noqa
         .order_by(CensusRecord.created_at.desc())
     )
-    records = result.scalars().all()
+    all_records = result.scalars().all()
+
+    # Aplicar filtros
+    records = []
+    for r in all_records:
+        if need and need not in (json.loads(r.needs) if r.needs else []):
+            continue
+        if shelter and r.shelter_status != shelter:
+            continue
+        if attended == "true" and not getattr(r, "is_attended", False):
+            continue
+        if attended == "false" and getattr(r, "is_attended", False):
+            continue
+        if search:
+            s = search.lower()
+            if not any([
+                s in (r.full_name or "").lower(),
+                s in (r.document_number or "").lower(),
+                s in (r.neighborhood or "").lower(),
+                s in (r.address or "").lower(),
+            ]):
+                continue
+        records.append(r)
 
     # Cargar nombres de registradores una sola vez
     user_ids = {r.registered_by for r in records if r.registered_by}
@@ -209,8 +270,8 @@ async def export_census_xlsx(
         "Nombre completo", "Documento", "Edad", "Género",
         "Teléfono", "WhatsApp", "Dirección", "Barrio",
         "Personas", "Menores", "Adultos mayores",
-        "Alojamiento", "Necesidades", "Notas",
-        "Registrado por", "Fecha registro",
+        "Alojamiento", "Necesidades", "Vulnerabilidad", "Notas",
+        "Atendido", "Registrado por", "Fecha registro",
     ]
     COLS = len(headers)
     hfill = PatternFill("solid", fgColor="111827")
@@ -237,17 +298,23 @@ async def export_census_xlsx(
     }
 
     for i, r in enumerate(records, start=4):
+        vuln_labels = {
+            "pregnant": "Embarazada", "disability": "Discapacidad",
+            "chronic_illness": "Enfermedad crónica", "mental_health": "Salud mental",
+        }
         needs_str = ", ".join(need_labels.get(n, n) for n in (json.loads(r.needs) if r.needs else []))
+        vuln_str = ", ".join(vuln_labels.get(v, v) for v in (json.loads(r.vulnerable) if r.vulnerable else []))
         shelter = shelter_labels.get(r.shelter_status, r.shelter_status or "")
         vol_name = users.get(r.registered_by, "desconocido") if r.registered_by else "—"
         fecha = r.created_at.strftime("%d/%m/%Y %H:%M") if r.created_at else ""
+        atendido = "Sí" if getattr(r, "is_attended", False) else "No"
 
         row_data = [
             r.full_name, r.document_number, r.age, r.gender,
             r.phone, r.whatsapp, r.address, r.neighborhood,
             r.people_count, r.children_count, r.elderly_count,
-            shelter, needs_str, r.notes,
-            vol_name, fecha,
+            shelter, needs_str, vuln_str, r.notes,
+            atendido, vol_name, fecha,
         ]
         fill = alt_fill if i % 2 == 0 else None
         for col, val in enumerate(row_data, 1):
@@ -260,7 +327,7 @@ async def export_census_xlsx(
         ws.row_dimensions[i].height = 16
 
     # Anchos de columna
-    col_widths = [28, 16, 8, 12, 14, 14, 30, 18, 10, 10, 14, 16, 32, 28, 22, 18]
+    col_widths = [28, 16, 8, 12, 14, 14, 30, 18, 10, 10, 14, 16, 32, 24, 28, 10, 22, 18]
     for i, w in enumerate(col_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 

@@ -41,6 +41,10 @@ class CensusRecord(Base):
     # ── Notas ─────────────────────────────────────────────────────────────
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # ── Estado de atención ────────────────────────────────────────────────
+    is_attended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    attended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
     # ── Meta ──────────────────────────────────────────────────────────────
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     registered_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

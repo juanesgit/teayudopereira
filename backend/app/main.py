@@ -109,9 +109,43 @@ async def _migrate_delivery_table():
         logging.getLogger(__name__).error("_migrate_delivery_table ERROR: %s", exc, exc_info=True)
 
 
+async def _migrate_census_table():
+    """Migración: nuevas columnas en census_records."""
+    import sqlite3, os, logging
+    log = logging.getLogger(__name__)
+    db_url = settings.DATABASE_URL
+    db_path = db_url.replace("sqlite+aiosqlite:///", "").replace("sqlite:///", "")
+    if not db_path.startswith("/"):
+        db_path = str(Path(__file__).resolve().parent.parent / db_path)
+    if not os.path.exists(db_path):
+        return
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(census_records)")
+        rows = cur.fetchall()
+        if not rows:
+            conn.close()
+            return
+        cols = {r[1] for r in rows}
+        for col, defn in [
+            ("is_attended", "INTEGER NOT NULL DEFAULT 0"),
+            ("attended_at",  "DATETIME"),
+        ]:
+            if col not in cols:
+                log.info("_migrate_census_table: agregando columna %s", col)
+                cur.execute(f"ALTER TABLE census_records ADD COLUMN {col} {defn}")
+        conn.commit()
+        conn.close()
+        log.info("_migrate_census_table: completada.")
+    except Exception as exc:
+        logging.getLogger(__name__).error("_migrate_census_table ERROR: %s", exc, exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await _migrate_delivery_table()
+    await _migrate_census_table()
     await init_db()
     await group_broadcaster.setup(settings.REDIS_URL)
     await room_broadcaster.setup(settings.REDIS_URL)
