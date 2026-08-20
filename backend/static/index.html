@@ -628,77 +628,72 @@
   <!-- MODAL CONFIRMACIÓN ANULAR ENTREGA -->
   <!-- Modal editar entrega -->
   <template x-if="editDeliveryOpen && editDeliveryTarget">
-    <div style="position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:0"
-      @click.self="editDeliveryOpen=false;editDeliveryTarget=null">
-      <div style="background:white;border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.3)">
+    <div style="position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:white;border-radius:24px;width:100%;max-width:360px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+
         <!-- Header -->
-        <div style="background:#111827;padding:20px 20px 18px;text-align:center;position:sticky;top:0;z-index:1">
-          <div style="font-size:32px;margin-bottom:6px">✏️</div>
-          <h2 style="color:white;font-size:16px;font-weight:800;margin:0 0 2px">Editar entrega</h2>
-          <p style="color:rgba(255,255,255,.55);font-size:12px;margin:0" x-text="'Para: '+editDeliveryTarget.delivered_to"></p>
+        <div style="background:linear-gradient(135deg,#111827,#1f2937);padding:28px 24px;text-align:center">
+          <div style="font-size:44px;margin-bottom:10px">✏️</div>
+          <h2 style="color:white;font-size:17px;font-weight:800;margin:0 0 4px">Editar entrega</h2>
+          <p style="color:rgba(255,255,255,.7);font-size:13px;margin:0" x-text="editDeliveryTarget.delivered_to"></p>
         </div>
 
-        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+        <!-- Cuerpo -->
+        <div style="padding:24px;display:flex;flex-direction:column;gap:16px">
 
-          <!-- Sección medicamentos editables -->
-          <div>
-            <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">💊 Medicamentos entregados</p>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <template x-for="(item, i) in editDeliveryForm.items" :key="item.id">
-                <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
-                  <input x-model="item.medication_name" type="text" placeholder="Nombre del medicamento"
-                    style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:white;width:100%;box-sizing:border-box;font-weight:600">
-                  <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
-                    <div style="display:flex;flex-direction:column;gap:3px">
-                      <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">Cantidad</label>
-                      <input x-model="item.quantity_delivered" type="number" min="1" placeholder="0"
-                        style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:white;width:100%;box-sizing:border-box;text-align:center;font-weight:700">
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:3px">
-                      <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">Unidad</label>
-                      <input x-model="item.unit" type="text" placeholder="und"
-                        style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:white;width:100%;box-sizing:border-box">
-                    </div>
+          <!-- Medicamentos editables -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0">💊 Medicamentos</p>
+            <template x-for="(item, i) in editDeliveryForm.items" :key="item.id">
+              <div style="background:#f9fafb;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+                <input x-model="item.medication_name" type="text" placeholder="Nombre del medicamento"
+                  style="font-size:13px;font-weight:600;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:white;width:100%;box-sizing:border-box;outline:none">
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">Cantidad</label>
+                    <input x-model="item.quantity_delivered" type="number" min="1"
+                      style="font-size:14px;font-weight:700;text-align:center;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:white;width:100%;box-sizing:border-box;outline:none">
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase">Unidad</label>
+                    <input x-model="item.unit" type="text" placeholder="und"
+                      style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:white;width:100%;box-sizing:border-box;outline:none">
                   </div>
                 </div>
-              </template>
-            </div>
-            <p x-show="editDeliveryTarget.ids.length>1" style="font-size:11px;color:#9ca3af;margin:6px 0 0;text-align:center">
-              Cada fila es un ítem independiente del grupo
-            </p>
+              </div>
+            </template>
           </div>
 
-          <!-- Divisor -->
-          <div style="border-top:1px solid #f3f4f6"></div>
-
-          <!-- Sección beneficiario -->
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0">👤 Datos del beneficiario</p>
+          <!-- Beneficiario -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0">👤 Beneficiario</p>
             <input x-model="editDeliveryForm.delivered_to" type="text" placeholder="Nombre completo *"
-              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;outline:none">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               <input x-model="editDeliveryForm.recipient_id" type="text" placeholder="Documento"
-                style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+                style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;outline:none">
               <input x-model="editDeliveryForm.recipient_phone" type="text" placeholder="Teléfono"
-                style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+                style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;outline:none">
             </div>
             <input x-model="editDeliveryForm.recipient_address" type="text" placeholder="Dirección"
-              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;outline:none">
             <textarea x-model="editDeliveryForm.delivery_notes" rows="2" placeholder="Notas u observaciones..."
-              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;resize:none;font-family:inherit"></textarea>
+              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;resize:none;font-family:inherit;outline:none"></textarea>
           </div>
 
           <!-- Botones -->
           <button @click="doEditDelivery()" :disabled="editDeliveryLoading || !editDeliveryForm.delivered_to?.trim()"
-            style="width:100%;min-height:50px;font-size:15px;font-weight:800;color:white;background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;border-radius:18px;cursor:pointer;box-shadow:0 4px 14px rgba(220,38,38,.35);opacity:1"
-            :style="(editDeliveryLoading||!editDeliveryForm.delivered_to?.trim()) ? 'opacity:.5;cursor:not-allowed' : ''">
+            class="w-full text-white font-black rounded-2xl border-none cursor-pointer disabled:opacity-50"
+            style="min-height:54px;font-size:16px;background:linear-gradient(135deg,#111827,#1f2937);box-shadow:0 4px 14px rgba(17,24,39,.35)">
             <span x-show="!editDeliveryLoading">✓ Guardar cambios</span>
             <span x-show="editDeliveryLoading">Guardando...</span>
           </button>
           <button @click="editDeliveryOpen=false;editDeliveryTarget=null" :disabled="editDeliveryLoading"
-            style="width:100%;min-height:44px;font-size:14px;font-weight:600;background:#f3f4f6;color:#6b7280;border:none;border-radius:16px;cursor:pointer;margin-bottom:4px">
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer disabled:opacity-40"
+            style="min-height:48px;font-size:15px;background:#f3f4f6;color:#6b7280">
             Cancelar
           </button>
+
         </div>
       </div>
     </div>
