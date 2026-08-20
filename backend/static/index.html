@@ -4579,49 +4579,51 @@
             class="text-xs border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 w-full">
         </div>
 
-        <!-- Pills — patrón idéntico al admin (hide-scroll mb-3 px-4) -->
-        <div class="hide-scroll px-4 mt-3 mb-3" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
-          <template x-for="f in [
-            {k:'all',  l:'Todos'},
-            {k:'pend', l:'⏳ Pendientes'},
-            {k:'att',  l:'✅ Atendidos'},
-            {k:'str',  l:'🚨 En calle'},
-            {k:'shel', l:'🏕 Albergue'},
-            {k:'evac', l:'🚶 Evacuado'},
-            {k:'food', l:'🍱 Alimentos'},
-            {k:'water',l:'💧 Agua'},
-            {k:'med',  l:'🏥 Médico'},
-            {k:'meds', l:'💊 Medicamentos'}
-          ]" :key="f.k">
-            <button @click="
-              if(f.k==='all'){censusFilter={need:'',shelter:'',attended:''}}
-              else if(f.k==='pend'){censusFilter.attended=censusFilter.attended==='false'?'':'false'}
-              else if(f.k==='att'){censusFilter.attended=censusFilter.attended==='true'?'':'true'}
-              else if(f.k==='str'){censusFilter.shelter=censusFilter.shelter==='street'?'':'street'}
-              else if(f.k==='shel'){censusFilter.shelter=censusFilter.shelter==='shelter'?'':'shelter'}
-              else if(f.k==='evac'){censusFilter.shelter=censusFilter.shelter==='evacuated'?'':'evacuated'}
-              else if(f.k==='food'){censusFilter.need=censusFilter.need==='food'?'':'food'}
-              else if(f.k==='water'){censusFilter.need=censusFilter.need==='water'?'':'water'}
-              else if(f.k==='med'){censusFilter.need=censusFilter.need==='medical'?'':'medical'}
-              else if(f.k==='meds'){censusFilter.need=censusFilter.need==='medicine'?'':'medicine'}
-            "
-              class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
-              :style="
-                (f.k==='all' && !censusFilter.need&&!censusFilter.shelter&&!censusFilter.attended) ||
-                (f.k==='pend' && censusFilter.attended==='false') ||
-                (f.k==='att'  && censusFilter.attended==='true') ||
-                (f.k==='str'  && censusFilter.shelter==='street') ||
-                (f.k==='shel' && censusFilter.shelter==='shelter') ||
-                (f.k==='evac' && censusFilter.shelter==='evacuated') ||
-                (f.k==='food' && censusFilter.need==='food') ||
-                (f.k==='water'&& censusFilter.need==='water') ||
-                (f.k==='med'  && censusFilter.need==='medical') ||
-                (f.k==='meds' && censusFilter.need==='medicine')
-                  ? 'background:#111827;color:white'
-                  : 'background:#f3f4f6;color:#6b7280'
-              "
-              x-text="f.l"></button>
-          </template>
+        <!-- Filtros por dimensión -->
+        <div class="px-4 mt-3 mb-1 flex flex-col gap-2.5">
+
+          <!-- Atención -->
+          <div class="flex flex-col gap-1.5">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Atención</p>
+            <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <template x-for="f in [{k:'all',l:'Todos'},{k:'pend',l:'⏳ Pendientes'},{k:'att',l:'✅ Atendidos'}]" :key="f.k">
+                <button
+                  @click="f.k==='all' ? censusFilter.attended='' : (censusFilter.attended=censusFilter.attended===( f.k==='pend'?'false':'true') ? '' : (f.k==='pend'?'false':'true'))"
+                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  :style="(f.k==='all'&&!censusFilter.attended)||(f.k==='pend'&&censusFilter.attended==='false')||(f.k==='att'&&censusFilter.attended==='true') ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                  x-text="f.l"></button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Situación -->
+          <div class="flex flex-col gap-1.5">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Situación</p>
+            <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <template x-for="f in [{k:'',l:'Todos'},{k:'street',l:'🚨 En calle'},{k:'shelter',l:'🏕 Albergue'},{k:'evacuated',l:'🚶 Evacuado'},{k:'home',l:'🏠 En casa'}]" :key="f.k">
+                <button
+                  @click="censusFilter.shelter = censusFilter.shelter===f.k ? '' : f.k"
+                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  :style="censusFilter.shelter===f.k ? 'background:#111827;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                  x-text="f.l"></button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Necesidad -->
+          <div class="flex flex-col gap-1.5">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Necesidad</p>
+            <div class="hide-scroll" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+              <template x-for="f in [{k:'',l:'Todas'},{k:'food',l:'🍱 Alimentos'},{k:'water',l:'💧 Agua'},{k:'medical',l:'🏥 Médico'},{k:'medicine',l:'💊 Medicamentos'},{k:'clothing',l:'👕 Ropa'}]" :key="f.k">
+                <button
+                  @click="censusFilter.need = censusFilter.need===f.k ? '' : f.k"
+                  class="flex-shrink-0 text-xs rounded-full px-3 py-1.5 border-none cursor-pointer font-semibold transition-all whitespace-nowrap"
+                  :style="censusFilter.need===f.k ? 'background:#dc2626;color:white' : 'background:#f3f4f6;color:#6b7280'"
+                  x-text="f.l"></button>
+              </template>
+            </div>
+          </div>
+
         </div>
 
         <!-- Separador + contador -->
