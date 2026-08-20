@@ -21,66 +21,84 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 async def _migrate_delivery_table():
     """Migración: report_id nullable + nuevas columnas en medication_deliveries."""
-    import sqlite3, os
+    import sqlite3, os, logging
+    log = logging.getLogger(__name__)
     db_path = str(Path(__file__).resolve().parent.parent / "pereira_alerta.db")
     if not os.path.exists(db_path):
+        log.info("_migrate_delivery_table: DB no existe aún, se omite.")
         return
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute("PRAGMA table_info(medication_deliveries)")
-    rows = cur.fetchall()
-    if not rows:
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("PRAGMA table_info(medication_deliveries)")
+        rows = cur.fetchall()
+        if not rows:
+            conn.close()
+            return
+        cols = {r[1]: r for r in rows}
+        log.info("_migrate_delivery_table: columnas existentes → %s", list(cols.keys()))
+
+        # Agregar columnas nuevas si faltan
+        new_cols = [
+            ("delivery_type",     "TEXT NOT NULL DEFAULT 'solicitude'"),
+            ("recipient_id",      "TEXT"),
+            ("recipient_phone",   "TEXT"),
+            ("recipient_address", "TEXT"),
+            ("delivery_group_id", "TEXT"),
+        ]
+        for col, defn in new_cols:
+            if col not in cols:
+                log.info("_migrate_delivery_table: agregando columna %s", col)
+                cur.execute(f"ALTER TABLE medication_deliveries ADD COLUMN {col} {defn}")
+                cols[col] = True  # marcar como presente
+
+        # Recrear tabla si report_id sigue siendo NOT NULL
+        cur.execute("PRAGMA table_info(medication_deliveries)")
+        info = {r[1]: r for r in cur.fetchall()}
+        if info.get("report_id", (None,)*4)[3]:  # notnull=1
+            log.info("_migrate_delivery_table: report_id es NOT NULL — recreando tabla...")
+            cur.execute("PRAGMA foreign_keys=OFF")
+            cur.executescript("""
+                CREATE TABLE IF NOT EXISTS med_del_new (
+                    id INTEGER PRIMARY KEY,
+                    report_id INTEGER REFERENCES reports(id) ON DELETE SET NULL,
+                    delivery_type TEXT NOT NULL DEFAULT 'solicitude',
+                    delivery_group_id TEXT,
+                    stock_id INTEGER REFERENCES medication_stock(id) ON DELETE SET NULL,
+                    medication_name VARCHAR(200) NOT NULL,
+                    quantity_delivered INTEGER NOT NULL DEFAULT 1,
+                    unit VARCHAR(40) NOT NULL DEFAULT 'unidades',
+                    delivered_to VARCHAR(150) NOT NULL,
+                    recipient_id TEXT,
+                    recipient_phone TEXT,
+                    recipient_address TEXT,
+                    delivered_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    delivery_notes TEXT,
+                    delivered_at DATETIME NOT NULL,
+                    created_at DATETIME NOT NULL
+                );
+                INSERT OR IGNORE INTO med_del_new
+                    (id,report_id,delivery_type,stock_id,medication_name,quantity_delivered,
+                     unit,delivered_to,recipient_id,recipient_phone,recipient_address,
+                     delivered_by,delivery_notes,delivered_at,created_at)
+                SELECT id,report_id,COALESCE(delivery_type,'solicitude'),stock_id,
+                       medication_name,quantity_delivered,unit,delivered_to,
+                       COALESCE(recipient_id,NULL),recipient_phone,recipient_address,
+                       delivered_by,delivery_notes,delivered_at,created_at
+                FROM medication_deliveries;
+                DROP TABLE medication_deliveries;
+                ALTER TABLE med_del_new RENAME TO medication_deliveries;
+            """)
+            cur.execute("PRAGMA foreign_keys=ON")
+            log.info("_migrate_delivery_table: tabla recreada correctamente.")
+        else:
+            log.info("_migrate_delivery_table: report_id ya es nullable — no se requiere recreación.")
+
+        conn.commit()
         conn.close()
-        return
-    cols = {r[1]: r for r in rows}
-    # Agregar columnas nuevas si faltan
-    for col, defn in [
-        ("delivery_type",     "TEXT NOT NULL DEFAULT 'solicitude'"),
-        ("recipient_id",      "TEXT"),
-        ("recipient_phone",   "TEXT"),
-        ("recipient_address", "TEXT"),
-        ("delivery_group_id", "TEXT"),
-    ]:
-        if col not in cols:
-            cur.execute(f"ALTER TABLE medication_deliveries ADD COLUMN {col} {defn}")
-    # Recrear tabla si report_id sigue siendo NOT NULL
-    cur.execute("PRAGMA table_info(medication_deliveries)")
-    info = {r[1]: r for r in cur.fetchall()}
-    if info.get("report_id", (None,)*4)[3]:  # notnull=1
-        cur.execute("PRAGMA foreign_keys=OFF")
-        cur.executescript("""
-            CREATE TABLE IF NOT EXISTS med_del_new (
-                id INTEGER PRIMARY KEY,
-                report_id INTEGER REFERENCES reports(id) ON DELETE SET NULL,
-                delivery_type TEXT NOT NULL DEFAULT 'solicitude',
-                delivery_group_id TEXT,
-                stock_id INTEGER REFERENCES medication_stock(id) ON DELETE SET NULL,
-                medication_name VARCHAR(200) NOT NULL,
-                quantity_delivered INTEGER NOT NULL DEFAULT 1,
-                unit VARCHAR(40) NOT NULL DEFAULT 'unidades',
-                delivered_to VARCHAR(150) NOT NULL,
-                recipient_phone TEXT,
-                recipient_address TEXT,
-                delivered_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-                delivery_notes TEXT,
-                delivered_at DATETIME NOT NULL,
-                created_at DATETIME NOT NULL
-            );
-            INSERT OR IGNORE INTO med_del_new
-                (id,report_id,delivery_type,stock_id,medication_name,quantity_delivered,
-                 unit,delivered_to,recipient_phone,recipient_address,delivered_by,
-                 delivery_notes,delivered_at,created_at)
-            SELECT id,report_id,COALESCE(delivery_type,'solicitude'),stock_id,
-                   medication_name,quantity_delivered,unit,delivered_to,
-                   recipient_phone,recipient_address,delivered_by,
-                   delivery_notes,delivered_at,created_at
-            FROM medication_deliveries;
-            DROP TABLE medication_deliveries;
-            ALTER TABLE med_del_new RENAME TO medication_deliveries;
-        """)
-        cur.execute("PRAGMA foreign_keys=ON")
-    conn.commit()
-    conn.close()
+        log.info("_migrate_delivery_table: migración completada.")
+    except Exception as exc:
+        logging.getLogger(__name__).error("_migrate_delivery_table ERROR: %s", exc, exc_info=True)
 
 
 @asynccontextmanager

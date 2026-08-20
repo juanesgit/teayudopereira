@@ -739,6 +739,10 @@
               @blur="$el.style.borderColor='#e5e7eb'"></textarea>
           </div>
 
+          <!-- Error message -->
+          <div x-show="medDirectError" x-text="'⚠️ ' + medDirectError"
+            style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:10px 14px;font-size:13px;color:#dc2626;font-weight:600;margin-bottom:2px"></div>
+
           <!-- Botones -->
           <button @click="saveDirectDelivery()" :disabled="medDirectLoading || !medDirect.delivered_to || !medDirectItems.some(i=>i.medication_name.trim())"
             class="w-full text-white font-black rounded-2xl border-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -4062,7 +4066,7 @@
               <p class="text-xs text-gray-400" x-text="groupedDeliveries().length+' entrega(s)'"></p>
               <div class="flex gap-2">
                 <button @click="loadMedDeliveries()" class="text-xs text-gray-400 bg-transparent border-none cursor-pointer px-1">🔄</button>
-                <button @click="medDirectModal=true"
+                <button @click="medDirectModal=true; medDirectError=''"
                   class="text-xs font-semibold rounded-lg px-3 py-1.5 border-none cursor-pointer"
                   style="background:#111827;color:white">🤝 Entrega directa</button>
               </div>
@@ -5004,6 +5008,7 @@ function app() {
     medDeliveries: [],
     medDirectModal: false,
     medDirectLoading: false,
+    medDirectError: '',
     medDirect: { delivered_to:'', recipient_id:'', recipient_phone:'', recipient_address:'', delivery_notes:'' },
     medDirectItems: [{ stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas' }],
     medStockForm: false,
@@ -6759,9 +6764,10 @@ function app() {
       const validItems = this.medDirectItems.filter(i => i.medication_name.trim())
       if (!validItems.length) return
       this.medDirectLoading = true
+      this.medDirectError = ''
       try {
         const groupId = crypto.randomUUID()
-        await Promise.all(validItems.map(item =>
+        const responses = await Promise.all(validItems.map(item =>
           fetch('/medication/deliveries', {
             method: 'POST',
             headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
@@ -6779,12 +6785,21 @@ function app() {
             }),
           })
         ))
+        const failed = responses.find(r => !r.ok)
+        if (failed) {
+          let errMsg = `Error ${failed.status}`
+          try { const d = await failed.json(); errMsg = d.detail || errMsg } catch {}
+          this.medDirectError = errMsg
+          return
+        }
         this.medDirect = { delivered_to:'', recipient_id:'', recipient_phone:'', recipient_address:'', delivery_notes:'' }
         this.medDirectItems = [{ stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas' }]
         this.medDirectModal = false
         await this.loadMedDeliveries()
         await this.loadMedStock()
-      } catch {} finally {
+      } catch(e) {
+        this.medDirectError = e.message || 'Error de red al guardar'
+      } finally {
         this.medDirectLoading = false
       }
     },
