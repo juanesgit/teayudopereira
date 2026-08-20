@@ -626,6 +626,70 @@
   </template>
 
   <!-- MODAL CONFIRMACIÓN ANULAR ENTREGA -->
+  <!-- Modal editar entrega -->
+  <template x-if="editDeliveryOpen && editDeliveryTarget">
+    <div style="position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:white;border-radius:24px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#1d4ed8,#1e40af);padding:22px 24px;text-align:center">
+          <div style="font-size:36px;margin-bottom:8px">✏️</div>
+          <h2 style="color:white;font-size:17px;font-weight:800;margin:0 0 2px">Editar entrega</h2>
+          <p style="color:rgba(255,255,255,.75);font-size:12px;margin:0" x-text="'#'+editDeliveryTarget.ids[0]+(editDeliveryTarget.ids.length>1?' + '+(editDeliveryTarget.ids.length-1)+' más':'')"></p>
+        </div>
+        <!-- Ítems (solo lectura) -->
+        <div style="padding:16px 20px 0">
+          <p style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">Medicamentos</p>
+          <div style="background:#f9fafb;border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:4px">
+            <template x-for="(item,i) in editDeliveryTarget.items" :key="i">
+              <p style="font-size:12px;color:#374151;margin:0">• <span x-text="item.medication_name+' — '+item.quantity_delivered+' '+item.unit"></span></p>
+            </template>
+          </div>
+        </div>
+        <!-- Formulario -->
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Beneficiario *</label>
+            <input x-model="editDeliveryForm.delivered_to" type="text" placeholder="Nombre completo"
+              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Documento</label>
+              <input x-model="editDeliveryForm.recipient_id" type="text" placeholder="Cédula"
+                style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Teléfono</label>
+              <input x-model="editDeliveryForm.recipient_phone" type="text" placeholder="Celular"
+                style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Dirección</label>
+            <input x-model="editDeliveryForm.recipient_address" type="text" placeholder="Dirección del beneficiario"
+              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Notas</label>
+            <textarea x-model="editDeliveryForm.delivery_notes" rows="2" placeholder="Observaciones..."
+              style="font-size:13px;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px 14px;background:#f9fafb;width:100%;box-sizing:border-box;resize:none;font-family:inherit"></textarea>
+          </div>
+          <button @click="doEditDelivery()" :disabled="editDeliveryLoading || !editDeliveryForm.delivered_to?.trim()"
+            class="w-full text-white font-black rounded-2xl border-none cursor-pointer disabled:opacity-50"
+            style="min-height:50px;font-size:15px;background:linear-gradient(135deg,#1d4ed8,#1e40af);box-shadow:0 4px 14px rgba(29,78,216,.35)">
+            <span x-show="!editDeliveryLoading">✓ Guardar cambios</span>
+            <span x-show="editDeliveryLoading">Guardando...</span>
+          </button>
+          <button @click="editDeliveryOpen=false;editDeliveryTarget=null" :disabled="editDeliveryLoading"
+            class="w-full font-semibold rounded-2xl border-none cursor-pointer disabled:opacity-40"
+            style="min-height:44px;font-size:14px;background:#f3f4f6;color:#6b7280">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
   <template x-if="cancelDeliveryConfirm && cancelDeliveryTarget">
     <div style="position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px">
       <div style="background:white;border-radius:24px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)">
@@ -4203,9 +4267,14 @@
                     </div>
                     <div class="flex flex-col items-end gap-1 flex-shrink-0">
                       <span class="text-xs text-gray-400" x-text="fmtDate(g.delivered_at)"></span>
-                      <button x-show="!g.is_cancelled" @click="cancelDeliveryGroup(g)"
-                        class="text-xs border-none cursor-pointer rounded-lg px-2 py-0.5 font-semibold"
-                        style="background:#fee2e2;color:#dc2626">Anular</button>
+                      <div x-show="!g.is_cancelled" class="flex gap-1">
+                        <button @click="openDeliveryEdit(g)"
+                          class="text-xs border-none cursor-pointer rounded-lg px-2 py-0.5 font-semibold"
+                          style="background:#eff6ff;color:#1d4ed8">✏️ Editar</button>
+                        <button @click="cancelDeliveryGroup(g)"
+                          class="text-xs border-none cursor-pointer rounded-lg px-2 py-0.5 font-semibold"
+                          style="background:#fee2e2;color:#dc2626">Anular</button>
+                      </div>
                     </div>
                   </div>
 
@@ -5238,6 +5307,10 @@ function app() {
     cancelDeliveryConfirm: false,
     cancelDeliveryLoading: false,
     cancelDeliveryTarget: null,
+    editDeliveryOpen: false,
+    editDeliveryLoading: false,
+    editDeliveryTarget: null,
+    editDeliveryForm: {},
     medDirect: { delivered_to:'', recipient_id:'', recipient_phone:'', recipient_address:'', delivery_notes:'' },
     medDirectItems: [{ stock_id:'', medication_name:'', quantity_delivered:1, unit:'tabletas' }],
     medStockForm: false,
@@ -7110,6 +7183,40 @@ function app() {
         if (d.is_cancelled) seen[key].is_cancelled = true
       }
       return groups
+    },
+
+    openDeliveryEdit(g) {
+      this.editDeliveryTarget = g
+      this.editDeliveryForm = {
+        delivered_to: g.delivered_to || '',
+        recipient_id: g.recipient_id || '',
+        recipient_phone: g.recipient_phone || '',
+        recipient_address: g.recipient_address || '',
+        delivery_notes: g.delivery_notes || '',
+      }
+      this.editDeliveryOpen = true
+    },
+
+    async doEditDelivery() {
+      const g = this.editDeliveryTarget
+      if (!g || !this.editDeliveryForm.delivered_to?.trim()) return
+      this.editDeliveryLoading = true
+      try {
+        await Promise.all(g.ids.map(id =>
+          fetch(`/medication/deliveries/${id}`, {
+            method: 'PATCH',
+            headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.editDeliveryForm),
+          })
+        ))
+        this.editDeliveryOpen = false
+        this.editDeliveryTarget = null
+        await this.loadMedDeliveries()
+      } catch(e) {
+        this.editDeliveryOpen = false
+      } finally {
+        this.editDeliveryLoading = false
+      }
     },
 
     cancelDeliveryGroup(g) {

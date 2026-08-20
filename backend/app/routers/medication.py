@@ -347,6 +347,39 @@ async def create_delivery(
     return _delivery_payload(d)
 
 
+@router.patch("/deliveries/{delivery_id}")
+async def update_delivery(
+    delivery_id: int,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Edita campos de beneficiario/notas de una entrega (no cancela ni mueve stock)."""
+    _require_admin(current_user)
+
+    d = (await db.execute(
+        select(MedicationDelivery).where(MedicationDelivery.id == delivery_id)
+    )).scalar_one_or_none()
+
+    if not d:
+        raise HTTPException(404, "Entrega no encontrada")
+    if getattr(d, "is_cancelled", False):
+        raise HTTPException(400, "No se puede editar una entrega anulada")
+
+    allowed = {"delivered_to", "recipient_id", "recipient_phone", "recipient_address", "delivery_notes"}
+    vals: dict = {}
+    for k, v in body.items():
+        if k in allowed:
+            vals[k] = v or None
+
+    if not vals:
+        raise HTTPException(400, "Sin campos válidos para actualizar")
+
+    await db.execute(update(MedicationDelivery).where(MedicationDelivery.id == delivery_id).values(**vals))
+    await db.commit()
+    return {"ok": True}
+
+
 @router.delete("/deliveries/{delivery_id}")
 async def cancel_delivery(
     delivery_id: int,
