@@ -808,6 +808,73 @@
     </div>
   </template>
 
+  <!-- MODAL MAPA CENSO -->
+  <template x-if="censusMapModal">
+    <div style="position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center"
+      @click.self="if(censusMap){censusMap.remove();censusMap=null;censusMapMarker=null;} censusMapModal=false">
+      <div style="background:white;border-radius:24px 24px 0 0;width:100%;max-width:520px;height:95vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.35)">
+
+        <!-- Handle -->
+        <div style="flex-shrink:0;padding:10px 20px 0">
+          <div style="width:40px;height:4px;background:#e5e7eb;border-radius:999px;margin:0 auto"></div>
+        </div>
+
+        <!-- Título + cerrar -->
+        <div style="flex-shrink:0;padding:10px 16px 8px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:15px;font-weight:800;color:#111827">📍 Seleccionar ubicación</span>
+          <button @click="if(censusMap){censusMap.remove();censusMap=null;censusMapMarker=null;} censusMapModal=false"
+            style="background:#f3f4f6;border:none;color:#6b7280;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:700">✕</button>
+        </div>
+
+        <!-- Búsqueda -->
+        <div style="flex-shrink:0;padding:0 16px 10px;position:relative">
+          <div style="display:flex;gap:8px">
+            <input x-model="censusMapSearch" type="text" placeholder="Buscar dirección o lugar..."
+              @keydown.enter.prevent="searchCensusAddress()"
+              style="flex:1;border:2px solid #e5e7eb;border-radius:14px;padding:11px 14px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:#f9fafb"
+              @focus="$el.style.borderColor='#dc2626'" @blur="$el.style.borderColor='#e5e7eb'">
+            <button @click="searchCensusAddress()" :disabled="censusMapSearching"
+              style="background:#dc2626;color:white;border:none;border-radius:14px;padding:0 16px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">
+              <span x-show="!censusMapSearching">🔍</span>
+              <span x-show="censusMapSearching">…</span>
+            </button>
+          </div>
+          <!-- Resultados -->
+          <div x-show="censusMapResults.length > 0"
+            style="position:absolute;left:16px;right:16px;top:52px;background:white;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:9999;overflow:hidden;border:1px solid #e5e7eb">
+            <template x-for="(r, i) in censusMapResults" :key="i">
+              <button @click="selectCensusResult(r)"
+                style="width:100%;text-align:left;padding:11px 14px;border:none;background:white;cursor:pointer;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;font-family:inherit"
+                @mouseenter="$el.style.background='#fef2f2'" @mouseleave="$el.style.background='white'"
+                x-text="r.display_name"></button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Hint -->
+        <div x-show="!censusMapLat" style="flex-shrink:0;margin:0 16px 8px;background:#fef9c3;border-radius:12px;padding:8px 12px">
+          <p style="font-size:12px;color:#854d0e;margin:0;font-weight:600">👆 Toca el mapa o busca una dirección para colocar el pin</p>
+        </div>
+        <div x-show="censusMapLat" style="flex-shrink:0;margin:0 16px 8px;background:#f0fdf4;border-radius:12px;padding:8px 12px">
+          <p style="font-size:12px;color:#166534;margin:0;font-weight:600">📌 Arrastra el pin para ajustar la posición exacta</p>
+        </div>
+
+        <!-- Mapa Leaflet -->
+        <div id="census-map" style="flex:1;width:100%;min-height:0"></div>
+
+        <!-- Botón confirmar -->
+        <div style="flex-shrink:0;padding:12px 16px 20px;background:white;border-top:1px solid #f3f4f6">
+          <button @click="confirmCensusLocation()" :disabled="!censusMapLat"
+            class="w-full font-black rounded-2xl border-none cursor-pointer text-white disabled:opacity-40"
+            style="min-height:52px;font-size:16px;background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 4px 14px rgba(220,38,38,.35)">
+            ✓ Confirmar ubicación
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </template>
+
   <!-- MODAL ENTREGA DIRECTA -->
   <template x-if="medDirectModal">
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:6500;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto"
@@ -4582,10 +4649,15 @@
                 class="text-xs border rounded-xl px-3 py-2.5 bg-gray-50 w-full"
                 :class="censusValidErrors.includes('Barrio / Sector') ? 'border-red-400 bg-red-50' : 'border-gray-200'">
             </div>
-            <button @click="getCensusGeo()"
-              class="text-xs rounded-xl py-2.5 border cursor-pointer font-semibold w-full"
-              :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'"
-              x-text="censusNew.lat ? '📌 '+censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4) : '🎯 Usar mi ubicación'"></button>
+            <div class="flex gap-2">
+              <button @click="getCensusGeo()"
+                class="flex-1 text-xs rounded-xl py-2.5 border cursor-pointer font-semibold"
+                :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'"
+                x-text="censusNew.lat ? '📌 '+censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4) : '🎯 Mi ubicación'"></button>
+              <button @click="openCensusMap()"
+                class="text-xs rounded-xl py-2.5 px-3 border cursor-pointer font-semibold flex-shrink-0"
+                style="background:#f9fafb;border-color:#e5e7eb;color:#6b7280">🗺️ Mapa</button>
+            </div>
           </div>
         </div>
 
@@ -5346,6 +5418,14 @@ function app() {
     censusDupWarning: '',
     censusValidErrors: [],
     censusFilter: { need:'', shelter:'', attended:'' },
+    censusMapModal: false,
+    censusMap: null,
+    censusMapMarker: null,
+    censusMapLat: null,
+    censusMapLng: null,
+    censusMapSearch: '',
+    censusMapResults: [],
+    censusMapSearching: false,
     censusDeleteConfirm: false,
     censusDeleteTarget: null,
     censusNew: {
@@ -7040,6 +7120,106 @@ function app() {
         this.censusNew.lat = pos.coords.latitude
         this.censusNew.lng = pos.coords.longitude
       }, () => {})
+    },
+
+    openCensusMap() {
+      const startLat = this.censusNew.lat || 4.8133
+      const startLng = this.censusNew.lng || -75.6961
+      this.censusMapLat = this.censusNew.lat
+      this.censusMapLng = this.censusNew.lng
+      this.censusMapSearch = ''
+      this.censusMapResults = []
+      this.censusMapModal = true
+      this.$nextTick(() => this.initCensusMap(startLat, startLng))
+    },
+
+    initCensusMap(lat, lng) {
+      const el = document.getElementById('census-map')
+      if (!el) return
+      if (this.censusMap) {
+        setTimeout(() => {
+          this.censusMap.invalidateSize()
+          this.censusMap.setView([lat, lng], 16)
+          if (this.censusMapMarker) this.censusMapMarker.setLatLng([lat, lng])
+          else {
+            this.censusMapMarker = L.marker([lat, lng], { draggable: true }).addTo(this.censusMap)
+            this._bindCensusMarker()
+          }
+        }, 150)
+        return
+      }
+      this.censusMap = L.map('census-map', { zoomAnimation: false }).setView([lat, lng], 16)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(this.censusMap)
+      setTimeout(() => this.censusMap.invalidateSize(), 200)
+
+      if (lat !== 4.8133 || lng !== -75.6961) {
+        this.censusMapMarker = L.marker([lat, lng], { draggable: true }).addTo(this.censusMap)
+        this.censusMapLat = lat
+        this.censusMapLng = lng
+        this._bindCensusMarker()
+      }
+
+      this.censusMap.on('click', (e) => {
+        this.censusMapLat = e.latlng.lat
+        this.censusMapLng = e.latlng.lng
+        if (this.censusMapMarker) this.censusMapMarker.setLatLng(e.latlng)
+        else {
+          this.censusMapMarker = L.marker(e.latlng, { draggable: true }).addTo(this.censusMap)
+          this._bindCensusMarker()
+        }
+      })
+    },
+
+    _bindCensusMarker() {
+      if (!this.censusMapMarker) return
+      this.censusMapMarker.on('dragend', (e) => {
+        const ll = e.target.getLatLng()
+        this.censusMapLat = ll.lat
+        this.censusMapLng = ll.lng
+      })
+    },
+
+    async searchCensusAddress() {
+      const q = this.censusMapSearch.trim()
+      if (q.length < 3) return
+      this.censusMapSearching = true
+      try {
+        const res = await fetch(`/geocode/search?q=${encodeURIComponent(q + ' Pereira Colombia')}&limit=6`)
+        this.censusMapResults = res.ok ? await res.json() : []
+      } catch(e) { this.censusMapResults = [] }
+      finally { this.censusMapSearching = false }
+    },
+
+    selectCensusResult(r) {
+      const lat = parseFloat(r.lat)
+      const lng = parseFloat(r.lon)
+      this.censusMapLat = lat
+      this.censusMapLng = lng
+      this.censusMapResults = []
+      this.censusMapSearch = r.display_name
+      if (this.censusMap) {
+        this.censusMap.setView([lat, lng], 17)
+        if (this.censusMapMarker) this.censusMapMarker.setLatLng([lat, lng])
+        else {
+          this.censusMapMarker = L.marker([lat, lng], { draggable: true }).addTo(this.censusMap)
+          this._bindCensusMarker()
+        }
+      }
+    },
+
+    confirmCensusLocation() {
+      if (!this.censusMapLat) return
+      this.censusNew.lat = this.censusMapLat
+      this.censusNew.lng = this.censusMapLng
+      // Destruir mapa al cerrar para que se reinicie limpio la próxima vez
+      if (this.censusMap) {
+        this.censusMap.remove()
+        this.censusMap = null
+        this.censusMapMarker = null
+      }
+      this.censusMapModal = false
     },
 
     openCensusEdit(r) {
