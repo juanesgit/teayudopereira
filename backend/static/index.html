@@ -855,8 +855,13 @@
         <div x-show="!censusMapLat" style="flex-shrink:0;margin:0 16px 8px;background:#fef9c3;border-radius:12px;padding:8px 12px">
           <p style="font-size:12px;color:#854d0e;margin:0;font-weight:600">👆 Toca el mapa o busca una dirección para colocar el pin</p>
         </div>
-        <div x-show="censusMapLat" style="flex-shrink:0;margin:0 16px 8px;background:#f0fdf4;border-radius:12px;padding:8px 12px">
-          <p style="font-size:12px;color:#166534;margin:0;font-weight:600">📌 Arrastra el pin para ajustar la posición exacta</p>
+        <div x-show="censusMapLat" style="flex-shrink:0;margin:0 16px 8px;background:#f0fdf4;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px;flex-shrink:0" x-text="censusMapAddressLoading ? '⏳' : '📌'"></span>
+          <div style="min-width:0">
+            <p style="font-size:12px;color:#166534;margin:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+              x-text="censusMapAddressLoading ? 'Obteniendo dirección...' : (censusMapAddress || 'Arrastra el pin para ajustar')"></p>
+            <p x-show="censusMapAddress" style="font-size:11px;color:#4ade80;margin:2px 0 0">Arrastra el pin para ajustar la posición exacta</p>
+          </div>
         </div>
 
         <!-- Mapa Leaflet -->
@@ -4651,9 +4656,10 @@
             </div>
             <div class="flex gap-2">
               <button @click="getCensusGeo()"
-                class="flex-1 text-xs rounded-xl py-2.5 border cursor-pointer font-semibold"
+                class="flex-1 text-xs rounded-xl py-2.5 border cursor-pointer font-semibold truncate"
                 :style="censusNew.lat ? 'background:#f0fdf4;border-color:#86efac;color:#16a34a' : 'background:#f9fafb;border-color:#e5e7eb;color:#6b7280'"
-                x-text="censusNew.lat ? '📌 '+censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4) : '🎯 Mi ubicación'"></button>
+                :title="censusGeoLabel || (censusNew.lat ? censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4) : '')"
+                x-text="censusNew.lat ? '📌 '+(censusGeoLabel || censusNew.lat.toFixed(4)+', '+censusNew.lng.toFixed(4)) : '🎯 Mi ubicación'"></button>
               <button @click="openCensusMap()"
                 class="text-xs rounded-xl py-2.5 px-3 border cursor-pointer font-semibold flex-shrink-0"
                 style="background:#f9fafb;border-color:#e5e7eb;color:#6b7280">🗺️ Mapa</button>
@@ -5423,9 +5429,12 @@ function app() {
     censusMapMarker: null,
     censusMapLat: null,
     censusMapLng: null,
+    censusMapAddress: '',
+    censusMapAddressLoading: false,
     censusMapSearch: '',
     censusMapResults: [],
     censusMapSearching: false,
+    censusGeoLabel: '',
     censusDeleteConfirm: false,
     censusDeleteTarget: null,
     censusNew: {
@@ -7116,9 +7125,19 @@ function app() {
 
     getCensusGeo() {
       if (!navigator.geolocation) return
-      navigator.geolocation.getCurrentPosition(pos => {
+      navigator.geolocation.getCurrentPosition(async pos => {
         this.censusNew.lat = pos.coords.latitude
         this.censusNew.lng = pos.coords.longitude
+        this.censusGeoLabel = ''
+        try {
+          const res = await fetch(`/geocode/reverse?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`, { headers: { 'Accept-Language': 'es' } })
+          const data = await res.json()
+          if (data?.address) {
+            const a = data.address
+            const parts = [a.road||a.pedestrian||a.footway, a.house_number, a.neighbourhood||a.suburb||a.quarter, a.city||a.town||a.municipality].filter(Boolean)
+            this.censusGeoLabel = parts.join(', ')
+          }
+        } catch {}
       }, () => {})
     },
 
@@ -7169,6 +7188,7 @@ function app() {
           this.censusMapMarker = L.marker(e.latlng, { draggable: true }).addTo(this.censusMap)
           this._bindCensusMarker()
         }
+        this._reverseCensusGeo(e.latlng.lat, e.latlng.lng)
       })
     },
 
@@ -7178,7 +7198,28 @@ function app() {
         const ll = e.target.getLatLng()
         this.censusMapLat = ll.lat
         this.censusMapLng = ll.lng
+        this._reverseCensusGeo(ll.lat, ll.lng)
       })
+    },
+
+    async _reverseCensusGeo(lat, lng) {
+      this.censusMapAddressLoading = true
+      this.censusMapAddress = ''
+      try {
+        const res = await fetch(`/geocode/reverse?lat=${lat}&lng=${lng}`, { headers: { 'Accept-Language': 'es' } })
+        const data = await res.json()
+        if (data?.address) {
+          const a = data.address
+          const parts = [
+            a.road || a.pedestrian || a.footway || a.street,
+            a.house_number,
+            a.neighbourhood || a.suburb || a.quarter || a.village,
+            a.city || a.town || a.municipality,
+          ].filter(Boolean)
+          this.censusMapAddress = parts.join(', ')
+        }
+      } catch { this.censusMapAddress = '' }
+      finally { this.censusMapAddressLoading = false }
     },
 
     async searchCensusAddress() {
@@ -7213,7 +7254,7 @@ function app() {
       if (!this.censusMapLat) return
       this.censusNew.lat = this.censusMapLat
       this.censusNew.lng = this.censusMapLng
-      // Destruir mapa al cerrar para que se reinicie limpio la próxima vez
+      this.censusGeoLabel = this.censusMapAddress || ''
       if (this.censusMap) {
         this.censusMap.remove()
         this.censusMap = null
@@ -7290,6 +7331,7 @@ function app() {
       this.censusEditId = null
       this.censusDupWarning = ''
       this.censusValidErrors = []
+      this.censusGeoLabel = ''
       this.censusForm = false
     },
 
